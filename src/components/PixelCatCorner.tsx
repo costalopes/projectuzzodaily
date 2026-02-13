@@ -193,9 +193,12 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
       const timeout = setTimeout(() => setMood("coding"), 4000);
       return () => clearTimeout(timeout);
     }
+  }, [mood]);
+
+  // Handle animation-driven moods — return to coding when CSS animation ends
+  const handleAnimationEnd = useCallback(() => {
     if (mood === "belly" || mood === "scratching" || mood === "stretching") {
-      const timeout = setTimeout(() => setMood("coding"), 5000);
-      return () => clearTimeout(timeout);
+      setMood("coding");
     }
   }, [mood]);
 
@@ -332,12 +335,19 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
         </div>
       )}
 
-      <div className={cn(
-        mood === "sleeping" ? "" : "animate-breathe",
-        isBelly && "animate-belly-roll",
-        isStretching && "animate-cat-stretch",
-        isScratching && "animate-cat-scratch"
-      )}>
+      <div
+        className={cn(
+          "transition-transform duration-500 ease-in-out",
+          mood === "sleeping" ? "" : "animate-breathe",
+          isBelly && "animate-belly-roll",
+          isStretching && "animate-cat-stretch",
+          isScratching && "animate-cat-scratch"
+        )}
+        onAnimationEnd={(e) => {
+          // Only handle the body animations, not children
+          if (e.currentTarget === e.target) handleAnimationEnd();
+        }}
+      >
         <svg width="120" height="108" viewBox="0 0 44 40"
           className="image-rendering-pixelated cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-110 active:scale-95"
           onClick={handlePet} role="button" aria-label={`Acariciar ${catName}`}>

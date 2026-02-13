@@ -183,12 +183,11 @@ input[type="number"] {
 
 /* Cat belly roll */
 @keyframes belly-roll {
-  0% { transform: rotate(0deg); }
-  30% { transform: rotate(15deg); }
-  70% { transform: rotate(15deg) scaleY(0.95); }
-  100% { transform: rotate(15deg); }
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  20% { transform: rotate(15deg) scaleY(0.97); }
+  80% { transform: rotate(15deg) scaleY(0.95); }
 }
-.animate-belly-roll { transform-origin: bottom center; animation: belly-roll 0.6s ease-out forwards; }
+.animate-belly-roll { transform-origin: bottom center; animation: belly-roll 5s ease-in-out; }
 
 /* Belly paws wiggle */
 @keyframes belly-paws {
@@ -209,19 +208,20 @@ input[type="number"] {
 /* Cat scratch body */
 @keyframes cat-scratch {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-3deg); }
+  15% { transform: rotate(-3deg); }
+  35% { transform: rotate(3deg); }
+  55% { transform: rotate(-3deg); }
   75% { transform: rotate(3deg); }
 }
-.animate-cat-scratch { transform-origin: bottom center; animation: cat-scratch 0.5s ease-in-out infinite; }
+.animate-cat-scratch { transform-origin: bottom center; animation: cat-scratch 5s ease-in-out; }
 
 /* Cat stretch */
 @keyframes cat-stretch {
-  0% { transform: scaleX(1) scaleY(1); }
-  40% { transform: scaleX(1.08) scaleY(0.92); }
-  70% { transform: scaleX(1.08) scaleY(0.92); }
-  100% { transform: scaleX(1) scaleY(1); }
+  0%, 100% { transform: scaleX(1) scaleY(1); }
+  20% { transform: scaleX(1.08) scaleY(0.92); }
+  80% { transform: scaleX(1.08) scaleY(0.92); }
 }
-.animate-cat-stretch { transform-origin: bottom center; animation: cat-stretch 2s ease-in-out infinite; }
+.animate-cat-stretch { transform-origin: bottom center; animation: cat-stretch 5s ease-in-out; }
 
 /* Shimmer */
 @keyframes shimmer {
