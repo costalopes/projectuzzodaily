@@ -23,37 +23,37 @@ export const DailyIntention = () => {
   };
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-5">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-4">
+      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
         intenção do dia
       </h3>
 
       {saved ? (
-        <div className="text-center py-3">
-          <p className="text-sm text-foreground font-medium italic leading-relaxed">
+        <div className="text-center py-1">
+          <p className="text-xs text-foreground font-medium italic leading-relaxed truncate">
             "{intention}"
           </p>
           <button
             onClick={() => { setSaved(false); setIntention(""); }}
-            className="text-[10px] text-muted-foreground/50 mt-3 hover:text-muted-foreground transition-colors font-mono"
+            className="text-[9px] text-muted-foreground/50 mt-1 hover:text-muted-foreground transition-colors font-mono"
           >
             trocar
           </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <input
             value={intention}
             onChange={(e) => setIntention(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && save()}
-            placeholder="Qual sua intenção hoje?"
-            className="w-full bg-muted/40 border border-border rounded-xl px-3 py-2.5 text-xs placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            placeholder="Qual sua intenção?"
+            className="w-full bg-muted/40 border border-border rounded-lg px-2.5 py-1.5 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
           />
           <button
             onClick={pickRandom}
-            className="w-full text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors py-1 font-mono"
+            className="w-full text-[9px] text-muted-foreground/50 hover:text-muted-foreground transition-colors font-mono"
           >
-            ou escolha uma aleatória ↻
+            aleatória ↻
           </button>
         </div>
       )}
