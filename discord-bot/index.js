@@ -29,7 +29,7 @@ const client = new Client({
 
 // ─── EXPRESS API ─────────────────────────────────────────
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*", methods: ["GET", "POST"], allowedHeaders: ["Content-Type", "x-api-secret"] }));
 app.use(express.json());
 registerRoutes(app, client);
 
