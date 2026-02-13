@@ -63,9 +63,10 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm animate-fade-in" style={{ animationDuration: "200ms" }} />
       <div
-        className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-scale-in max-h-[85vh] flex flex-col"
+        className="relative bg-card border border-border/50 rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col animate-enter"
+        style={{ animationDuration: "300ms" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

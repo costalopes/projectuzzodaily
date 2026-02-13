@@ -23,8 +23,7 @@ const getGreeting = () => {
   return { text: "Boa noite", emoji: "🌙", sub: "Sessão noturna de coding!" };
 };
 
-const STATUS_FILTERS: { id: TaskStatus | "all"; label: string; icon: typeof Circle }[] = [
-  { id: "all", label: "// all", icon: LayoutList },
+const STATUS_FILTERS: { id: TaskStatus; label: string; icon: typeof Circle }[] = [
   { id: "todo", label: "// a fazer", icon: Circle },
   { id: "in_progress", label: "// em progresso", icon: Loader2 },
   { id: "done", label: "// concluídas", icon: Check },
@@ -59,7 +58,7 @@ const Index = () => {
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [taskCompleted, setTaskCompleted] = useState(false);
-  const [filter, setFilter] = useState<"all" | TaskStatus>("all");
+  const [filter, setFilter] = useState<TaskStatus>("todo");
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -92,7 +91,7 @@ const Index = () => {
 
   const deleteTask = (id: string) => setTasks((p) => p.filter((t) => t.id !== id));
 
-  const filteredTasks = tasks.filter((t) => filter === "all" || t.status === filter);
+  const filteredTasks = tasks.filter((t) => t.status === filter);
   const todoCount = tasks.filter(t => t.status === "todo").length;
   const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
 
@@ -258,7 +257,7 @@ const Index = () => {
                               : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
                           <f.icon className="w-3 h-3" />
                           {f.label}
-                          {f.id !== "all" && <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>}
+                          <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
                         </button>
                       ))}
                     </div>
@@ -291,7 +290,7 @@ const Index = () => {
                           <div key={task.id}
                             onClick={() => setSelectedTask(task)}
                             className={cn(
-                              "grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-2.5 rounded-xl hover:bg-muted/30 group transition-all cursor-pointer",
+                              "grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-3 rounded-xl hover:bg-muted/30 group transition-all cursor-pointer border border-transparent hover:border-border/30",
                               isDone && "opacity-40 hover:opacity-70"
                             )}>
                             <span className="text-[10px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
@@ -304,16 +303,21 @@ const Index = () => {
                               )}>
                               {isDone && <Check className="w-2.5 h-2.5 text-success-foreground" />}
                             </button>
-                            <span className={cn("text-sm truncate font-mono", isDone ? "line-through text-muted-foreground" : "text-foreground")}>
-                              {task.text}
-                            </span>
+                            <div className="min-w-0">
+                              <span className={cn("text-sm truncate font-mono block", isDone ? "line-through text-muted-foreground" : "text-foreground")}>
+                                {task.text}
+                              </span>
+                              {task.description && (
+                                <span className="text-[10px] text-muted-foreground/40 font-mono truncate block">{task.description}</span>
+                              )}
+                            </div>
                             <span className={cn(
-                              "hidden sm:flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-md border",
+                              "hidden sm:flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
                               isDone ? "bg-success/10 border-success/20 text-success" :
                               isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
                               "bg-accent/10 border-accent/20 text-accent"
                             )}>
-                              {isInProgress && <Loader2 className="w-3 h-3 animate-spin" />}
+                              {isInProgress && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                               {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
                             </span>
                             <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
@@ -326,7 +330,7 @@ const Index = () => {
                       {filteredTasks.length === 0 && (
                         <div className="text-center py-6">
                           <p className="text-xs text-muted-foreground/40 font-mono">
-                            {filter !== "all" ? "// nenhuma tarefa com este status" : "// tudo feito! hora do café ☕"}
+                            // nenhuma tarefa aqui
                           </p>
                         </div>
                       )}
