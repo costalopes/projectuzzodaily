@@ -330,9 +330,9 @@ const Index = () => {
 
                   {/* Right: stats + clock */}
                   <div className="shrink-0 flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-2">
+                    <div className="hidden md:flex items-center gap-2 h-16">
                       {/* Progress */}
-                      <div className="bg-muted/20 border border-border/20 rounded-xl px-4 py-3 min-w-[120px]">
+                      <div className="bg-muted/20 border border-border/20 rounded-xl px-4 py-3 h-full flex flex-col justify-between">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[8px] text-muted-foreground/50 font-mono uppercase tracking-widest">progresso</span>
                           <span className="text-xs font-bold text-primary font-mono">{progress}%</span>
@@ -344,14 +344,14 @@ const Index = () => {
                       </div>
 
                       {/* Done + Streak */}
-                      <div className="flex gap-1.5">
-                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center">
+                      <div className="flex gap-1.5 h-full">
+                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center flex flex-col justify-center h-full">
                           <p className="text-xl font-display font-bold leading-none tracking-tight">
                             {doneCount}<span className="text-muted-foreground/30 text-xs font-normal">/{tasks.length}</span>
                           </p>
                           <p className="text-[7px] text-muted-foreground/40 font-mono uppercase tracking-widest mt-1">feitas</p>
                         </div>
-                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center">
+                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center flex flex-col justify-center h-full">
                           <p className="text-xl font-display font-bold leading-none tracking-tight flex items-center justify-center gap-0.5">
                             {streak}<Flame className="w-4 h-4 text-accent" />
                           </p>
