@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type CatMood = "idle" | "happy" | "purring" | "sleeping" | "coding" | "excited";
+type CatMood = "idle" | "happy" | "purring" | "sleeping" | "coding" | "excited" | "belly" | "scratching" | "stretching";
 
 interface CatProps {
   onTaskComplete?: boolean;
@@ -114,6 +114,27 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
       "MEGA PR!!", "100% coverage!!",
       "*faz a dancinha do deploy*", "MIAU MIAU!!",
     ],
+    belly: [
+      "*mostra a barriga*", "coça aqui!", "confia...",
+      "*rola pro lado*", "barriguinha!", "tô vulnerável",
+      "*patinhas pra cima*", "carinho na barriga?",
+      "*expõe o belly*", "armadilha? talvez...",
+      "prometo que não mordo", "*estiquinha total*",
+    ],
+    scratching: [
+      "*coça o nariz*", "*coça atrás da orelha*",
+      "*esfrega o focinho*", "tava coçando!",
+      "*coça a bochecha*", "*limpa o bigode*",
+      "*esfrega na patinha*", "hmm coceirinha",
+      "*coça coça*", "*patinha no focinho*",
+    ],
+    stretching: [
+      "*esticaaaa*", "*alongamento máximo*",
+      "*estica as patinhas*", "ahhhh que bom",
+      "*yoga cat pose*", "*estica e boceja*",
+      "*stretching time*", "*se alonga todo*",
+      "preguiça gostosa", "*estica até tremer*",
+    ],
   };
 
   // Clamp eye offset to prevent going outside head
@@ -172,15 +193,45 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
       const timeout = setTimeout(() => setMood("coding"), 4000);
       return () => clearTimeout(timeout);
     }
+    if (mood === "belly" || mood === "scratching" || mood === "stretching") {
+      const timeout = setTimeout(() => setMood("coding"), 5000);
+      return () => clearTimeout(timeout);
+    }
   }, [mood]);
 
+  // Random spontaneous animations during coding
   useEffect(() => {
     if (mood !== "coding") return;
-    const interval = setInterval(() => {
-      const msgs = allMessages.coding;
-      setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-      setTimeout(() => setMessage(""), 4000);
-    }, 8000 + Math.random() * 6000);
+
+    const doRandomAction = () => {
+      const rand = Math.random();
+      if (rand < 0.15) {
+        // Spontaneous belly
+        setMood("belly");
+        const msgs = allMessages.belly;
+        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        setTimeout(() => setMessage(""), 3000);
+      } else if (rand < 0.30) {
+        // Spontaneous scratch
+        setMood("scratching");
+        const msgs = allMessages.scratching;
+        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        setTimeout(() => setMessage(""), 3000);
+      } else if (rand < 0.45) {
+        // Spontaneous stretch
+        setMood("stretching");
+        const msgs = allMessages.stretching;
+        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        setTimeout(() => setMessage(""), 3000);
+      } else {
+        // Normal coding message
+        const msgs = allMessages.coding;
+        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        setTimeout(() => setMessage(""), 4000);
+      }
+    };
+
+    const interval = setInterval(doRandomAction, 8000 + Math.random() * 6000);
     return () => clearInterval(interval);
   }, [mood, catName]);
 
@@ -208,7 +259,10 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
   const eyeColor = c.eye;
 
   const showEyes = mood !== "sleeping" && !blink;
-  const isHappy = mood === "happy" || mood === "purring" || mood === "excited";
+  const isHappy = mood === "happy" || mood === "purring" || mood === "excited" || mood === "belly";
+  const isBelly = mood === "belly";
+  const isScratching = mood === "scratching";
+  const isStretching = mood === "stretching";
 
   return (
     <div ref={catRef} className="fixed bottom-4 right-4 z-50 select-none group">
@@ -278,7 +332,12 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
         </div>
       )}
 
-      <div className={mood === "sleeping" ? "" : "animate-breathe"}>
+      <div className={cn(
+        mood === "sleeping" ? "" : "animate-breathe",
+        isBelly && "animate-belly-roll",
+        isStretching && "animate-cat-stretch",
+        isScratching && "animate-cat-scratch"
+      )}>
         <svg width="120" height="108" viewBox="0 0 44 40"
           className="image-rendering-pixelated cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-110 active:scale-95"
           onClick={handlePet} role="button" aria-label={`Acariciar ${catName}`}>
@@ -384,18 +443,53 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           <rect x="30" y="17" width="7" height="1" fill={c.fur3} opacity="0.4" />
 
           {/* Front paws */}
-          <g className={isKneading ? "animate-knead-l" : ""}>
-            <rect x="7" y="32" width="7" height="4" fill={c.fur1} />
-            <rect x="8" y="35" width="5" height="1" fill={c.fur3} />
-            <rect x="9" y="34" width="1" height="1" fill={pawPad} />
-            <rect x="11" y="34" width="1" height="1" fill={pawPad} />
-          </g>
-          <g className={isKneading ? "animate-knead-r" : ""}>
-            <rect x="25" y="32" width="7" height="4" fill={c.fur1} />
-            <rect x="26" y="35" width="5" height="1" fill={c.fur3} />
-            <rect x="27" y="34" width="1" height="1" fill={pawPad} />
-            <rect x="29" y="34" width="1" height="1" fill={pawPad} />
-          </g>
+          {isScratching ? (
+            <>
+              {/* Left paw reaching to nose */}
+              <g className="animate-scratch-paw">
+                <rect x="12" y="18" width="3" height="3" fill={c.fur1} />
+                <rect x="13" y="17" width="2" height="1" fill={c.fur3} />
+                <rect x="13" y="21" width="1" height="1" fill={pawPad} />
+              </g>
+              {/* Right paw normal */}
+              <rect x="25" y="32" width="7" height="4" fill={c.fur1} />
+              <rect x="26" y="35" width="5" height="1" fill={c.fur3} />
+              <rect x="27" y="34" width="1" height="1" fill={pawPad} />
+              <rect x="29" y="34" width="1" height="1" fill={pawPad} />
+            </>
+          ) : isBelly ? (
+            <>
+              {/* Paws up in the air */}
+              <g className="animate-belly-paws">
+                <rect x="9" y="26" width="5" height="3" fill={c.fur1} />
+                <rect x="10" y="25" width="3" height="1" fill={c.fur3} />
+                <rect x="10" y="29" width="1" height="1" fill={pawPad} />
+                <rect x="12" y="29" width="1" height="1" fill={pawPad} />
+              </g>
+              <g className="animate-belly-paws" style={{ animationDelay: "0.3s" }}>
+                <rect x="25" y="26" width="5" height="3" fill={c.fur1} />
+                <rect x="26" y="25" width="3" height="1" fill={c.fur3} />
+                <rect x="26" y="29" width="1" height="1" fill={pawPad} />
+                <rect x="28" y="29" width="1" height="1" fill={pawPad} />
+              </g>
+            </>
+          ) : (
+            <>
+              <g className={isKneading ? "animate-knead-l" : ""}>
+                <rect x="7" y="32" width="7" height="4" fill={c.fur1} />
+                <rect x="8" y="35" width="5" height="1" fill={c.fur3} />
+                <rect x="9" y="34" width="1" height="1" fill={pawPad} />
+                <rect x="11" y="34" width="1" height="1" fill={pawPad} />
+              </g>
+              <g className={isKneading ? "animate-knead-r" : ""}>
+                <rect x="25" y="32" width="7" height="4" fill={c.fur1} />
+                <rect x="26" y="35" width="5" height="1" fill={c.fur3} />
+                <rect x="27" y="34" width="1" height="1" fill={pawPad} />
+                <rect x="29" y="34" width="1" height="1" fill={pawPad} />
+              </g>
+            </>
+          )}
+
 
           {/* Coding laptop */}
           {mood === "coding" && (
@@ -433,6 +527,9 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
             {mood === "purring" && "~"}
             {mood === "idle" && "·"}
             {mood === "excited" && "!"}
+            {mood === "belly" && "🐾"}
+            {mood === "scratching" && "👃"}
+            {mood === "stretching" && "🧘"}
           </span>
         </p>
         <button
