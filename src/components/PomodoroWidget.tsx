@@ -119,19 +119,22 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   const strokeOffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          🍅 Pomodoro
+    <div className="space-y-5">
+      {/* Header com título e mode switcher */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold tracking-wide text-foreground flex items-center gap-2">
+          🍅 <span className="uppercase font-mono text-xs tracking-widest">Pomodoro</span>
         </h3>
-        <div className="flex gap-1">
+        <div className="flex items-center bg-muted/30 rounded-full p-0.5">
           {(Object.keys(MODE_LABELS) as TimerMode[]).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
               className={cn(
-                "px-2 py-1 rounded-lg text-[9px] font-semibold transition-all",
-                mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                "px-3 py-1 rounded-full text-[10px] font-semibold transition-all",
+                mode === m
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground/60 hover:text-foreground"
               )}
             >
               {MODE_LABELS[m]}
@@ -140,30 +143,31 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-4">
-        {/* Circular timer */}
-        <div className="relative w-32 h-32">
+      <div className="flex flex-col items-center gap-5">
+        {/* Circular timer — larger */}
+        <div className="relative w-40 h-40">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
+            <circle cx="60" cy="60" r={radius} fill="none" stroke="hsl(var(--muted)/0.3)" strokeWidth="5" />
             <circle
               cx="60" cy="60" r={radius} fill="none"
               stroke={`hsl(var(--${mode === "focus" ? "primary" : mode === "short" ? "success" : "accent"}))`}
-              strokeWidth="6"
+              strokeWidth="5"
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeOffset}
               className="transition-all duration-1000"
+              style={{ filter: `drop-shadow(0 0 6px hsl(var(--${mode === "focus" ? "primary" : mode === "short" ? "success" : "accent"}) / 0.4))` }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-mono text-2xl font-bold tracking-wider text-foreground">{mins}:{secs}</span>
-            <span className="text-[9px] text-muted-foreground font-medium mt-0.5">{MODE_LABELS[mode]}</span>
+            <span className="font-mono text-3xl font-bold tracking-widest text-foreground">{mins}:{secs}</span>
+            <span className="text-[10px] text-muted-foreground/50 font-mono mt-1">{MODE_LABELS[mode]}</span>
           </div>
         </div>
 
         {/* Transition dialog */}
         {showTransition && (
-          <div className="animate-fade-in bg-muted/30 border border-border/50 rounded-xl p-3 w-full text-center space-y-2">
+          <div className="animate-fade-in bg-muted/20 border border-border/30 rounded-xl p-3 w-full text-center space-y-2">
             <p className="text-[10px] font-mono text-foreground">
               {showTransition.from === "focus" ? "🍅 Foco concluído!" : "⏰ Intervalo acabou!"}
             </p>
@@ -196,39 +200,43 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
         )}
 
         {/* Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setTimeLeft(DURATIONS[mode])}
-            className="bg-muted text-muted-foreground rounded-xl w-9 h-9 flex items-center justify-center hover:bg-accent transition-colors"
+            className="bg-muted/30 text-muted-foreground rounded-full w-10 h-10 flex items-center justify-center hover:bg-muted/50 transition-colors"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsRunning(!isRunning)}
-            className={cn("text-primary-foreground rounded-xl w-12 h-12 flex items-center justify-center hover:opacity-90 transition-all shadow-lg", MODE_COLORS[mode])}
+            className={cn(
+              "text-primary-foreground rounded-full w-14 h-14 flex items-center justify-center hover:opacity-90 transition-all shadow-lg",
+              MODE_COLORS[mode],
+              isRunning && "shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
+            )}
           >
             {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
           <button
             onClick={skip}
-            className="bg-muted text-muted-foreground rounded-xl w-9 h-9 flex items-center justify-center hover:bg-accent transition-colors"
+            className="bg-muted/30 text-muted-foreground rounded-full w-10 h-10 flex items-center justify-center hover:bg-muted/50 transition-colors"
           >
-            <SkipForward className="w-3.5 h-3.5" />
+            <SkipForward className="w-4 h-4" />
           </button>
         </div>
 
         {/* Sessions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {Array.from({ length: 4 }, (_, i) => (
             <div
               key={i}
               className={cn(
-                "w-2.5 h-2.5 rounded-full transition-all",
-                i < (sessions % 4) ? "bg-primary" : "bg-muted"
+                "w-2 h-2 rounded-full transition-all",
+                i < (sessions % 4) ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.4)]" : "bg-muted/40"
               )}
             />
           ))}
-          <span className="text-[10px] text-muted-foreground ml-1">{sessions} sessões</span>
+          <span className="text-[10px] text-muted-foreground/50 font-mono ml-1">{sessions} sessões</span>
         </div>
       </div>
     </div>

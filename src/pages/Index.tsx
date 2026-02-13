@@ -475,25 +475,26 @@ const Index = () => {
 
                 {/* Widget tabs panel */}
                 <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden flex-1 min-h-0 flex flex-col">
-                  <div className="flex flex-wrap border-b border-border/30 bg-muted/10 shrink-0">
+                  {/* Tabs como "arquivos" estilo editor */}
+                  <div className="flex items-center gap-0.5 px-1.5 py-1.5 border-b border-border/30 bg-muted/10 shrink-0">
                     {WIDGET_TABS.map((tab) => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                          "flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-mono transition-all border-b-2 -mb-px",
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono transition-all",
                           activeTab === tab.id
-                            ? "border-primary text-primary bg-card/60"
-                            : "border-transparent text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/20"
+                            ? "bg-card border border-border/40 text-foreground shadow-sm"
+                            : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/20"
                         )}
                       >
-                        <tab.icon className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">{tab.file}</span>
+                        <tab.icon className={cn("w-3 h-3", activeTab === tab.id && "text-primary")} />
+                        {tab.file}
                       </button>
                     ))}
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-2" key={activeTab}>
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-3" key={activeTab}>
                     {renderWidget()}
                   </div>
                 </div>
