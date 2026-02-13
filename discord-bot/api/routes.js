@@ -1,7 +1,18 @@
-const { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-const { NOTIFICATION_CHANNEL_ID, API_SECRET, PREFIX, FOOTER_LOGO } = require("../config");
-const { getCatState, updateCatState, flushPendingActions } = require("../catState");
-const { generateCatCanvas } = require("../catCanvas");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { NOTIFICATION_CHANNEL_ID, API_SECRET, FOOTER_LOGO } = require("../config");
+
+// Fila de ações pendentes do Discord → App
+const pendingActions = [];
+
+function addPendingAction(action) {
+  pendingActions.push(action);
+}
+
+function flushPendingActions() {
+  const actions = [...pendingActions];
+  pendingActions.length = 0;
+  return actions;
+}
 
 function authMiddleware(req, res, next) {
   const token = req.headers["x-api-secret"];
@@ -82,64 +93,6 @@ function registerRoutes(app, client) {
     }
   });
 
-  // POST /api/cat-status
-  app.post("/api/cat-status", authMiddleware, async (req, res) => {
-    const { name, color, colorIdx, happiness, energy, mood } = req.body;
-    const catState = getCatState();
-    const updated = updateCatState({
-      name: name || catState.name,
-      color: color || catState.color,
-      colorIdx: colorIdx ?? catState.colorIdx,
-      happiness: Math.round(happiness ?? catState.happiness),
-      energy: Math.round(energy ?? catState.energy),
-      mood: mood || catState.mood,
-    });
-    res.json({ success: true, catState: updated });
-  });
-
-  // POST /api/cat-hungry
-  app.post("/api/cat-hungry", authMiddleware, async (req, res) => {
-    const { name, happiness, energy, userName } = req.body;
-    const catState = getCatState();
-    updateCatState({
-      name: name || catState.name,
-      happiness: happiness ?? catState.happiness,
-      energy: energy ?? catState.energy,
-      mood: "hungry",
-    });
-
-    try {
-      const channel = await client.channels.fetch(NOTIFICATION_CHANNEL_ID);
-      const state = getCatState();
-      const catImage = await generateCatCanvas(state);
-      const attachment = new AttachmentBuilder(catImage, { name: "cat-status.png" });
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🐱 ${state.name} está com fome!`)
-        .setDescription(
-          `O gatinho de **${userName || "Anônimo"}** precisa de atenção!\n\n` +
-          `❤️ Felicidade: **${state.happiness}%**\n` +
-          `⚡ Energia: **${state.energy}%**\n\n` +
-          `Use \`!alimentar\` para dar comida!`
-        )
-        .setColor(0xff9800)
-        .setImage("attachment://cat-status.png")
-        .setFooter({ text: "Pet Virtual • Uzzo Solutions", iconURL: FOOTER_LOGO })
-        .setTimestamp();
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("cat_feed").setLabel("🐟 Alimentar").setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId("cat_pet").setLabel("🤗 Carinho").setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId("cat_status").setLabel("📊 Status").setStyle(ButtonStyle.Secondary),
-      );
-
-      await channel.send({ embeds: [embed], files: [attachment], components: [row] });
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   // GET /api/pending-actions
   app.get("/api/pending-actions", authMiddleware, (req, res) => {
     res.json({ actions: flushPendingActions() });
@@ -147,7 +100,7 @@ function registerRoutes(app, client) {
 
   // GET /api/health
   app.get("/api/health", (req, res) => {
-    res.json({ status: "online", bot: client.isReady() ? "ready" : "connecting", catState: getCatState() });
+    res.json({ status: "online", bot: client.isReady() ? "ready" : "connecting" });
   });
 }
 

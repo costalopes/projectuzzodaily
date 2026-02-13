@@ -55,8 +55,6 @@ client.once("ready", () => {
     console.log(`🌐 API na porta ${API_PORT}`);
     console.log(`   POST /api/pomodoro-end`);
     console.log(`   POST /api/task-reminder`);
-    console.log(`   POST /api/cat-hungry`);
-    console.log(`   POST /api/cat-status`);
     console.log(`   GET  /api/pending-actions`);
     console.log(`   GET  /api/health`);
   });

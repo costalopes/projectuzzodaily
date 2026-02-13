@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, Download } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner, type CatEvent } from "@/components/PixelCatCorner";
@@ -19,7 +19,6 @@ import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import deskBanner from "@/assets/desk-banner.jpg";
-import { downloadBotZip, BOT_VERSION } from "@/lib/botBundle";
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -274,17 +273,10 @@ const Index = () => {
           <img src={deskBanner} alt="Cozy dev workspace" className="w-full h-full object-cover opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
-            <button onClick={downloadBotZip}
-              className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl p-2 hover:bg-card/60 transition-all group"
-              title={`Download Bot ZIP (${BOT_VERSION})`}>
-              <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-            </button>
-            <button onClick={() => setShowBgPicker(!showBgPicker)}
-              className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl p-2 hover:bg-card/60 transition-all group">
-              <ImageIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          </div>
+          <button onClick={() => setShowBgPicker(!showBgPicker)}
+            className="absolute top-3 right-3 bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl p-2 hover:bg-card/60 transition-all group z-20">
+            <ImageIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
 
           {/* Terminal overlay */}
           <div className="absolute bottom-3 left-4 font-mono text-[10px] hidden md:flex items-center gap-4 z-20">
