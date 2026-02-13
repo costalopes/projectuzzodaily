@@ -302,32 +302,39 @@ const Index = () => {
                       {inProgressCount > 0 && <span className="text-primary ml-1">· {inProgressCount} em progresso</span>}
                     </p>
                   </div>
-                  <div className="shrink-0 flex items-center gap-4">
-                    {/* Inline progress */}
-                    <div className="hidden md:flex items-center gap-3">
-                      <div className="w-24">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-[9px] text-muted-foreground font-mono">
-                            <span className="text-primary/50">const</span> progress
-                          </span>
-                          <span className="text-[10px] font-bold text-primary font-mono">{progress}%</span>
+                  <div className="shrink-0 flex items-center gap-3">
+                    {/* Stats cards */}
+                    <div className="hidden md:flex items-center gap-2">
+                      {/* Progress card */}
+                      <div className="bg-muted/30 border border-border/30 rounded-xl px-3.5 py-2.5 min-w-[110px]">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wider">progresso</span>
+                          <span className="text-xs font-bold text-primary font-mono">{progress}%</span>
                         </div>
                         <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                          <div className="h-full bg-gradient-to-r from-primary/80 to-primary rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_hsl(var(--primary)/0.3)]"
                             style={{ width: `${progress}%` }} />
                         </div>
                       </div>
-                      <div className="flex gap-3 text-center">
-                        <div>
-                          <p className="text-lg font-display font-bold leading-none">{doneCount}<span className="text-muted-foreground text-xs font-normal">/{tasks.length}</span></p>
-                          <p className="text-[8px] text-muted-foreground font-mono uppercase">feitas</p>
-                        </div>
-                        <div>
-                          <p className="text-lg font-display font-bold leading-none flex items-center gap-0.5">{streak}<Flame className="w-3.5 h-3.5 text-accent" /></p>
-                          <p className="text-[8px] text-muted-foreground font-mono uppercase">streak</p>
-                        </div>
+
+                      {/* Done count */}
+                      <div className="bg-muted/30 border border-border/30 rounded-xl px-3.5 py-2.5 text-center min-w-[56px]">
+                        <p className="text-xl font-display font-bold leading-none tracking-tight">
+                          {doneCount}<span className="text-muted-foreground/40 text-sm font-normal">/{tasks.length}</span>
+                        </p>
+                        <p className="text-[7px] text-muted-foreground/50 font-mono uppercase tracking-widest mt-0.5">feitas</p>
+                      </div>
+
+                      {/* Streak */}
+                      <div className="bg-muted/30 border border-border/30 rounded-xl px-3.5 py-2.5 text-center min-w-[56px]">
+                        <p className="text-xl font-display font-bold leading-none tracking-tight flex items-center justify-center gap-0.5">
+                          {streak}<Flame className="w-4 h-4 text-accent" />
+                        </p>
+                        <p className="text-[7px] text-muted-foreground/50 font-mono uppercase tracking-widest mt-0.5">streak</p>
                       </div>
                     </div>
+
+                    {/* Clock */}
                     <PixelClock />
                   </div>
                 </div>
