@@ -86,8 +86,18 @@ async function generateCatCanvas(state) {
     const bx = (canvasW - tw - 20) / 2;
     const by = nameH;
     ctx.fillStyle = "rgba(255,255,255,0.9)";
+    const bw = tw + 20, bh = 30, r = 8;
     ctx.beginPath();
-    ctx.roundRect(bx, by, tw + 20, 30, 8);
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + bw - r, by);
+    ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
+    ctx.lineTo(bx + bw, by + bh - r);
+    ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
+    ctx.lineTo(bx + r, by + bh);
+    ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
+    ctx.lineTo(bx, by + r);
+    ctx.arcTo(bx, by, bx + r, by, r);
+    ctx.closePath();
     ctx.fill();
     // Arrow
     ctx.beginPath();
