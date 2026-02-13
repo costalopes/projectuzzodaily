@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, Sparkles, Image as ImageIcon, Clock, AlertCircle, Minus, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner } from "@/components/PixelCatCorner";
@@ -12,17 +12,8 @@ import { CodeQuote } from "@/components/CodeQuote";
 import { HabitTracker } from "@/components/HabitTracker";
 import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
+import { TaskDetailDialog, type Task, type TaskStatus } from "@/components/TaskDetailDialog";
 import deskBanner from "@/assets/desk-banner.jpg";
-
-type Priority = "urgent" | "medium" | "low";
-
-interface Task {
-  id: string;
-  text: string;
-  done: boolean;
-  priority: Priority;
-  createdAt: string;
-}
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -32,11 +23,12 @@ const getGreeting = () => {
   return { text: "Boa noite", emoji: "🌙", sub: "Sessão noturna de coding!" };
 };
 
-const priorityConfig: Record<Priority, { color: string; bg: string; label: string; icon: typeof AlertCircle }> = {
-  urgent: { color: "text-urgent", bg: "bg-urgent/10 border-urgent/20", label: "Urgente", icon: AlertCircle },
-  medium: { color: "text-accent", bg: "bg-accent/10 border-accent/20", label: "Médio", icon: Clock },
-  low: { color: "text-success", bg: "bg-success/10 border-success/20", label: "Baixo", icon: Minus },
-};
+const STATUS_FILTERS: { id: TaskStatus | "all"; label: string; icon: typeof Circle }[] = [
+  { id: "all", label: "// all", icon: LayoutList },
+  { id: "todo", label: "// a fazer", icon: Circle },
+  { id: "in_progress", label: "// em progresso", icon: Loader2 },
+  { id: "done", label: "// concluídas", icon: Check },
+];
 
 type WidgetTab = "timer" | "calendar" | "habits" | "notes";
 
@@ -53,12 +45,12 @@ const Index = () => {
   const dateStr = today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", text: "Revisar PR do frontend", done: true, priority: "urgent", createdAt: "hoje" },
-    { id: "2", text: "Setup CI/CD pipeline", done: false, priority: "urgent", createdAt: "hoje" },
-    { id: "3", text: "Design system — tokens de cor", done: true, priority: "medium", createdAt: "ontem" },
-    { id: "4", text: "Documentar API endpoints", done: false, priority: "medium", createdAt: "hoje" },
-    { id: "5", text: "Call com cliente às 15h", done: false, priority: "low", createdAt: "hoje" },
-    { id: "6", text: "Refatorar hook useAuth", done: false, priority: "medium", createdAt: "ontem" },
+    { id: "1", text: "Revisar PR do frontend", status: "done", importance: "alta", description: "", notes: [], createdAt: "hoje" },
+    { id: "2", text: "Setup CI/CD pipeline", status: "todo", importance: "alta", description: "Configurar GitHub Actions para deploy automático", notes: [], createdAt: "hoje" },
+    { id: "3", text: "Design system — tokens de cor", status: "done", importance: "média", description: "", notes: [], createdAt: "ontem" },
+    { id: "4", text: "Documentar API endpoints", status: "in_progress", importance: "média", description: "Swagger + exemplos de request/response", notes: ["[14:30] Iniciando pela rota de auth"], createdAt: "hoje" },
+    { id: "5", text: "Call com cliente às 15h", status: "todo", importance: "baixa", description: "", notes: [], createdAt: "hoje" },
+    { id: "6", text: "Refatorar hook useAuth", status: "in_progress", importance: "média", description: "", notes: [], createdAt: "ontem" },
   ]);
 
   const [newTask, setNewTask] = useState("");
@@ -67,18 +59,20 @@ const Index = () => {
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [taskCompleted, setTaskCompleted] = useState(false);
-  const [filter, setFilter] = useState<"all" | Priority>("all");
+  const [filter, setFilter] = useState<"all" | TaskStatus>("all");
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const doneCount = tasks.filter((t) => t.done).length;
+  const doneCount = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
   const streak = 7;
 
   const toggleTask = (id: string) => {
     setTasks((p) => p.map((t) => {
       if (t.id === id) {
-        if (!t.done) { setTaskCompleted(true); setTimeout(() => setTaskCompleted(false), 100); }
-        return { ...t, done: !t.done };
+        const newStatus: TaskStatus = t.status === "done" ? "todo" : "done";
+        if (newStatus === "done") { setTaskCompleted(true); setTimeout(() => setTaskCompleted(false), 100); }
+        return { ...t, status: newStatus };
       }
       return t;
     }));
@@ -86,16 +80,21 @@ const Index = () => {
 
   const addTask = () => {
     if (!newTask.trim()) return;
-    setTasks((p) => [...p, { id: Date.now().toString(), text: newTask.trim(), done: false, priority: "medium", createdAt: "agora" }]);
+    setTasks((p) => [...p, { id: Date.now().toString(), text: newTask.trim(), status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" }]);
     setNewTask("");
     setShowInput(false);
   };
 
+  const updateTask = (updated: Task) => {
+    setTasks((p) => p.map((t) => t.id === updated.id ? updated : t));
+    setSelectedTask(updated);
+  };
+
   const deleteTask = (id: string) => setTasks((p) => p.filter((t) => t.id !== id));
 
-  const pendingTasks = tasks.filter((t) => !t.done && (filter === "all" || t.priority === filter));
-  const doneTasks = tasks.filter((t) => t.done);
-  const urgentCount = tasks.filter((t) => !t.done && t.priority === "urgent").length;
+  const filteredTasks = tasks.filter((t) => filter === "all" || t.status === filter);
+  const todoCount = tasks.filter(t => t.status === "todo").length;
+  const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
 
   const renderWidget = () => {
     switch (activeTab) {
@@ -190,8 +189,8 @@ const Index = () => {
                       {greeting.text}, <span className="text-primary">Pedro</span> {greeting.emoji}
                     </h1>
                     <p className="text-muted-foreground text-sm font-mono mt-1">
-                      <span className="text-success/60">{">"}</span> {greeting.sub} · <span className="text-foreground font-medium">{pendingTasks.length}</span> pendentes
-                      {urgentCount > 0 && <span className="text-urgent ml-1">· {urgentCount} urgente{urgentCount > 1 ? "s" : ""}</span>}
+                      <span className="text-success/60">{">"}</span> {greeting.sub} · <span className="text-foreground font-medium">{todoCount}</span> a fazer
+                      {inProgressCount > 0 && <span className="text-primary ml-1">· {inProgressCount} em progresso</span>}
                     </p>
                   </div>
                   <div className="shrink-0 flex items-center gap-4">
@@ -233,10 +232,10 @@ const Index = () => {
               <div className="min-h-0">
                 <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
                   {/* File tab bar */}
-                  <div className="flex items-center border-b border-border/30 bg-muted/10 shrink-0">
+                   <div className="flex items-center border-b border-border/30 bg-muted/10 shrink-0">
                     <div className="flex items-center gap-0.5 px-1 py-1">
                       <div className="flex items-center gap-1.5 bg-card px-3 py-1.5 rounded-t-lg border border-border/30 border-b-0 -mb-px relative z-10">
-                        <Sparkles className="w-3 h-3 text-primary" />
+                        <LayoutList className="w-3 h-3 text-primary" />
                         <span className="text-[10px] font-mono text-foreground">tasks.tsx</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
                       </div>
@@ -251,14 +250,15 @@ const Index = () => {
 
                   <div className="px-3 pt-2 shrink-0">
                     <div className="flex gap-1 mb-2">
-                      {(["all", "urgent", "medium", "low"] as const).map((f) => (
-                        <button key={f} onClick={() => setFilter(f)}
-                          className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all",
-                            filter === f
+                      {STATUS_FILTERS.map((f) => (
+                        <button key={f.id} onClick={() => setFilter(f.id)}
+                          className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
+                            filter === f.id
                               ? "bg-primary text-primary-foreground shadow-sm"
                               : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
-                          {f === "all" ? "// all" : `// ${priorityConfig[f].label.toLowerCase()}`}
-                          {f !== "all" && <span className="ml-1 opacity-50">{tasks.filter(t => !t.done && t.priority === f).length}</span>}
+                          <f.icon className="w-3 h-3" />
+                          {f.label}
+                          {f.id !== "all" && <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>}
                         </button>
                       ))}
                     </div>
@@ -284,61 +284,53 @@ const Index = () => {
                   {/* Scrollable task list */}
                   <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
                     <div className="space-y-1">
-                      {pendingTasks.map((task, idx) => {
-                        const pc = priorityConfig[task.priority];
+                      {filteredTasks.map((task, idx) => {
+                        const isDone = task.status === "done";
+                        const isInProgress = task.status === "in_progress";
                         return (
                           <div key={task.id}
-                            className="grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-2.5 rounded-xl hover:bg-muted/30 group transition-all cursor-default">
+                            onClick={() => setSelectedTask(task)}
+                            className={cn(
+                              "grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-2.5 rounded-xl hover:bg-muted/30 group transition-all cursor-pointer",
+                              isDone && "opacity-40 hover:opacity-70"
+                            )}>
                             <span className="text-[10px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
-                            <button onClick={() => toggleTask(task.id)}
-                              className="w-5 h-5 rounded-lg border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10" />
-                            <span className="text-sm text-foreground truncate font-mono">{task.text}</span>
-                            <span className={cn("hidden sm:flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-md border", pc.bg)}>
-                              <pc.icon className={cn("w-3 h-3", pc.color)} />
-                              <span className={pc.color}>{pc.label}</span>
+                            <button onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+                              className={cn(
+                                "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
+                                isDone
+                                  ? "bg-success/80 border-success/80"
+                                  : "border-muted-foreground/20 hover:border-primary hover:bg-primary/10"
+                              )}>
+                              {isDone && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+                            </button>
+                            <span className={cn("text-sm truncate font-mono", isDone ? "line-through text-muted-foreground" : "text-foreground")}>
+                              {task.text}
                             </span>
-                            <button onClick={() => deleteTask(task.id)}
+                            <span className={cn(
+                              "hidden sm:flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-md border",
+                              isDone ? "bg-success/10 border-success/20 text-success" :
+                              isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
+                              "bg-accent/10 border-accent/20 text-accent"
+                            )}>
+                              {isInProgress && <Loader2 className="w-3 h-3 animate-spin" />}
+                              {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
+                            </span>
+                            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
                               className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         );
                       })}
-                      {pendingTasks.length === 0 && (
+                      {filteredTasks.length === 0 && (
                         <div className="text-center py-6">
                           <p className="text-xs text-muted-foreground/40 font-mono">
-                            {filter !== "all" ? "// nenhuma tarefa com este filtro" : "// tudo feito! hora do café ☕"}
+                            {filter !== "all" ? "// nenhuma tarefa com este status" : "// tudo feito! hora do café ☕"}
                           </p>
                         </div>
                       )}
                     </div>
-
-                    {doneTasks.length > 0 && (
-                      <div className="border-t border-border/30 mt-1 pt-1">
-                        <p className="text-[9px] font-mono text-muted-foreground/40 px-3 py-1 flex items-center gap-1">
-                          <span className="text-success/60">{"/*"}</span>
-                          concluídas ({doneTasks.length})
-                          <span className="text-success/60">{"*/"}</span>
-                        </p>
-                        <div className="space-y-0.5">
-                          {doneTasks.map((task, idx) => (
-                            <div key={task.id}
-                              className="grid grid-cols-[1.5rem_auto_1fr_auto] gap-1.5 items-center px-2 py-1.5 rounded-xl group transition-all opacity-40 hover:opacity-70">
-                              <span className="text-[9px] font-mono text-muted-foreground/20 text-right select-none">{pendingTasks.length + idx + 1}</span>
-                              <button onClick={() => toggleTask(task.id)}
-                                className="w-4 h-4 rounded-md bg-success/80 border-2 border-success/80 flex items-center justify-center transition-all shrink-0">
-                                <Check className="w-2.5 h-2.5 text-success-foreground" />
-                              </button>
-                              <span className="text-xs line-through text-muted-foreground truncate font-mono">{task.text}</span>
-                              <button onClick={() => deleteTask(task.id)}
-                                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -385,6 +377,15 @@ const Index = () => {
           </div>
         </div>
       </div>
+      {selectedTask && (
+        <TaskDetailDialog
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={updateTask}
+          onDelete={(id) => { deleteTask(id); setSelectedTask(null); }}
+        />
+      )}
     </div>
   );
 };
