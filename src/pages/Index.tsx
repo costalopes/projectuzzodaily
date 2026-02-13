@@ -207,7 +207,7 @@ const Index = () => {
   const renderWidget = () => {
     switch (activeTab) {
       case "timer": return <PomodoroWidget onTimerEnd={() => emitCatEvent("pomodoro_end")} onTimerStart={() => emitCatEvent("pomodoro_start")} />;
-      case "calendar": return <MiniCalendar />;
+      case "calendar": return <MiniCalendar tasks={tasks} />;
       case "habits": return <HabitTracker />;
       case "notes": return <QuickNotes />;
     }

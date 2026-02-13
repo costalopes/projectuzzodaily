@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Circle, Check, Loader2 } from "lucide-react";
+import type { Task } from "@/components/TaskDetailDialog";
 
-const DAYS_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DAYS_PT = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MONTHS_PT = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -18,7 +19,23 @@ const EVENTS: Record<string, { text: string; color: string }[]> = {
   "2026-02-25": [{ text: "💼 Apresentação Q1", color: "bg-primary/15 text-primary" }],
 };
 
-export const MiniCalendar = () => {
+const STATUS_ICON = {
+  todo: Circle,
+  in_progress: Loader2,
+  done: Check,
+};
+
+const IMPORTANCE_DOT: Record<string, string> = {
+  alta: "bg-destructive",
+  média: "bg-warning",
+  baixa: "bg-muted-foreground/40",
+};
+
+interface MiniCalendarProps {
+  tasks?: Task[];
+}
+
+export const MiniCalendar = ({ tasks = [] }: MiniCalendarProps) => {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -46,37 +63,51 @@ export const MiniCalendar = () => {
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
+  // Get tasks for a specific date key
+  const getTasksForDate = (dk: string) =>
+    tasks.filter((t) => t.dueDate && t.dueDate.startsWith(dk));
+
+  // Check if a day has events or tasks
+  const dayHasItems = (day: number) => {
+    const dk = dateKey(day);
+    return !!EVENTS[dk] || getTasksForDate(dk).length > 0;
+  };
+
   const selectedEvents = selectedDate ? EVENTS[selectedDate] || [] : [];
+  const selectedTasks = selectedDate ? getTasksForDate(selectedDate) : [];
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-5 animate-glow">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-foreground">
-          📅 {MONTHS_PT[currentMonth]} {currentYear}
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          📅 <span className="font-display">{MONTHS_PT[currentMonth]} {currentYear}</span>
         </h3>
-        <div className="flex gap-1">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+        <div className="flex gap-0.5">
+          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-muted/40 transition-colors">
             <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-muted/40 transition-colors">
             <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5 mb-1">
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-0.5">
         {DAYS_PT.map((d) => (
-          <div key={d} className="text-[9px] text-center text-muted-foreground font-semibold py-1 uppercase">
+          <div key={d} className="text-[9px] text-center text-muted-foreground/50 font-mono font-semibold py-1">
             {d}
           </div>
         ))}
       </div>
 
+      {/* Days grid */}
       <div className="grid grid-cols-7 gap-0.5">
         {days.map((day, i) => {
           if (!day) return <div key={`empty-${i}`} />;
           const dk = dateKey(day);
-          const hasEvent = !!EVENTS[dk];
+          const hasItems = dayHasItems(day);
           const isSelected = selectedDate === dk;
           return (
             <button
@@ -86,11 +117,11 @@ export const MiniCalendar = () => {
                 "aspect-square rounded-lg text-[11px] font-medium flex flex-col items-center justify-center transition-all relative",
                 isToday(day) && !isSelected && "bg-primary text-primary-foreground font-bold",
                 isSelected && "bg-primary text-primary-foreground ring-2 ring-primary/30 scale-110",
-                !isToday(day) && !isSelected && "hover:bg-muted text-foreground",
+                !isToday(day) && !isSelected && "hover:bg-muted/40 text-foreground",
               )}
             >
               {day}
-              {hasEvent && !isSelected && (
+              {hasItems && !isSelected && (
                 <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-accent" />
               )}
             </button>
@@ -98,16 +129,57 @@ export const MiniCalendar = () => {
         })}
       </div>
 
+      {/* Selected day detail panel */}
       {selectedDate && (
-        <div className="mt-3 pt-3 border-t border-border space-y-1.5 animate-fade-in">
-          {selectedEvents.length > 0 ? (
-            selectedEvents.map((ev, i) => (
-              <div key={i} className={cn("text-xs rounded-lg px-3 py-2 font-medium", ev.color)}>
-                {ev.text}
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-muted-foreground italic text-center py-2">Nenhum evento neste dia</p>
+        <div className="border-t border-border/30 pt-3 space-y-2 animate-fade-in">
+          <p className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-widest">
+            {selectedDate.split("-")[2]}/{selectedDate.split("-")[1]}
+          </p>
+
+          {/* Events */}
+          {selectedEvents.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[9px] font-mono text-muted-foreground/40 uppercase tracking-wider">Eventos</p>
+              {selectedEvents.map((ev, i) => (
+                <div key={i} className={cn("text-[11px] rounded-lg px-3 py-2 font-medium", ev.color)}>
+                  {ev.text}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tasks */}
+          {selectedTasks.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[9px] font-mono text-muted-foreground/40 uppercase tracking-wider">Tarefas</p>
+              {selectedTasks.map((task) => {
+                const Icon = STATUS_ICON[task.status];
+                return (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-2 bg-muted/20 border border-border/20 rounded-lg px-3 py-2"
+                  >
+                    <Icon className={cn(
+                      "w-3 h-3 shrink-0",
+                      task.status === "done" ? "text-success" : task.status === "in_progress" ? "text-primary animate-spin" : "text-muted-foreground/40"
+                    )} />
+                    <span className={cn(
+                      "text-[11px] font-mono truncate flex-1",
+                      task.status === "done" && "line-through text-muted-foreground/50"
+                    )}>
+                      {task.text}
+                    </span>
+                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", IMPORTANCE_DOT[task.importance])} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedEvents.length === 0 && selectedTasks.length === 0 && (
+            <p className="text-[11px] text-muted-foreground/40 font-mono text-center py-3">
+              Nenhum item neste dia
+            </p>
           )}
         </div>
       )}
