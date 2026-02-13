@@ -105,11 +105,7 @@ serve(async (req) => {
         short: "Pausa Curta",
         long: "Descanso Longo",
       };
-      const modeColors: Record<string, number> = {
-        focus: 0xff6347,
-        short: 0x4caf50,
-        long: 0x2196f3,
-      };
+      const YELLOW_BAR = 0xFFD700;
 
       const isStart = payload.event === "start";
       const isTransition = payload.event === "transition";
@@ -121,12 +117,12 @@ serve(async (req) => {
           long: "15 minutos",
         };
         embed = {
-          title: "<:sininho:1200187032308293662> Timer Iniciado!",
+          title: `🔔 | Timer Iniciado!`,
           description:
             `**${modeLabels[payload.mode]}** iniciado! (${durationLabels[payload.mode]})\n\n` +
-            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
             `*${getRandomPhrase()}*`,
-          color: modeColors[payload.mode] || 0x0033ff,
+          color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
           timestamp: new Date().toISOString(),
         };
@@ -137,26 +133,26 @@ serve(async (req) => {
           long: "Descanso longo! Aproveita para recarregar as energias ⚡",
         };
         embed = {
-          title: "<:sininho:1200187032308293662> Próxima Sessão!",
+          title: `🔔 | Próxima Sessão!`,
           description:
-            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
             `**${modeLabels[payload.mode]}** — ${transitionMessages[payload.mode]}\n\n` +
             `*${getRandomPhrase()}*`,
-          color: modeColors[payload.mode] || 0x0033ff,
+          color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
           timestamp: new Date().toISOString(),
         };
       } else {
         embed = {
-          title: "<:sininho:1200187032308293662> Pomodoro Finalizado!",
+          title: `🔔 | Pomodoro Finalizado!`,
           description:
-            `**${modeLabels[payload.mode]}** concluído! <a:estrela_gif:1089377048579022888>\n\n` +
-            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            `**${modeLabels[payload.mode]}** concluído! ⭐\n\n` +
+            `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
             (payload.mode === "focus"
-              ? "`Hora de descansar!` <:coffe:1471922341511430398>\n\n"
+              ? "`Hora de descansar!` ☕\n\n"
               : "`Hora de voltar ao foco!`\n\n") +
             `*${getRandomPhrase()}*`,
-          color: modeColors[payload.mode] || 0x0033ff,
+          color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
           timestamp: new Date().toISOString(),
         };
@@ -167,24 +163,24 @@ serve(async (req) => {
         { title: string; color: number; emoji: string }
       > = {
         before_deadline: {
-          title: "<:sininho:1200187032308293662> Atividades Vencendo em 30min!",
-          color: 0xffa500,
-          emoji: "<a:orange_fire:1323543791533162576>",
+          title: "🔔 | Atividades Vencendo em 30min!",
+          color: 0xFFD700,
+          emoji: "🔥",
         },
         overdue_1: {
-          title: "<:sininho:1200187032308293662> Atividades Atrasadas! (1º Aviso)",
-          color: 0xff6347,
-          emoji: "<a:orange_fire:1323543791533162576>",
+          title: "🔔 | Atividades Atrasadas! (1º Aviso)",
+          color: 0xFFD700,
+          emoji: "🔥",
         },
         overdue_2: {
-          title: "<:sininho:1200187032308293662> Atividades Atrasadas! (2º Aviso)",
-          color: 0xff0000,
-          emoji: "<a:orange_fire:1323543791533162576>",
+          title: "🔔 | Atividades Atrasadas! (2º Aviso)",
+          color: 0xFFD700,
+          emoji: "🔥",
         },
         overdue_3: {
-          title: "<:sininho:1200187032308293662> ÚLTIMO AVISO!",
-          color: 0x8b0000,
-          emoji: "<a:orange_fire:1323543791533162576>",
+          title: "🔔 | ÚLTIMO AVISO!",
+          color: 0xFFD700,
+          emoji: "🔥",
         },
       };
 
