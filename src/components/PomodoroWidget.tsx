@@ -62,7 +62,7 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   const prevRunning = useRef(false);
 
   // Notify Discord via Edge Function
-  const notifyDiscord = useCallback(async (event: "start" | "end", notifyMode: TimerMode, sessionCount: number) => {
+  const notifyDiscord = useCallback(async (event: "start" | "end" | "transition", notifyMode: TimerMode, sessionCount: number) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/discord-notify`, {
@@ -116,6 +116,7 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
               setTimeLeft(DURATIONS[nextMode]);
               setTransitionMessage(null);
               setIsRunning(true);
+              notifyDiscord("transition", nextMode, sessions + 1);
             }, 2000);
           } else {
             setTransitionMessage("Iniciando foco...");
@@ -124,6 +125,7 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
               setTimeLeft(DURATIONS.focus);
               setTransitionMessage(null);
               setIsRunning(true);
+              notifyDiscord("transition", "focus", sessions);
             }, 2000);
           }
           return 0;
