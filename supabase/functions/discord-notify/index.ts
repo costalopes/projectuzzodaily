@@ -25,6 +25,64 @@ type NotifyPayload = PomodoroPayload | TaskReminderPayload;
 
 const ICON_URL =
   "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/iconpomodoro.png";
+const AVATAR_URL =
+  "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/avatar.png";
+
+const MOTIVATIONAL_PHRASES = [
+  "Cada pomodoro te aproxima do seu objetivo.",
+  "Disciplina supera motivação.",
+  "Pequenos passos, grandes resultados.",
+  "Foco é um superpoder.",
+  "Você está construindo algo incrível.",
+  "Consistência é a chave do sucesso.",
+  "Um passo de cada vez, sempre em frente.",
+  "Seu futuro eu agradece o esforço de hoje.",
+  "Grandes conquistas começam com pequenos hábitos.",
+  "Produtividade não é pressa, é constância.",
+  "Cada minuto focado conta.",
+  "Você está mais perto do que imagina.",
+  "O segredo é não parar.",
+  "Transforme esforço em resultado.",
+  "Hoje é dia de progresso.",
+  "Continue, o resultado vem.",
+  "A jornada importa tanto quanto o destino.",
+  "Foco no processo, não no resultado.",
+  "Você já está fazendo mais do que ontem.",
+  "Determinação move montanhas.",
+  "Cada sessão é uma vitória.",
+  "Seu compromisso inspira.",
+  "Menos distração, mais ação.",
+  "O tempo investido nunca é perdido.",
+  "Você está no caminho certo.",
+  "Acredite no seu ritmo.",
+  "Progresso, não perfeição.",
+  "A constância vence o talento.",
+  "Sua dedicação faz a diferença.",
+  "Mantenha o ritmo, colha os frutos.",
+  "Foque no que importa.",
+  "Um pomodoro por vez muda tudo.",
+  "Você é mais forte do que pensa.",
+  "O melhor momento para agir é agora.",
+  "Produtividade é um hábito, não um evento.",
+  "Sua persistência é admirável.",
+  "Construa o hábito, o sucesso segue.",
+  "Cada ciclo é uma conquista.",
+  "Não desista, descanse e volte.",
+  "O foco de hoje é o sucesso de amanhã.",
+  "Você está evoluindo a cada sessão.",
+  "Menos pensar, mais fazer.",
+  "A excelência é um hábito diário.",
+  "Confie no processo.",
+  "Sua energia está sendo bem investida.",
+  "O esforço silencioso traz resultados barulhentos.",
+  "Continue empilhando vitórias.",
+  "Você escolheu ser produtivo. Isso já é muito.",
+  "A magia acontece fora da zona de conforto.",
+  "Respire fundo e continue brilhando.",
+];
+
+const getRandomPhrase = () =>
+  MOTIVATIONAL_PHRASES[Math.floor(Math.random() * MOTIVATIONAL_PHRASES.length)];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -65,10 +123,10 @@ serve(async (req) => {
           title: "<:sininho:1200187032308293662> Timer Iniciado!",
           description:
             `**${modeLabels[payload.mode]}** iniciado! (${durationLabels[payload.mode]})\n\n` +
-            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**`,
+            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            `*${getRandomPhrase()}*`,
           color: modeColors[payload.mode] || 0x0033ff,
           thumbnail: { url: ICON_URL },
-          footer: { text: "Continue sendo produtivo!" },
           timestamp: new Date().toISOString(),
         };
       } else {
@@ -78,42 +136,38 @@ serve(async (req) => {
             `**${modeLabels[payload.mode]}** concluído! <a:estrela_gif:1089377048579022888>\n\n` +
             `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
             (payload.mode === "focus"
-              ? "Hora de descansar! <:coffe:1471922341511430398>"
-              : "Hora de voltar ao foco!"),
+              ? "`Hora de descansar!` <:coffe:1471922341511430398>\n\n"
+              : "`Hora de voltar ao foco!`\n\n") +
+            `*${getRandomPhrase()}*`,
           color: modeColors[payload.mode] || 0x0033ff,
           thumbnail: { url: ICON_URL },
-          footer: { text: "Continue sendo produtivo!" },
           timestamp: new Date().toISOString(),
         };
       }
     } else if (payload.type === "task_reminder") {
       const typeConfig: Record<
         string,
-        { title: string; color: number; emoji: string; footer: string }
+        { title: string; color: number; emoji: string }
       > = {
         before_deadline: {
           title: "<:sininho:1200187032308293662> Atividades Vencendo em 30min!",
           color: 0xffa500,
           emoji: "<a:orange_fire:1323543791533162576>",
-          footer: "Lembrete de prazo",
         },
         overdue_1: {
           title: "<:sininho:1200187032308293662> Atividades Atrasadas! (1º Aviso)",
           color: 0xff6347,
           emoji: "<a:orange_fire:1323543791533162576>",
-          footer: "1º aviso",
         },
         overdue_2: {
           title: "<:sininho:1200187032308293662> Atividades Atrasadas! (2º Aviso)",
           color: 0xff0000,
           emoji: "<a:orange_fire:1323543791533162576>",
-          footer: "2º aviso",
         },
         overdue_3: {
           title: "<:sininho:1200187032308293662> ÚLTIMO AVISO!",
           color: 0x8b0000,
           emoji: "<a:orange_fire:1323543791533162576>",
-          footer: "Último aviso",
         },
       };
 
@@ -129,12 +183,9 @@ serve(async (req) => {
 
       embed = {
         title: config.title,
-        description: `**${payload.userName || "Anônimo"}**\n\n${taskList}`,
+        description: `**${payload.userName || "Anônimo"}**\n\n${taskList}\n\n*${getRandomPhrase()}*`,
         color: config.color,
         thumbnail: { url: ICON_URL },
-        footer: {
-          text: "Continue sendo produtivo!",
-        },
         timestamp: new Date().toISOString(),
       };
     } else {
@@ -146,7 +197,7 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: "Layla | Pixel Planner",
-        avatar_url: ICON_URL,
+        avatar_url: AVATAR_URL,
         embeds: [embed],
       }),
     });
@@ -158,7 +209,6 @@ serve(async (req) => {
       );
     }
 
-    // Discord returns 204 No Content on success
     await discordRes.text().catch(() => {});
 
     return new Response(JSON.stringify({ success: true }), {
