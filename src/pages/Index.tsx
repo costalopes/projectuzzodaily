@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner, type CatEvent } from "@/components/PixelCatCorner";
@@ -43,6 +43,15 @@ const WIDGET_TABS: { id: WidgetTab; label: string; icon: typeof Timer; file: str
   { id: "notes", label: "notes", icon: StickyNote, file: "notes.ts" },
 ];
 
+type WorkspaceTab = "tasks" | "study" | "diary" | "annotations";
+
+const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon: typeof LayoutList; file: string }[] = [
+  { id: "tasks", label: "Tarefas", icon: LayoutList, file: "tasks.tsx" },
+  { id: "study", label: "Estudo", icon: BookOpen, file: "estudo.tsx" },
+  { id: "diary", label: "Diário", icon: PenLine, file: "diário.tsx" },
+  { id: "annotations", label: "Anotações", icon: FileText, file: "notas.tsx" },
+];
+
 const Index = () => {
   const greeting = getGreeting();
   const today = new Date();
@@ -69,6 +78,7 @@ const Index = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewByDay, setViewByDay] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("tasks");
   const [catEvent, setCatEvent] = useState<CatEvent | null>(null);
 
   const emitCatEvent = useCallback((type: CatEvent["type"]) => {
@@ -372,150 +382,210 @@ const Index = () => {
               <div className="min-h-0">
                 <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
                   {/* File tab bar */}
-                   <div className="flex items-center border-b border-border/30 bg-muted/10 shrink-0">
+                   <div className="flex items-center border-b border-border/30 bg-muted/10 shrink-0 overflow-x-auto scrollbar-hidden">
                     <div className="flex items-center gap-0.5 px-1 py-1">
-                      <div className="flex items-center gap-1.5 bg-card px-3 py-1.5 rounded-t-lg border border-border/30 border-b-0 -mb-px relative z-10">
-                        <LayoutList className="w-3 h-3 text-primary" />
-                        <span className="text-[10px] font-mono text-foreground">tasks.tsx</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                      </div>
-                    </div>
-                    <div className="ml-auto pr-2 flex gap-1.5">
-                      <button onClick={() => setShowInput(true)}
-                        className="text-[10px] font-mono flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-lg px-2.5 py-1.5 transition-all">
-                        <Plus className="w-3.5 h-3.5" /> rápida
-                      </button>
-                      <button onClick={startNewTask}
-                        className="text-[10px] font-mono flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 py-1.5 hover:bg-primary/20 transition-all">
-                        <Plus className="w-3.5 h-3.5" /> new Task()
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="px-3 pt-2 shrink-0">
-                    <div className="flex gap-1 mb-2">
-                      {STATUS_FILTERS.map((f) => (
-                        <button key={f.id} onClick={() => setFilter(f.id)}
-                          className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
-                            filter === f.id
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
-                          <f.icon className="w-3 h-3" />
-                          {f.label}
-                          <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
-                        </button>
-                      ))}
-                      <div className="ml-auto">
-                        <button onClick={() => setViewByDay(!viewByDay)}
-                          className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
-                            viewByDay
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
-                          <CalendarIcon className="w-3 h-3" />
-                          por dia
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Date navigation bar */}
-                    {viewByDay && (
-                      <div className="flex items-center gap-1 mb-2 animate-fade-in">
+                      {WORKSPACE_TABS.map((tab) => (
                         <button
-                          onClick={() => setSelectedDay(d => subDays(d, 1))}
-                          className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all"
-                          title="Dia anterior"
-                        >
-                          <ChevronLeft className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => setSelectedDay(startOfDay(new Date()))}
+                          key={tab.id}
+                          onClick={() => setWorkspaceTab(tab.id)}
                           className={cn(
-                            "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all",
-                            isToday(selectedDay)
-                              ? "bg-primary/15 text-primary border border-primary/20"
-                              : "text-muted-foreground hover:bg-muted/40"
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-[10px] font-mono transition-all whitespace-nowrap",
+                            workspaceTab === tab.id
+                              ? "bg-card border border-border/30 border-b-0 -mb-px relative z-10 text-foreground"
+                              : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/20"
                           )}
                         >
-                          hoje
+                          <tab.icon className={cn("w-3 h-3", workspaceTab === tab.id && "text-primary")} />
+                          {tab.file}
+                          {tab.id === "tasks" && workspaceTab === tab.id && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                          )}
                         </button>
-
-                        <div className="flex-1 text-center">
-                          <span className="text-[11px] font-mono font-semibold text-foreground">
-                            {selectedDayLabel}
-                          </span>
-                          <span className="text-[9px] font-mono text-muted-foreground/40 ml-1.5">
-                            {format(selectedDay, "dd/MM/yyyy")}
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={() => setSelectedDay(d => addDays(d, 1))}
-                          className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all"
-                          title="Próximo dia"
-                        >
-                          <ChevronRight className="w-3.5 h-3.5" />
+                      ))}
+                    </div>
+                    {workspaceTab === "tasks" && (
+                      <div className="ml-auto pr-2 flex gap-1.5">
+                        <button onClick={() => setShowInput(true)}
+                          className="text-[10px] font-mono flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-lg px-2.5 py-1.5 transition-all">
+                          <Plus className="w-3.5 h-3.5" /> rápida
                         </button>
+                        <button onClick={startNewTask}
+                          className="text-[10px] font-mono flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 py-1.5 hover:bg-primary/20 transition-all">
+                          <Plus className="w-3.5 h-3.5" /> new Task()
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all" title="Escolher dia">
-                              <CalendarDays className="w-3.5 h-3.5" />
+                  {workspaceTab === "tasks" ? (
+                    <>
+                      <div className="px-3 pt-2 shrink-0">
+                        <div className="flex gap-1 mb-2">
+                          {STATUS_FILTERS.map((f) => (
+                            <button key={f.id} onClick={() => setFilter(f.id)}
+                              className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
+                                filter === f.id
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
+                              <f.icon className="w-3 h-3" />
+                              {f.label}
+                              <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
                             </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="end">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDay}
-                              onSelect={(d) => d && setSelectedDay(startOfDay(d))}
-                              initialFocus
-                              className="p-3 pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-
-                    {showInput && (
-                      <div className="flex gap-2 mb-2 animate-fade-in">
-                        <div className="flex items-center gap-2 flex-1 bg-muted/30 border border-border rounded-xl px-3">
-                          <span className="text-primary/40 font-mono text-xs">{">"}</span>
-                          <input type="text" autoFocus value={newTask}
-                            onChange={(e) => setNewTask(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setShowInput(false); }}
-                            placeholder="O que precisa fazer?"
-                            className="flex-1 bg-transparent py-2 text-sm placeholder:text-muted-foreground/30 focus:outline-none font-mono" />
+                          ))}
+                          <div className="ml-auto">
+                            <button onClick={() => setViewByDay(!viewByDay)}
+                              className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
+                                viewByDay
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
+                              <CalendarIcon className="w-3 h-3" />
+                              por dia
+                            </button>
+                          </div>
                         </div>
-                        <button onClick={addTask}
-                          className="bg-primary text-primary-foreground rounded-xl px-4 font-medium hover:opacity-90 transition-opacity">
-                          <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Scrollable task list */}
-                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
-                    {viewByDay ? (
-                      <div className="space-y-1">
-                        {dayFilteredTasks.map((task, idx) => renderTaskRow(task, idx))}
-                        {dayFilteredTasks.length === 0 && (
-                          <div className="text-center py-6">
-                            <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa para {selectedDayLabel.toLowerCase()}</p>
+                        {/* Date navigation bar */}
+                        {viewByDay && (
+                          <div className="flex items-center gap-1 mb-2 animate-fade-in">
+                            <button
+                              onClick={() => setSelectedDay(d => subDays(d, 1))}
+                              className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all"
+                              title="Dia anterior"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => setSelectedDay(startOfDay(new Date()))}
+                              className={cn(
+                                "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all",
+                                isToday(selectedDay)
+                                  ? "bg-primary/15 text-primary border border-primary/20"
+                                  : "text-muted-foreground hover:bg-muted/40"
+                              )}
+                            >
+                              hoje
+                            </button>
+
+                            <div className="flex-1 text-center">
+                              <span className="text-[11px] font-mono font-semibold text-foreground">
+                                {selectedDayLabel}
+                              </span>
+                              <span className="text-[9px] font-mono text-muted-foreground/40 ml-1.5">
+                                {format(selectedDay, "dd/MM/yyyy")}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => setSelectedDay(d => addDays(d, 1))}
+                              className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all"
+                              title="Próximo dia"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all" title="Escolher dia">
+                                  <CalendarDays className="w-3.5 h-3.5" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDay}
+                                  onSelect={(d) => d && setSelectedDay(startOfDay(d))}
+                                  initialFocus
+                                  className="p-3 pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        )}
+
+                        {showInput && (
+                          <div className="flex gap-2 mb-2 animate-fade-in">
+                            <div className="flex items-center gap-2 flex-1 bg-muted/30 border border-border rounded-xl px-3">
+                              <span className="text-primary/40 font-mono text-xs">{">"}</span>
+                              <input type="text" autoFocus value={newTask}
+                                onChange={(e) => setNewTask(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setShowInput(false); }}
+                                placeholder="O que precisa fazer?"
+                                className="flex-1 bg-transparent py-2 text-sm placeholder:text-muted-foreground/30 focus:outline-none font-mono" />
+                            </div>
+                            <button onClick={addTask}
+                              className="bg-primary text-primary-foreground rounded-xl px-4 font-medium hover:opacity-90 transition-opacity">
+                              <ArrowRight className="w-4 h-4" />
+                            </button>
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="space-y-1">
-                        {filteredTasks.map((task, idx) => renderTaskRow(task, idx))}
-                        {filteredTasks.length === 0 && (
-                          <div className="text-center py-6">
-                            <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa aqui</p>
+
+                      {/* Scrollable task list */}
+                      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
+                        {viewByDay ? (
+                          <div className="space-y-1">
+                            {dayFilteredTasks.map((task, idx) => renderTaskRow(task, idx))}
+                            {dayFilteredTasks.length === 0 && (
+                              <div className="text-center py-6">
+                                <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa para {selectedDayLabel.toLowerCase()}</p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {filteredTasks.map((task, idx) => renderTaskRow(task, idx))}
+                            {filteredTasks.length === 0 && (
+                              <div className="text-center py-6">
+                                <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa aqui</p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-4">
+                      <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
+                        {workspaceTab === "study" && (
+                          <>
+                            <BookOpen className="w-10 h-10 text-primary/30" />
+                            <h3 className="text-lg font-display font-bold text-foreground">Área de Estudo</h3>
+                            <p className="text-sm text-muted-foreground/50 font-mono text-center max-w-xs">
+                              Organize seus materiais de estudo, links, resumos e flashcards.
+                            </p>
+                            <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-3 py-1 rounded-lg">
+                              // em breve
+                            </span>
+                          </>
+                        )}
+                        {workspaceTab === "diary" && (
+                          <>
+                            <PenLine className="w-10 h-10 text-primary/30" />
+                            <h3 className="text-lg font-display font-bold text-foreground">Diário</h3>
+                            <p className="text-sm text-muted-foreground/50 font-mono text-center max-w-xs">
+                              Registre seus pensamentos, reflexões e progresso diário.
+                            </p>
+                            <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-3 py-1 rounded-lg">
+                              // em breve
+                            </span>
+                          </>
+                        )}
+                        {workspaceTab === "annotations" && (
+                          <>
+                            <FileText className="w-10 h-10 text-primary/30" />
+                            <h3 className="text-lg font-display font-bold text-foreground">Anotações</h3>
+                            <p className="text-sm text-muted-foreground/50 font-mono text-center max-w-xs">
+                              Crie e organize anotações rápidas, snippets de código e referências.
+                            </p>
+                            <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-3 py-1 rounded-lg">
+                              // em breve
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
