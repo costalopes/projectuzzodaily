@@ -11,6 +11,7 @@ function registerCommands(client) {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
 
+    try {
     if (command === "alimentar" || command === "feed") {
       const state = getCatState();
       updateCatState({
@@ -89,6 +90,10 @@ function registerCommands(client) {
 
       await message.reply({ embeds: [embed] });
       return;
+    }
+    } catch (err) {
+      console.error(`❌ Erro no comando "${command}":`, err);
+      await message.reply(`❌ Ocorreu um erro ao executar o comando. Tente novamente!`).catch(() => {});
     }
   });
 }

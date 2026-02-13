@@ -84,11 +84,12 @@ function registerRoutes(app, client) {
 
   // POST /api/cat-status
   app.post("/api/cat-status", authMiddleware, async (req, res) => {
-    const { name, color, happiness, energy, mood } = req.body;
+    const { name, color, colorIdx, happiness, energy, mood } = req.body;
     const catState = getCatState();
     const updated = updateCatState({
       name: name || catState.name,
       color: color || catState.color,
+      colorIdx: colorIdx ?? catState.colorIdx,
       happiness: happiness ?? catState.happiness,
       energy: energy ?? catState.energy,
       mood: mood || catState.mood,

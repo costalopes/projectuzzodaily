@@ -2,6 +2,7 @@
 let catState = {
   name: "Mimi",
   color: "#9b87f5",
+  colorIdx: 0,
   happiness: 80,
   energy: 70,
   mood: "idle",
