@@ -11,7 +11,7 @@ const VOICE_CHANNEL_ID = "1287765464986161215";
 const TICKET_CATEGORY_ID = "1211815391949492265";
 const SUPPORT_ROLE_ID = "1460505179781857413";
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID || "1148037098595680288";
-const NOTIFICATION_CHANNEL_ID = process.env.NOTIFICATION_CHANNEL_ID || "1148037098595680288"; // Canal para notificações do Pomodoro/tarefas
+const NOTIFICATION_CHANNEL_ID = process.env.NOTIFICATION_CHANNEL_ID || "1471733666014298257"; // Canal para notificações do Pomodoro/tarefas
 const API_PORT = process.env.API_PORT || 3001;
 const API_SECRET = process.env.API_SECRET || "meu-segredo-123"; // Troque por algo seguro
 
