@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,11 +22,47 @@ const MODE_COLORS: Record<TimerMode, string> = {
   long: "bg-accent",
 };
 
-export const PomodoroWidget = () => {
+interface PomodoroProps {
+  onTimerEnd?: (completedMode: TimerMode) => void;
+  onTimerStart?: () => void;
+}
+
+// Soft chime using Web Audio API
+const playAlarmChime = () => {
+  try {
+    const ctx = new AudioContext();
+    const notes = [523.25, 659.25, 783.99]; // C5 E5 G5 chord
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.15);
+      gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + i * 0.15 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 1.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 1.5);
+    });
+    setTimeout(() => ctx.close(), 3000);
+  } catch {}
+};
+
+export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [timeLeft, setTimeLeft] = useState(DURATIONS.focus);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
+  const [showTransition, setShowTransition] = useState<{ from: TimerMode; suggested: TimerMode } | null>(null);
+  const prevRunning = useRef(false);
+
+  useEffect(() => {
+    if (isRunning && !prevRunning.current) {
+      onTimerStart?.();
+    }
+    prevRunning.current = isRunning;
+  }, [isRunning, onTimerStart]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -34,26 +70,35 @@ export const PomodoroWidget = () => {
       setTimeLeft((t) => {
         if (t <= 1) {
           setIsRunning(false);
+          playAlarmChime();
+          onTimerEnd?.(mode);
+
           if (mode === "focus") {
             setSessions((s) => s + 1);
-            const nextMode = (sessions + 1) % 4 === 0 ? "long" : "short";
-            setMode(nextMode);
-            return DURATIONS[nextMode];
+            const nextMode: TimerMode = (sessions + 1) % 4 === 0 ? "long" : "short";
+            setShowTransition({ from: "focus", suggested: nextMode });
+            return 0;
           } else {
-            setMode("focus");
-            return DURATIONS.focus;
+            setShowTransition({ from: mode, suggested: "focus" });
+            return 0;
           }
         }
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning, mode, sessions]);
+  }, [isRunning, mode, sessions, onTimerEnd]);
 
-  const switchMode = (m: TimerMode) => {
+  const switchMode = useCallback((m: TimerMode) => {
     setMode(m);
     setTimeLeft(DURATIONS[m]);
     setIsRunning(false);
+    setShowTransition(null);
+  }, []);
+
+  const acceptTransition = (m: TimerMode) => {
+    switchMode(m);
+    setIsRunning(true);
   };
 
   const skip = () => {
@@ -69,7 +114,6 @@ export const PomodoroWidget = () => {
   const secs = (timeLeft % 60).toString().padStart(2, "0");
   const progress = ((DURATIONS[mode] - timeLeft) / DURATIONS[mode]) * 100;
 
-  // Circle progress
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
   const strokeOffset = circumference - (progress / 100) * circumference;
@@ -116,6 +160,40 @@ export const PomodoroWidget = () => {
             <span className="text-[9px] text-muted-foreground font-medium mt-0.5">{MODE_LABELS[mode]}</span>
           </div>
         </div>
+
+        {/* Transition dialog */}
+        {showTransition && (
+          <div className="animate-fade-in bg-muted/30 border border-border/50 rounded-xl p-3 w-full text-center space-y-2">
+            <p className="text-[10px] font-mono text-foreground">
+              {showTransition.from === "focus" ? "🍅 Foco concluído!" : "⏰ Intervalo acabou!"}
+            </p>
+            <p className="text-[9px] font-mono text-muted-foreground">
+              {showTransition.suggested === "focus" ? "Iniciar foco?" : showTransition.suggested === "long" ? "Iniciar descanso longo?" : "Iniciar pausa curta?"}
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => acceptTransition(showTransition.suggested)}
+                className="px-3 py-1.5 rounded-lg text-[10px] font-mono bg-primary text-primary-foreground hover:opacity-90 transition-all"
+              >
+                {MODE_LABELS[showTransition.suggested]} →
+              </button>
+              {showTransition.suggested !== "focus" && (
+                <button
+                  onClick={() => acceptTransition("focus")}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-mono border border-border text-muted-foreground hover:bg-muted/40 transition-all"
+                >
+                  Mais foco
+                </button>
+              )}
+              <button
+                onClick={() => setShowTransition(null)}
+                className="px-3 py-1.5 rounded-lg text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground transition-all"
+              >
+                fechar
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Controls */}
         <div className="flex items-center gap-2">

@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Coffee, Settings2, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const CoffeeTracker = () => {
+interface CoffeeTrackerProps {
+  onCoffeeEvent?: (type: "coffee_add" | "coffee_excess") => void;
+}
+
+export const CoffeeTracker = ({ onCoffeeEvent }: CoffeeTrackerProps) => {
   const [cups, setCups] = useState(1);
   const [limit, setLimit] = useState(() => {
     const saved = localStorage.getItem("coffee-limit");
@@ -26,7 +30,12 @@ export const CoffeeTracker = () => {
     }
   };
 
-  const add = () => setCups((c) => Math.min(c + 1, limit));
+  const add = () => {
+    const newCups = Math.min(cups + 1, limit);
+    setCups(newCups);
+    if (newCups >= limit) onCoffeeEvent?.("coffee_excess");
+    else onCoffeeEvent?.("coffee_add");
+  };
   const remove = () => setCups((c) => Math.max(c - 1, 0));
   const pct = Math.min((cups / limit) * 100, 100);
 
@@ -48,48 +57,36 @@ export const CoffeeTracker = () => {
       {showConfig && (
         <div className="mb-2 animate-fade-in">
           <p className="text-[8px] font-mono text-muted-foreground/50 mb-1">// limite diário</p>
-          <input
-            type="number"
-            min="1"
-            max="20"
+          <input type="number" min="1" max="20"
             value={customLimit || limit}
             onChange={(e) => setCustomLimit(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCustomLimit()}
             onBlur={handleCustomLimit}
             className="w-full bg-muted/40 border border-border rounded-lg px-2 py-1 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-accent/30"
-            placeholder="ex: 5"
-          />
+            placeholder="ex: 5" />
         </div>
       )}
 
-      {/* Coffee cup pixel art */}
       <div className="flex items-center justify-center py-1">
         <svg width="56" height="64" viewBox="0 0 28 32" className="image-rendering-pixelated">
-          {/* Saucer */}
           <rect x="2" y="27" width="22" height="1" fill="hsl(var(--accent) / 0.2)" />
           <rect x="3" y="28" width="20" height="1" fill="hsl(var(--accent) / 0.15)" />
           <rect x="4" y="29" width="18" height="1" fill="hsl(var(--accent) / 0.1)" />
-          {/* Cup body */}
           <rect x="4" y="10" width="16" height="1" fill="hsl(var(--accent) / 0.25)" />
           <rect x="3" y="11" width="18" height="16" fill="hsl(var(--accent) / 0.1)" />
           <rect x="3" y="11" width="1" height="16" fill="hsl(var(--accent) / 0.2)" />
           <rect x="20" y="11" width="1" height="16" fill="hsl(var(--accent) / 0.2)" />
           <rect x="4" y="27" width="16" height="1" fill="hsl(var(--accent) / 0.25)" />
-          {/* Handle */}
           <rect x="21" y="13" width="2" height="1" fill="hsl(var(--accent) / 0.25)" />
           <rect x="23" y="14" width="1" height="6" fill="hsl(var(--accent) / 0.25)" />
           <rect x="22" y="20" width="1" height="1" fill="hsl(var(--accent) / 0.25)" />
           <rect x="21" y="21" width="1" height="1" fill="hsl(var(--accent) / 0.25)" />
-          {/* Coffee fill */}
           <rect x="4" y={11 + Math.round(16 * (1 - pct / 100))} width="16" height={Math.round(16 * pct / 100)} fill="hsl(var(--accent) / 0.3)" />
-          {/* Crema line */}
           {pct > 10 && pct < 100 && (
             <rect x="4" y={10 + Math.round(16 * (1 - pct / 100))} width="16" height="1" fill="hsl(var(--accent) / 0.15)" />
           )}
-          {/* Cup reflection */}
           <rect x="5" y="12" width="1" height="12" fill="white" opacity="0.05" />
           <rect x="6" y="12" width="1" height="8" fill="white" opacity="0.03" />
-          {/* Steam */}
           {cups > 0 && (
             <>
               <rect x="8" y="6" width="1" height="3" fill="hsl(var(--muted-foreground) / 0.08)" className="animate-steam" />
@@ -100,7 +97,6 @@ export const CoffeeTracker = () => {
         </svg>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center gap-2 mt-1">
         <button onClick={remove} disabled={cups === 0}
           className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all border text-xs",

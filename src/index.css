@@ -259,3 +259,16 @@ input[type="number"] {
 .animate-bubble { animation: bubble-rise 2.5s ease-out infinite; }
 .animate-bubble-slow { animation: bubble-rise 3.5s ease-out infinite 0.8s; }
 .animate-bubble-mid { animation: bubble-rise 3s ease-out infinite 1.5s; }
+
+/* Shake for alert cat */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* Bounce for listening cat */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}

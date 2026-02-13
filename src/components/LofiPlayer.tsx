@@ -1,17 +1,39 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Radio, Wind } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Radio, Wind, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AudioMode = "lofi" | "white-noise";
+type AudioMode = "lofi-hiphop" | "lofi-study" | "white-noise";
 
-const LOFI_STREAMS = [
-  "https://streams.ilovemusic.de/iloveradio17.mp3",
-  "https://play.streamafrica.net/lofiradio",
-];
+const MODE_CONFIG: Record<AudioMode, { label: string; icon: typeof Radio; streams?: string[] }> = {
+  "lofi-hiphop": {
+    label: "hip hop",
+    icon: Radio,
+    streams: [
+      "https://streams.ilovemusic.de/iloveradio17.mp3",
+      "https://play.streamafrica.net/lofiradio",
+    ],
+  },
+  "lofi-study": {
+    label: "study",
+    icon: Music,
+    streams: [
+      "https://play.streamafrica.net/lofiradio",
+      "https://streams.ilovemusic.de/iloveradio17.mp3",
+    ],
+  },
+  "white-noise": {
+    label: "ruído",
+    icon: Wind,
+  },
+};
 
-export const LofiPlayer = () => {
+interface LofiPlayerProps {
+  onPlayingChange?: (playing: boolean) => void;
+}
+
+export const LofiPlayer = ({ onPlayingChange }: LofiPlayerProps) => {
   const [playing, setPlaying] = useState(false);
-  const [mode, setMode] = useState<AudioMode>("lofi");
+  const [mode, setMode] = useState<AudioMode>("lofi-hiphop");
   const [volume, setVolume] = useState(0.4);
   const [muted, setMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -44,16 +66,19 @@ export const LofiPlayer = () => {
     stopNoise();
   }, [stopLofi, stopNoise]);
 
-  const playLofi = useCallback(() => {
+  const playLofi = useCallback((m: AudioMode) => {
     stopAll();
-    const audio = new Audio(LOFI_STREAMS[0]);
+    const cfg = MODE_CONFIG[m];
+    if (!cfg.streams) return;
+    const audio = new Audio(cfg.streams[0]);
     audio.crossOrigin = "anonymous";
     audio.volume = muted ? 0 : volume;
     audio.loop = true;
     audio.play().catch(() => {
-      // Try fallback stream
-      audio.src = LOFI_STREAMS[1];
-      audio.play().catch(() => {});
+      if (cfg.streams![1]) {
+        audio.src = cfg.streams![1];
+        audio.play().catch(() => {});
+      }
     });
     audioRef.current = audio;
   }, [volume, muted, stopAll]);
@@ -64,12 +89,12 @@ export const LofiPlayer = () => {
     const bufferSize = ctx.sampleRate * 4;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    // Brown noise (smoother than white)
+    // Lighter brown noise
     let last = 0;
     for (let i = 0; i < bufferSize; i++) {
       const white = Math.random() * 2 - 1;
-      last = (last + 0.02 * white) / 1.02;
-      data[i] = last * 3.5;
+      last = (last + 0.015 * white) / 1.015;
+      data[i] = last * 2.5;
     }
 
     const source = ctx.createBufferSource();
@@ -77,7 +102,7 @@ export const LofiPlayer = () => {
     source.loop = true;
 
     const gain = ctx.createGain();
-    gain.gain.value = muted ? 0 : volume;
+    gain.gain.value = muted ? 0 : volume * 0.6; // lighter
 
     source.connect(gain);
     gain.connect(ctx.destination);
@@ -92,34 +117,33 @@ export const LofiPlayer = () => {
     if (playing) {
       stopAll();
       setPlaying(false);
+      onPlayingChange?.(false);
     } else {
-      if (mode === "lofi") playLofi();
-      else playWhiteNoise();
+      if (mode === "white-noise") playWhiteNoise();
+      else playLofi(mode);
       setPlaying(true);
+      onPlayingChange?.(true);
     }
-  }, [playing, mode, playLofi, playWhiteNoise, stopAll]);
+  }, [playing, mode, playLofi, playWhiteNoise, stopAll, onPlayingChange]);
 
   const switchMode = useCallback((newMode: AudioMode) => {
     if (newMode === mode) return;
     setMode(newMode);
     if (playing) {
       stopAll();
-      // Small delay for cleanup
       setTimeout(() => {
-        if (newMode === "lofi") playLofi();
-        else playWhiteNoise();
+        if (newMode === "white-noise") playWhiteNoise();
+        else playLofi(newMode);
       }, 50);
     }
   }, [mode, playing, stopAll, playLofi, playWhiteNoise]);
 
-  // Update volume
   useEffect(() => {
     const vol = muted ? 0 : volume;
     if (audioRef.current) audioRef.current.volume = vol;
-    if (noiseGainRef.current) noiseGainRef.current.gain.value = vol;
-  }, [volume, muted]);
+    if (noiseGainRef.current) noiseGainRef.current.gain.value = mode === "white-noise" ? vol * 0.6 : vol;
+  }, [volume, muted, mode]);
 
-  // Cleanup on unmount
   useEffect(() => () => stopAll(), [stopAll]);
 
   return (
@@ -127,26 +151,23 @@ export const LofiPlayer = () => {
       <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl overflow-hidden animate-fade-in">
         {/* Mode tabs */}
         <div className="flex border-b border-border/30">
-          <button
-            onClick={() => switchMode("lofi")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-mono transition-all",
-              mode === "lofi" ? "text-primary bg-primary/5" : "text-muted-foreground/50 hover:text-muted-foreground"
-            )}
-          >
-            <Radio className="w-3 h-3" />
-            lofi
-          </button>
-          <button
-            onClick={() => switchMode("white-noise")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-mono transition-all",
-              mode === "white-noise" ? "text-primary bg-primary/5" : "text-muted-foreground/50 hover:text-muted-foreground"
-            )}
-          >
-            <Wind className="w-3 h-3" />
-            ruído
-          </button>
+          {(Object.keys(MODE_CONFIG) as AudioMode[]).map((m) => {
+            const cfg = MODE_CONFIG[m];
+            const Icon = cfg.icon;
+            return (
+              <button
+                key={m}
+                onClick={() => switchMode(m)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[9px] font-mono transition-all",
+                  mode === m ? "text-primary bg-primary/5" : "text-muted-foreground/50 hover:text-muted-foreground"
+                )}
+              >
+                <Icon className="w-3 h-3" />
+                {cfg.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Controls */}
@@ -180,7 +201,6 @@ export const LofiPlayer = () => {
             ))}
           </div>
 
-          {/* Volume */}
           <button
             onClick={() => setMuted(!muted)}
             className="text-muted-foreground/50 hover:text-foreground transition-colors"
