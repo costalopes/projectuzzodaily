@@ -58,11 +58,10 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   const [timeLeft, setTimeLeft] = useState(DURATIONS.focus);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
-  const [showTransition, setShowTransition] = useState<{ from: TimerMode; suggested: TimerMode } | null>(null);
   const prevRunning = useRef(false);
 
   // Notify Discord via Edge Function
-  const notifyDiscord = useCallback(async (completedMode: TimerMode, sessionCount: number) => {
+  const notifyDiscord = useCallback(async (event: "start" | "end", notifyMode: TimerMode, sessionCount: number) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/discord-notify`, {
@@ -73,14 +72,13 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
         },
         body: JSON.stringify({
           type: "pomodoro",
-          mode: completedMode,
+          event,
+          mode: notifyMode,
           sessions: sessionCount,
           userName: "App User",
         }),
       });
-      if (res.ok) {
-        toast.success("🍅 Notificação enviada ao Discord!");
-      } else {
+      if (!res.ok) {
         console.error("Discord notify failed:", await res.text());
       }
     } catch (err) {
@@ -91,9 +89,10 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   useEffect(() => {
     if (isRunning && !prevRunning.current) {
       onTimerStart?.();
+      notifyDiscord("start", mode, sessions);
     }
     prevRunning.current = isRunning;
-  }, [isRunning, onTimerStart]);
+  }, [isRunning, onTimerStart, mode, sessions, notifyDiscord]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -103,35 +102,39 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
           setIsRunning(false);
           playAlarmChime();
           onTimerEnd?.(mode);
-          notifyDiscord(mode, mode === "focus" ? sessions + 1 : sessions);
+          const newSessions = mode === "focus" ? sessions + 1 : sessions;
+          notifyDiscord("end", mode, newSessions);
 
           if (mode === "focus") {
             setSessions((s) => s + 1);
             const nextMode: TimerMode = (sessions + 1) % 4 === 0 ? "long" : "short";
-            setShowTransition({ from: "focus", suggested: nextMode });
-            return 0;
+            // Auto-start next mode after a brief delay
+            setTimeout(() => {
+              setMode(nextMode);
+              setTimeLeft(DURATIONS[nextMode]);
+              setIsRunning(true);
+            }, 1500);
           } else {
-            setShowTransition({ from: mode, suggested: "focus" });
-            return 0;
+            // After break, auto-start focus
+            setTimeout(() => {
+              setMode("focus");
+              setTimeLeft(DURATIONS.focus);
+              setIsRunning(true);
+            }, 1500);
           }
+          return 0;
         }
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning, mode, sessions, onTimerEnd]);
+  }, [isRunning, mode, sessions, onTimerEnd, notifyDiscord]);
 
   const switchMode = useCallback((m: TimerMode) => {
     setMode(m);
     setTimeLeft(DURATIONS[m]);
     setIsRunning(false);
-    setShowTransition(null);
   }, []);
-
-  const acceptTransition = (m: TimerMode) => {
-    switchMode(m);
-    setIsRunning(true);
-  };
 
   const skip = () => {
     if (mode === "focus") {
@@ -197,39 +200,6 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
           </div>
         </div>
 
-        {/* Transition dialog */}
-        {showTransition && (
-          <div className="animate-fade-in bg-muted/20 border border-border/30 rounded-xl p-3 w-full text-center space-y-2">
-            <p className="text-[10px] font-mono text-foreground">
-              {showTransition.from === "focus" ? "🍅 Foco concluído!" : "⏰ Intervalo acabou!"}
-            </p>
-            <p className="text-[9px] font-mono text-muted-foreground">
-              {showTransition.suggested === "focus" ? "Iniciar foco?" : showTransition.suggested === "long" ? "Iniciar descanso longo?" : "Iniciar pausa curta?"}
-            </p>
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => acceptTransition(showTransition.suggested)}
-                className="px-3 py-1.5 rounded-lg text-[10px] font-mono bg-primary text-primary-foreground hover:opacity-90 transition-all"
-              >
-                {MODE_LABELS[showTransition.suggested]} →
-              </button>
-              {showTransition.suggested !== "focus" && (
-                <button
-                  onClick={() => acceptTransition("focus")}
-                  className="px-3 py-1.5 rounded-lg text-[10px] font-mono border border-border text-muted-foreground hover:bg-muted/40 transition-all"
-                >
-                  Mais foco
-                </button>
-              )}
-              <button
-                onClick={() => setShowTransition(null)}
-                className="px-3 py-1.5 rounded-lg text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground transition-all"
-              >
-                fechar
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Controls */}
         <div className="flex items-center gap-3">
