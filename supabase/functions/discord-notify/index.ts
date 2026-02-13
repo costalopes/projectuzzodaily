@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface PomodoroPayload {
   type: "pomodoro";
+  event: "start" | "end";
   mode: "focus" | "short" | "long";
   sessions: number;
   userName: string;
@@ -52,21 +53,39 @@ serve(async (req) => {
         long: 0x2196f3,
       };
 
-      embed = {
-        title: "<:sininho:1200187032308293662> Pomodoro Finalizado!",
-        description:
-          `**${modeLabels[payload.mode] || payload.mode}** concluído! <a:estrela_gif:1089377048579022888>\n\n` +
-          `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
-          (payload.mode === "focus"
-            ? "Hora de descansar! <:coffe:1471922341511430398>"
-            : "Hora de voltar ao foco!"),
-        color: modeColors[payload.mode] || 0x0033ff,
-        thumbnail: { url: ICON_URL },
-        footer: {
-          text: "Continue sendo produtivo!",
-        },
-        timestamp: new Date().toISOString(),
-      };
+      const isStart = payload.event === "start";
+
+      if (isStart) {
+        const durationLabels: Record<string, string> = {
+          focus: "25 minutos",
+          short: "5 minutos",
+          long: "15 minutos",
+        };
+        embed = {
+          title: "<:sininho:1200187032308293662> Timer Iniciado!",
+          description:
+            `**${modeLabels[payload.mode]}** iniciado! (${durationLabels[payload.mode]})\n\n` +
+            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**`,
+          color: modeColors[payload.mode] || 0x0033ff,
+          thumbnail: { url: ICON_URL },
+          footer: { text: "Continue sendo produtivo!" },
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        embed = {
+          title: "<:sininho:1200187032308293662> Pomodoro Finalizado!",
+          description:
+            `**${modeLabels[payload.mode]}** concluído! <a:estrela_gif:1089377048579022888>\n\n` +
+            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            (payload.mode === "focus"
+              ? "Hora de descansar! <:coffe:1471922341511430398>"
+              : "Hora de voltar ao foco!"),
+          color: modeColors[payload.mode] || 0x0033ff,
+          thumbnail: { url: ICON_URL },
+          footer: { text: "Continue sendo produtivo!" },
+          timestamp: new Date().toISOString(),
+        };
+      }
     } else if (payload.type === "task_reminder") {
       const typeConfig: Record<
         string,
