@@ -119,12 +119,12 @@ serve(async (req) => {
         embed = {
           title: `🔔 | Timer Iniciado!`,
           description:
-            `**${modeLabels[payload.mode]}** iniciado! (${durationLabels[payload.mode]})\n\n` +
+            `**${modeLabels[payload.mode]}** iniciado! (${durationLabels[payload.mode]})\n` +
             `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
-            `*${getRandomPhrase()}*`,
+            `\`${getRandomPhrase()}\``,
           color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
-          timestamp: new Date().toISOString(),
+          footer: { text: "Pixel Planner" },
         };
       } else if (isTransition) {
         const transitionMessages: Record<string, string> = {
@@ -137,24 +137,24 @@ serve(async (req) => {
           description:
             `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
             `**${modeLabels[payload.mode]}** — ${transitionMessages[payload.mode]}\n\n` +
-            `*${getRandomPhrase()}*`,
+            `\`${getRandomPhrase()}\``,
           color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
-          timestamp: new Date().toISOString(),
+          footer: { text: "Pixel Planner" },
         };
       } else {
         embed = {
           title: `🔔 | Pomodoro Finalizado!`,
           description:
-            `**${modeLabels[payload.mode]}** concluído! ⭐\n\n` +
+            `**${modeLabels[payload.mode]}** concluído! ⭐\n` +
             `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
             (payload.mode === "focus"
-              ? "`Hora de descansar!` ☕\n\n"
-              : "`Hora de voltar ao foco!`\n\n") +
-            `*${getRandomPhrase()}*`,
+              ? "`Hora de descansar!` ☕\n"
+              : "`Hora de voltar ao foco!`\n") +
+            `\`${getRandomPhrase()}\``,
           color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
-          timestamp: new Date().toISOString(),
+          footer: { text: "Pixel Planner" },
         };
       }
     } else if (payload.type === "task_reminder") {
@@ -196,10 +196,10 @@ serve(async (req) => {
 
       embed = {
         title: config.title,
-        description: `**${payload.userName || "Anônimo"}**\n\n${taskList}\n\n*${getRandomPhrase()}*`,
+        description: `**${payload.userName || "Anônimo"}**\n\n${taskList}\n\n\`${getRandomPhrase()}\``,
         color: config.color,
         thumbnail: { url: ICON_URL },
-        timestamp: new Date().toISOString(),
+        footer: { text: "Pixel Planner" },
       };
     } else {
       throw new Error("Invalid payload type");
