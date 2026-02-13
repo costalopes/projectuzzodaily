@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { ArrowLeft, Send, CheckCircle, XCircle, Loader2, Zap, Bell, Timer, AlertTriangle, Flame, Settings, Power, ChevronUp, Palette, Image as ImageIcon, Type, User, MessageSquare, Code, FileText, Info } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { ArrowLeft, Send, CheckCircle, XCircle, Loader2, Zap, Bell, Timer, AlertTriangle, Flame, Settings, Power, ChevronUp, Palette, Image as ImageIcon, Type, User, MessageSquare, Code, FileText, Info, AtSign, ChevronDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -110,12 +110,33 @@ const hexToDecimal = (hex: string): number => {
   return parseInt(clean, 16);
 };
 
+interface UserProfile {
+  displayName: string;
+  discordUserId: string;
+}
+
+const loadProfile = (): UserProfile => {
+  try {
+    const saved = localStorage.getItem("webhook_profile");
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { displayName: "App User", discordUserId: "" };
+};
+
 const WebhookDashboard = () => {
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>(DEFAULT_WEBHOOKS);
   const [statuses, setStatuses] = useState<Record<string, TestStatus>>({});
   const [lastResults, setLastResults] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile>(loadProfile);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("webhook_profile", JSON.stringify(profile));
+    // Sync userName across all webhooks
+    setWebhooks((prev) => prev.map((w) => ({ ...w, payload: { ...w.payload, userName: profile.displayName } })));
+  }, [profile]);
 
   const updateWebhook = useCallback((id: string, updates: Partial<WebhookConfig>) => {
     setWebhooks((prev) => prev.map((w) => (w.id === id ? { ...w, ...updates } : w)));
@@ -137,6 +158,7 @@ const WebhookDashboard = () => {
     try {
       const payloadWithOverrides = {
         ...wh.payload,
+        userName: profile.displayName,
         overrides: {
           botName: wh.embed.botName,
           avatarUrl: wh.embed.avatarUrl,
@@ -146,6 +168,7 @@ const WebhookDashboard = () => {
           thumbnailUrl: wh.embed.thumbnailUrl,
           footerText: wh.embed.footerText,
           quoteText: wh.embed.quoteText,
+          discordUserId: profile.discordUserId || undefined,
         },
       };
 
@@ -228,6 +251,56 @@ const WebhookDashboard = () => {
         {/* Content */}
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
           <div className="max-w-5xl mx-auto px-6 py-6">
+            {/* Mini Profile */}
+            <div className="mb-6">
+              <button onClick={() => setProfileOpen(!profileOpen)}
+                className="w-full bg-card/60 backdrop-blur-xl border border-border/30 rounded-xl p-4 flex items-center justify-between hover:border-primary/20 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-mono font-semibold text-foreground">{profile.displayName}</h3>
+                    <p className="text-[10px] font-mono text-muted-foreground/50">
+                      {profile.discordUserId ? `Discord ID: ${profile.discordUserId}` : "Discord ID não configurado"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {profile.discordUserId && (
+                    <span className="text-[10px] font-mono bg-success/10 text-success border border-success/20 rounded-lg px-2 py-0.5 flex items-center gap-1">
+                      <AtSign className="w-3 h-3" /> Menção ativa
+                    </span>
+                  )}
+                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", profileOpen && "rotate-180")} />
+                </div>
+              </button>
+              {profileOpen && (
+                <div className="mt-2 bg-card/60 backdrop-blur-xl border border-border/30 rounded-xl p-4 space-y-3 animate-fade-in">
+                  <p className="text-[10px] font-mono text-muted-foreground/50">// Seu perfil é usado em todos os webhooks. O Discord ID faz a menção (@) antes do embed.</p>
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                      <User className="w-3 h-3" /> Nome de Exibição
+                    </label>
+                    <input type="text" value={profile.displayName} onChange={(e) => setProfile((p) => ({ ...p, displayName: e.target.value }))}
+                      placeholder="Seu nome"
+                      className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary/50" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                      <AtSign className="w-3 h-3" /> Discord User ID
+                    </label>
+                    <input type="text" value={profile.discordUserId} onChange={(e) => setProfile((p) => ({ ...p, discordUserId: e.target.value.replace(/\D/g, "") }))}
+                      placeholder="Ex: 123456789012345678"
+                      className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary/50" />
+                    <p className="text-[9px] font-mono text-muted-foreground/40 mt-1">
+                      Ative o Modo Desenvolvedor no Discord → clique direito no seu perfil → Copiar ID
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="mb-6">
               <h2 className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60 font-mono mb-3 flex items-center gap-2"><Timer className="w-3 h-3" /> Pomodoro Notifications</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
