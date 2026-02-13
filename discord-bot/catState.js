@@ -1,8 +1,8 @@
 // ─── ESTADO DO GATO (em memória, sincroniza com o app) ───
 let catState = {
-  name: "Mimi",
-  color: "#9b87f5",
-  colorIdx: 0,
+  name: "Bartolomeu",
+  color: "#3a3a4a",
+  colorIdx: 2,
   happiness: 80,
   energy: 70,
   mood: "idle",
