@@ -23,35 +23,35 @@ export const DailyIntention = () => {
   };
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-4">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-5 flex flex-col h-full">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
         intenção do dia
       </h3>
 
       {saved ? (
-        <div className="text-center py-1">
-          <p className="text-xs text-foreground font-medium italic leading-relaxed truncate">
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <p className="text-sm text-foreground font-medium italic leading-relaxed text-center">
             "{intention}"
           </p>
           <button
             onClick={() => { setSaved(false); setIntention(""); }}
-            className="text-[9px] text-muted-foreground/50 mt-1 hover:text-muted-foreground transition-colors font-mono"
+            className="text-[10px] text-muted-foreground/50 mt-2 hover:text-muted-foreground transition-colors font-mono"
           >
             trocar
           </button>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="flex-1 flex flex-col justify-center space-y-2">
           <input
             value={intention}
             onChange={(e) => setIntention(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && save()}
             placeholder="Qual sua intenção?"
-            className="w-full bg-muted/40 border border-border rounded-lg px-2.5 py-1.5 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+            className="w-full bg-muted/40 border border-border rounded-xl px-3 py-2 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
           />
           <button
             onClick={pickRandom}
-            className="w-full text-[9px] text-muted-foreground/50 hover:text-muted-foreground transition-colors font-mono"
+            className="w-full text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors font-mono"
           >
             aleatória ↻
           </button>
