@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Plus, Check, Trash2, Coffee, Sun, Moon, Flame, Target, ArrowRight, Sparkles } from "lucide-react";
+import { Plus, Check, Trash2, Flame, Target, ArrowRight, Sparkles, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PixelCoffee, PixelCat, PixelClock } from "@/components/PixelArt";
+import { PixelCoffee, PixelCat, PixelClock, BG_THEMES, type BgThemeId } from "@/components/PixelArt";
 import pixelBanner from "@/assets/pixel-banner.png";
 
 type Priority = "urgent" | "medium" | "low";
@@ -46,6 +46,10 @@ const Index = () => {
 
   const [newTask, setNewTask] = useState("");
   const [showInput, setShowInput] = useState(false);
+  const [bgTheme, setBgTheme] = useState<BgThemeId>("clean");
+  const [showThemes, setShowThemes] = useState(false);
+
+  const currentTheme = BG_THEMES.find((t) => t.id === bgTheme)!;
 
   const doneCount = tasks.filter((t) => t.done).length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
@@ -71,7 +75,7 @@ const Index = () => {
   const doneTasks = tasks.filter((t) => t.done);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} ${currentTheme.accent} transition-all duration-700`}>
       {/* Pixel Banner */}
       <div className="relative w-full h-40 md:h-52 overflow-hidden">
         <img
@@ -80,15 +84,46 @@ const Index = () => {
           className="w-full h-full object-cover"
           style={{ imageRendering: "auto" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+        <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-transparent ${bgTheme === "clean" ? "to-background" : "to-transparent/80"}`} />
+        
+        {/* Theme switcher button */}
+        <button
+          onClick={() => setShowThemes(!showThemes)}
+          className="absolute top-3 right-3 bg-card/80 backdrop-blur-sm border border-border rounded-xl p-2 hover:bg-card transition-all"
+          aria-label="Mudar fundo"
+        >
+          <Palette className="w-4 h-4 text-muted-foreground" />
+        </button>
       </div>
+
+      {/* Theme picker dropdown */}
+      {showThemes && (
+        <div className="max-w-2xl mx-auto px-5 -mt-2 relative z-20">
+          <div className="bg-card border border-border rounded-xl p-3 shadow-lg animate-fade-in flex flex-wrap gap-2">
+            {BG_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                onClick={() => { setBgTheme(theme.id); setShowThemes(false); }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  bgTheme === theme.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
+              >
+                {theme.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto px-5 -mt-10 relative z-10 pb-12 space-y-6">
 
-        {/* Header card with clock, greeting and pixel friends */}
-        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm animate-fade-in">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
+        {/* Header card */}
+        <div className="bg-card/90 backdrop-blur-sm border border-border rounded-2xl p-5 shadow-sm animate-fade-in">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1 min-w-0">
               <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
                 {dateStr}
               </p>
@@ -99,23 +134,28 @@ const Index = () => {
                 {pendingTasks.length} tarefas pendentes · {streak} dias seguidos 🔥
               </p>
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end gap-1 shrink-0">
               <PixelClock />
-              <div className="flex items-end gap-2">
-                <PixelCoffee />
-                <PixelCat />
-              </div>
+              <PixelCoffee />
             </div>
           </div>
         </div>
 
+        {/* Cat companion area */}
+        <div className="flex justify-center animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <div className="bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl px-8 py-4 flex flex-col items-center">
+            <PixelCat />
+            <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono">clique para acarinhar ↑</p>
+          </div>
+        </div>
+
         {/* Progress */}
-        <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+        <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-muted-foreground font-medium">Progresso do dia</span>
             <span className="text-xs font-bold text-primary">{progress}%</span>
           </div>
-          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-2.5 bg-muted/60 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-700"
               style={{ width: `${progress}%` }}
@@ -124,18 +164,18 @@ const Index = () => {
         </div>
 
         {/* Quick stats */}
-        <div className="grid grid-cols-3 gap-2.5 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <div className="bg-card border border-border rounded-xl p-3 text-center">
+        <div className="grid grid-cols-3 gap-2.5 animate-fade-in" style={{ animationDelay: "160ms" }}>
+          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-3 text-center">
             <Target className="w-4 h-4 text-primary mx-auto mb-1" />
             <p className="text-lg font-bold">{progress}%</p>
             <p className="text-[10px] text-muted-foreground">progresso</p>
           </div>
-          <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-3 text-center">
             <Check className="w-4 h-4 text-success mx-auto mb-1" />
             <p className="text-lg font-bold">{doneCount}<span className="text-muted-foreground font-normal text-xs">/{tasks.length}</span></p>
             <p className="text-[10px] text-muted-foreground">concluídas</p>
           </div>
-          <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-3 text-center">
             <Flame className="w-4 h-4 text-warning mx-auto mb-1" />
             <p className="text-lg font-bold">{streak}</p>
             <p className="text-[10px] text-muted-foreground">dias seguidos</p>
@@ -224,7 +264,7 @@ const TaskRow = ({
   onDelete: (id: string) => void;
 }) => (
   <div
-    className="flex items-center gap-3 bg-card border border-border/60 rounded-xl px-4 py-3 group hover:border-primary/20 transition-all animate-fade-in"
+    className="flex items-center gap-3 bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl px-4 py-3 group hover:border-primary/20 transition-all animate-fade-in"
     style={{ animationDelay: `${index * 50}ms` }}
   >
     <button
