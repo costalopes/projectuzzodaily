@@ -26,7 +26,7 @@ type NotifyPayload = PomodoroPayload | TaskReminderPayload;
 const ICON_URL =
   "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/iconpomodoro.png";
 const AVATAR_URL =
-  "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/avatar.png";
+  "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/avatar.png?v=2";
 
 const MOTIVATIONAL_PHRASES = [
   "Cada pomodoro te aproxima do seu objetivo.",
