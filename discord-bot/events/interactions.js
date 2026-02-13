@@ -50,6 +50,7 @@ function registerInteractions(client) {
 
       // Botão: Carinho
       if (id === "cat_pet") {
+        await interaction.deferReply();
         const state = getCatState();
         updateCatState({
           happiness: Math.min(100, state.happiness + 8),
@@ -59,9 +60,8 @@ function registerInteractions(client) {
         addPendingAction({ type: "cat_pet", timestamp: Date.now(), user: interaction.user.username });
 
         const updated = getCatState();
-        await interaction.reply({
+        await interaction.editReply({
           content: `🤗 **${interaction.user.username}** fez carinho em **${updated.name}**! Purr~ 💜\n❤️ ${updated.happiness}%`,
-          ephemeral: false,
         });
         return;
       }
