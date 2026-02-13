@@ -15,6 +15,7 @@ interface EmbedOverrides {
   thumbnailUrl?: string;
   footerText?: string;
   quoteText?: string;
+  discordUserId?: string;
 }
 
 interface PomodoroPayload {
@@ -97,7 +98,6 @@ const MOTIVATIONAL_PHRASES = [
 const getRandomPhrase = () =>
   MOTIVATIONAL_PHRASES[Math.floor(Math.random() * MOTIVATIONAL_PHRASES.length)];
 
-// Replace template variables in a string
 const replaceTemplateVars = (text: string, vars: Record<string, string>): string => {
   let result = text;
   for (const [key, value] of Object.entries(vars)) {
@@ -120,7 +120,6 @@ serve(async (req) => {
     const payload: NotifyPayload = await req.json();
     const ov = payload.overrides || {};
 
-    // Build template variables available for substitution
     const templateVars: Record<string, string> = {
       user: payload.userName || "Anônimo",
       random_quote: getRandomPhrase(),
@@ -138,22 +137,13 @@ serve(async (req) => {
     let embed: Record<string, unknown>;
 
     if (payload.type === "pomodoro") {
-      const modeLabels: Record<string, string> = {
-        focus: "Foco",
-        short: "Pausa Curta",
-        long: "Descanso Longo",
-      };
+      const modeLabels: Record<string, string> = { focus: "Foco", short: "Pausa Curta", long: "Descanso Longo" };
       const YELLOW_BAR = 0xFFD700;
-
       const isStart = payload.event === "start";
       const isTransition = payload.event === "transition";
 
       if (isStart) {
-        const durationLabels: Record<string, string> = {
-          focus: "25 minutos",
-          short: "5 minutos",
-          long: "15 minutos",
-        };
+        const durationLabels: Record<string, string> = { focus: "25 minutos", short: "5 minutos", long: "15 minutos" };
         embed = {
           title: `🔔 | Timer Iniciado!`,
           description:
@@ -186,9 +176,7 @@ serve(async (req) => {
           description:
             `**${modeLabels[payload.mode]}** concluído! ⭐\n` +
             `**${payload.userName || "Anônimo"}** | 🔥 **${payload.sessions || 0} sessões**\n\n` +
-            (payload.mode === "focus"
-              ? "`Hora de descansar!` ☕\n"
-              : "`Hora de voltar ao foco!`\n") +
+            (payload.mode === "focus" ? "`Hora de descansar!` ☕\n" : "`Hora de voltar ao foco!`\n") +
             `\`${getRandomPhrase()}\``,
           color: YELLOW_BAR,
           thumbnail: { url: ICON_URL },
@@ -196,44 +184,20 @@ serve(async (req) => {
         };
       }
     } else if (payload.type === "task_reminder") {
-      const typeConfig: Record<
-        string,
-        { title: string; color: number; emoji: string }
-      > = {
-        before_deadline: {
-          title: "🔔 | Atividades Vencendo em 30min!",
-          color: 0xFFD700,
-          emoji: "🔥",
-        },
-        overdue_1: {
-          title: "🔔 | Atividades Atrasadas! (1º Aviso)",
-          color: 0xFFD700,
-          emoji: "🔥",
-        },
-        overdue_2: {
-          title: "🔔 | Atividades Atrasadas! (2º Aviso)",
-          color: 0xFFD700,
-          emoji: "🔥",
-        },
-        overdue_3: {
-          title: "🔔 | ÚLTIMO AVISO!",
-          color: 0xFFD700,
-          emoji: "🔥",
-        },
+      const typeConfig: Record<string, { title: string; color: number; emoji: string }> = {
+        before_deadline: { title: "🔔 | Atividades Vencendo em 30min!", color: 0xFFD700, emoji: "🔥" },
+        overdue_1: { title: "🔔 | Atividades Atrasadas! (1º Aviso)", color: 0xFFD700, emoji: "🔥" },
+        overdue_2: { title: "🔔 | Atividades Atrasadas! (2º Aviso)", color: 0xFFD700, emoji: "🔥" },
+        overdue_3: { title: "🔔 | ÚLTIMO AVISO!", color: 0xFFD700, emoji: "🔥" },
       };
-
       const config = typeConfig[payload.reminderType] || typeConfig.overdue_1;
       const taskList = payload.tasks
         .map((t, i) => {
-          const dl = t.deadline
-            ? new Date(t.deadline).toLocaleString("pt-BR")
-            : "sem prazo";
+          const dl = t.deadline ? new Date(t.deadline).toLocaleString("pt-BR") : "sem prazo";
           return `${config.emoji} **${i + 1}.** ${t.title} — *${dl}*`;
         })
         .join("\n");
-
       templateVars.task_list = taskList;
-
       embed = {
         title: config.title,
         description: `**${payload.userName || "Anônimo"}**\n\n${taskList}\n\n\`${getRandomPhrase()}\``,
@@ -250,9 +214,7 @@ serve(async (req) => {
     if (ov.thumbnailUrl) embed!.thumbnail = { url: ov.thumbnailUrl };
     if (ov.footerText !== undefined) embed!.footer = ov.footerText ? { text: replaceTemplateVars(ov.footerText, templateVars) } : undefined;
     if (ov.quoteText !== undefined) {
-      // Append or replace the quote line at the end of description
       const desc = String(embed!.description || "");
-      // Remove existing backtick quote if present
       const cleanDesc = desc.replace(/\n\n`[^`]+`\s*$/, "");
       const quote = replaceTemplateVars(ov.quoteText, templateVars);
       embed!.description = quote ? `${cleanDesc}\n\n\`${quote}\`` : cleanDesc;
@@ -261,21 +223,26 @@ serve(async (req) => {
     const finalBotName = ov.botName || "Layla | Pixel Planner";
     const finalAvatarUrl = ov.avatarUrl || AVATAR_URL;
 
+    // Build mention content if discordUserId is provided
+    let mentionContent: string | undefined;
+    if (ov.discordUserId) {
+      mentionContent = `<@${ov.discordUserId}>`;
+    }
+
     const discordRes = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: finalBotName,
         avatar_url: finalAvatarUrl,
+        content: mentionContent,
         embeds: [embed!],
       }),
     });
 
     if (!discordRes.ok) {
       const errorText = await discordRes.text();
-      throw new Error(
-        `Discord webhook failed [${discordRes.status}]: ${errorText}`
-      );
+      throw new Error(`Discord webhook failed [${discordRes.status}]: ${errorText}`);
     }
 
     await discordRes.text().catch(() => {});
