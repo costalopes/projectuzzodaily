@@ -6,13 +6,24 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <header className="border-b border-border bg-card px-6 py-3 flex items-center gap-3">
-        <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ChevronLeft className="w-4 h-4" />
-          Voltar
-        </button>
-        <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-        <h1 className="text-sm font-semibold">Meu Workspace</h1>
+      <header className="border-b border-border bg-card px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+            Voltar
+          </button>
+          <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+          <h1 className="text-sm font-semibold">Meu Workspace</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-sm font-medium">Olá, Pedro Lopes 👋</p>
+            <p className="text-xs text-muted-foreground">Bom dia! Vamos organizar seu dia.</p>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
+            PL
+          </div>
+        </div>
       </header>
 
       {/* Main layout */}
