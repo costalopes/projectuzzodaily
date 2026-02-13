@@ -13,6 +13,7 @@ import { HabitTracker } from "@/components/HabitTracker";
 import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
 import { TaskDetailDialog, type Task, type TaskStatus } from "@/components/TaskDetailDialog";
+import { LofiPlayer } from "@/components/LofiPlayer";
 import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import deskBanner from "@/assets/desk-banner.jpg";
@@ -204,6 +205,7 @@ const Index = () => {
 
       <AmbientParticles />
       <PixelCatCorner onTaskComplete={taskCompleted} />
+      <LofiPlayer />
 
       {/* Main content — z-10 above background */}
       <div className="relative z-10 flex flex-col h-full">
