@@ -66,19 +66,32 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   useEffect(() => { saveStat("happiness", happiness); }, [happiness]);
   useEffect(() => { saveStat("energy", energy); }, [energy]);
 
-  const syncCatToBot = useCallback((name: string, idx: number) => {
-    fetch("https://steadfast-integrity-production-4b30.up.railway.app:8080/api/cat-status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-secret": "meu-segredo-123" },
-      body: JSON.stringify({ name, colorIdx: idx }),
-    }).catch(() => {});
-  }, []);
+  // Debounced sync to bot - sends ALL attributes
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncCatToBot = useCallback((overrides?: Record<string, unknown>) => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      const payload = {
+        name: catName,
+        colorIdx,
+        happiness,
+        energy,
+        mood,
+        ...overrides,
+      };
+      fetch("https://steadfast-integrity-production-4b30.up.railway.app:8080/api/cat-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-secret": "meu-segredo-123" },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }, 500); // debounce 500ms to avoid spamming
+  }, [catName, colorIdx, happiness, energy, mood]);
 
-  const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); syncCatToBot(n, colorIdx); };
-  const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); syncCatToBot(catName, i); };
+  const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); syncCatToBot({ name: n }); };
+  const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); syncCatToBot({ colorIdx: i }); };
 
-  // Sync on mount
-  useEffect(() => { syncCatToBot(catName, colorIdx); }, []);
+  // Sync whenever any stat changes
+  useEffect(() => { syncCatToBot(); }, [catName, colorIdx, happiness, energy, mood]);
 
   const showMsg = useCallback((msg: string, duration = 3000) => {
     setMessage(msg);
