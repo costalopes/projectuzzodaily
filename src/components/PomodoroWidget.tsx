@@ -58,6 +58,7 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   const [timeLeft, setTimeLeft] = useState(DURATIONS.focus);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   const prevRunning = useRef(false);
 
   // Notify Discord via Edge Function
@@ -108,19 +109,22 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
           if (mode === "focus") {
             setSessions((s) => s + 1);
             const nextMode: TimerMode = (sessions + 1) % 4 === 0 ? "long" : "short";
-            // Auto-start next mode after a brief delay
+            const label = nextMode === "long" ? "Iniciando descanso longo..." : "Iniciando pausa...";
+            setTransitionMessage(label);
             setTimeout(() => {
               setMode(nextMode);
               setTimeLeft(DURATIONS[nextMode]);
+              setTransitionMessage(null);
               setIsRunning(true);
-            }, 1500);
+            }, 2000);
           } else {
-            // After break, auto-start focus
+            setTransitionMessage("Iniciando foco...");
             setTimeout(() => {
               setMode("focus");
               setTimeLeft(DURATIONS.focus);
+              setTransitionMessage(null);
               setIsRunning(true);
-            }, 1500);
+            }, 2000);
           }
           return 0;
         }
@@ -200,6 +204,12 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
           </div>
         </div>
 
+        {/* Transition message */}
+        {transitionMessage && (
+          <div className="animate-fade-in text-center">
+            <span className="text-xs font-mono text-primary animate-pulse">{transitionMessage}</span>
+          </div>
+        )}
 
         {/* Controls */}
         <div className="flex items-center gap-3">
