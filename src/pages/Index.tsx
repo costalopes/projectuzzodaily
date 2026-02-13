@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Plus, Check, Trash2, Flame, Target, ArrowRight, Sparkles, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PixelCoffee, PixelCat, PixelClock, BG_THEMES, type BgThemeId } from "@/components/PixelArt";
+import { PixelCoffee, PixelClock, BG_THEMES, type BgThemeId } from "@/components/PixelArt";
+import { PixelCatCorner } from "@/components/PixelCatCorner";
+import { PomodoroWidget } from "@/components/PomodoroWidget";
+import { QuickNotes } from "@/components/QuickNotes";
+import { MiniCalendar } from "@/components/MiniCalendar";
 import pixelBanner from "@/assets/pixel-banner.png";
 
 type Priority = "urgent" | "medium" | "low";
@@ -76,29 +80,31 @@ const Index = () => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} ${currentTheme.accent} transition-all duration-700`}>
+      {/* Fixed corner cat */}
+      <PixelCatCorner />
+
       {/* Pixel Banner */}
-      <div className="relative w-full h-40 md:h-52 overflow-hidden">
+      <div className="relative w-full h-36 md:h-48 overflow-hidden">
         <img
           src={pixelBanner}
           alt="Pixel art cozy dev workspace"
           className="w-full h-full object-cover"
           style={{ imageRendering: "auto" }}
         />
-        <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-transparent ${bgTheme === "clean" ? "to-background" : "to-transparent/80"}`} />
-        
-        {/* Theme switcher button */}
+        <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-transparent/50 ${bgTheme === "clean" ? "to-background" : "to-transparent/80"}`} />
+
+        {/* Theme switcher */}
         <button
           onClick={() => setShowThemes(!showThemes)}
           className="absolute top-3 right-3 bg-card/80 backdrop-blur-sm border border-border rounded-xl p-2 hover:bg-card transition-all"
-          aria-label="Mudar fundo"
         >
           <Palette className="w-4 h-4 text-muted-foreground" />
         </button>
       </div>
 
-      {/* Theme picker dropdown */}
+      {/* Theme picker */}
       {showThemes && (
-        <div className="max-w-2xl mx-auto px-5 -mt-2 relative z-20">
+        <div className="max-w-4xl mx-auto px-5 -mt-2 relative z-20">
           <div className="bg-card border border-border rounded-xl p-3 shadow-lg animate-fade-in flex flex-wrap gap-2">
             {BG_THEMES.map((theme) => (
               <button
@@ -106,9 +112,7 @@ const Index = () => {
                 onClick={() => { setBgTheme(theme.id); setShowThemes(false); }}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                  bgTheme === theme.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-accent"
+                  bgTheme === theme.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
                 )}
               >
                 {theme.label}
@@ -118,9 +122,9 @@ const Index = () => {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-5 -mt-10 relative z-10 pb-12 space-y-6">
+      <div className="max-w-4xl mx-auto px-5 -mt-8 relative z-10 pb-16 space-y-6">
 
-        {/* Header card */}
+        {/* Header */}
         <div className="bg-card/90 backdrop-blur-sm border border-border rounded-2xl p-5 shadow-sm animate-fade-in">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1 min-w-0">
@@ -134,23 +138,15 @@ const Index = () => {
                 {pendingTasks.length} tarefas pendentes · {streak} dias seguidos 🔥
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex flex-col items-end gap-2 shrink-0">
               <PixelClock />
               <PixelCoffee />
             </div>
           </div>
         </div>
 
-        {/* Cat companion area */}
-        <div className="flex justify-center animate-fade-in" style={{ animationDelay: "80ms" }}>
-          <div className="bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl px-8 py-4 flex flex-col items-center">
-            <PixelCat />
-            <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono">clique para acarinhar ↑</p>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
+        {/* Progress bar */}
+        <div className="animate-fade-in" style={{ animationDelay: "80ms" }}>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-muted-foreground font-medium">Progresso do dia</span>
             <span className="text-xs font-bold text-primary">{progress}%</span>
@@ -163,8 +159,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-3 gap-2.5 animate-fade-in" style={{ animationDelay: "160ms" }}>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-2.5 animate-fade-in" style={{ animationDelay: "120ms" }}>
           <div className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-3 text-center">
             <Target className="w-4 h-4 text-primary mx-auto mb-1" />
             <p className="text-lg font-bold">{progress}%</p>
@@ -182,63 +178,74 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Tasks */}
-        <div className="space-y-3 animate-fade-in" style={{ animationDelay: "200ms" }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              Pendentes
-            </h2>
-            <button
-              onClick={() => setShowInput(true)}
-              className="text-xs text-primary font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Nova tarefa
-            </button>
-          </div>
+        {/* Main grid: Tasks + Sidebar widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-5 animate-fade-in" style={{ animationDelay: "160ms" }}>
 
-          {showInput && (
-            <div className="flex gap-2 animate-fade-in">
-              <input
-                type="text"
-                autoFocus
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") addTask();
-                  if (e.key === "Escape") setShowInput(false);
-                }}
-                placeholder="O que precisa fazer?"
-                className="flex-1 bg-card border border-border rounded-xl px-4 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-              />
+          {/* Tasks column (3/5) */}
+          <div className="md:col-span-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Pendentes
+              </h2>
               <button
-                onClick={addTask}
-                className="bg-primary text-primary-foreground rounded-xl px-4 text-sm font-medium hover:opacity-90 transition-opacity"
+                onClick={() => setShowInput(true)}
+                className="text-xs text-primary font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
-                <ArrowRight className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
+                Nova tarefa
               </button>
             </div>
-          )}
 
-          <div className="space-y-1.5">
-            {pendingTasks.map((task, i) => (
-              <TaskRow key={task.id} task={task} index={i} onToggle={toggleTask} onDelete={deleteTask} />
-            ))}
+            {showInput && (
+              <div className="flex gap-2 animate-fade-in">
+                <input
+                  type="text"
+                  autoFocus
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addTask();
+                    if (e.key === "Escape") setShowInput(false);
+                  }}
+                  placeholder="O que precisa fazer?"
+                  className="flex-1 bg-card border border-border rounded-xl px-4 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                />
+                <button
+                  onClick={addTask}
+                  className="bg-primary text-primary-foreground rounded-xl px-4 text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              {pendingTasks.map((task, i) => (
+                <TaskRow key={task.id} task={task} index={i} onToggle={toggleTask} onDelete={deleteTask} />
+              ))}
+            </div>
+
+            {doneTasks.length > 0 && (
+              <>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-3">
+                  Concluídas
+                </h2>
+                <div className="space-y-1.5">
+                  {doneTasks.map((task, i) => (
+                    <TaskRow key={task.id} task={task} index={i} onToggle={toggleTask} onDelete={deleteTask} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {doneTasks.length > 0 && (
-            <>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-3">
-                Concluídas
-              </h2>
-              <div className="space-y-1.5">
-                {doneTasks.map((task, i) => (
-                  <TaskRow key={task.id} task={task} index={i} onToggle={toggleTask} onDelete={deleteTask} />
-                ))}
-              </div>
-            </>
-          )}
+          {/* Sidebar widgets (2/5) */}
+          <div className="md:col-span-2 space-y-5">
+            <MiniCalendar />
+            <PomodoroWidget />
+            <QuickNotes />
+          </div>
         </div>
 
         {/* Footer */}
@@ -271,9 +278,7 @@ const TaskRow = ({
       onClick={() => onToggle(task.id)}
       className={cn(
         "w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all shrink-0",
-        task.done
-          ? "bg-primary border-primary"
-          : "border-muted-foreground/30 hover:border-primary"
+        task.done ? "bg-primary border-primary" : "border-muted-foreground/30 hover:border-primary"
       )}
     >
       {task.done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
