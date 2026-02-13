@@ -6,12 +6,22 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+interface EmbedOverrides {
+  botName?: string;
+  avatarUrl?: string;
+  embedTitle?: string;
+  embedColor?: number;
+  thumbnailUrl?: string;
+  footerText?: string;
+}
+
 interface PomodoroPayload {
   type: "pomodoro";
   event: "start" | "end" | "transition";
   mode: "focus" | "short" | "long";
   sessions: number;
   userName: string;
+  overrides?: EmbedOverrides;
 }
 
 interface TaskReminderPayload {
@@ -19,6 +29,7 @@ interface TaskReminderPayload {
   reminderType: "before_deadline" | "overdue_1" | "overdue_2" | "overdue_3";
   tasks: { title: string; deadline?: string }[];
   userName: string;
+  overrides?: EmbedOverrides;
 }
 
 type NotifyPayload = PomodoroPayload | TaskReminderPayload;
@@ -96,6 +107,7 @@ serve(async (req) => {
     }
 
     const payload: NotifyPayload = await req.json();
+    const ov = payload.overrides || {};
 
     let embed: Record<string, unknown>;
 
@@ -201,16 +213,23 @@ serve(async (req) => {
         thumbnail: { url: ICON_URL },
         footer: { text: "Pixel Planner" },
       };
-    } else {
-      throw new Error("Invalid payload type");
     }
+
+    // Apply embed overrides
+    if (ov.embedTitle) embed.title = ov.embedTitle;
+    if (ov.embedColor !== undefined) embed.color = ov.embedColor;
+    if (ov.thumbnailUrl) embed.thumbnail = { url: ov.thumbnailUrl };
+    if (ov.footerText !== undefined) embed.footer = ov.footerText ? { text: ov.footerText } : undefined;
+
+    const finalBotName = ov.botName || "Layla | Pixel Planner";
+    const finalAvatarUrl = ov.avatarUrl || AVATAR_URL;
 
     const discordRes = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "Layla | Pixel Planner",
-        avatar_url: AVATAR_URL,
+        username: finalBotName,
+        avatar_url: finalAvatarUrl,
         embeds: [embed],
       }),
     });
