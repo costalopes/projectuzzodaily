@@ -2,10 +2,18 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type CatMood = "idle" | "happy" | "purring" | "sleeping" | "coding" | "excited" | "belly" | "scratching" | "stretching";
+type CatMood = "idle" | "happy" | "purring" | "sleeping" | "coding" | "excited" | "belly" | "scratching" | "stretching"
+  | "listening" | "thirsty" | "hydrated" | "caffeinated" | "focused" | "alert";
+
+export interface CatEvent {
+  type: "task_complete" | "music_play" | "music_stop" | "water_low" | "water_full" | "water_add" | "coffee_add" | "coffee_excess"
+    | "pomodoro_end" | "pomodoro_start" | "urgent_overdue";
+  timestamp: number;
+}
 
 interface CatProps {
   onTaskComplete?: boolean;
+  lastEvent?: CatEvent | null;
 }
 
 const CAT_COLORS: { name: string; fur1: string; fur2: string; fur3: string; stripe: string; belly: string; eye: string }[] = [
@@ -17,7 +25,7 @@ const CAT_COLORS: { name: string; fur1: string; fur2: string; fur3: string; stri
   { name: "Siamês", fur1: "#f0e0d0", fur2: "#d8c8b8", fur3: "#f8f0e8", stripe: "#8a6a50", belly: "#faf0e8", eye: "#4070b0" },
 ];
 
-export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
+export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   const [blink, setBlink] = useState(false);
   const [mood, setMood] = useState<CatMood>("coding");
   const [pets, setPets] = useState(0);
@@ -32,120 +40,119 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     const saved = localStorage.getItem("cat-color");
     return saved ? parseInt(saved) : 0;
   });
+  const lastEventRef = useRef<number>(0);
 
   const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); };
   const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); };
 
-  const allMessages: Record<CatMood, string[]> = {
-    idle: [
-      "miau~", "...", "*estica*", "*boceja*", "meow?",
-      "*olha pela janela*", "hmm...", "*rola no chão*",
-      "*limpa a patinha*", "preguiça...", "*espreita*",
-      "tô de boa", "*ronca baixinho*", "*sobe na mesa*",
-      "*derruba o copo*", "cadê o laser?", "*ignora humano*",
-      "*finge que não viu*", "*olha fixo pra parede*",
-      "*persegue a própria cauda*", "*late. ops*",
-      "*empurra algo da mesa*", "cadê meu atum?",
-      "*olha pro teto*", "...*cai da cadeira*",
-      "*caça mosquito imaginário*", "tédio...",
-    ],
-    happy: [
-      "nyaa~", "purrrr!", "*ronrona*", "mrrp!", "mais carinho!",
-      "isso mesmo!", "*fecha os olhos*", "tão bom...",
-      "*esfrega no braço*", "continua!", "adoro!",
-      "*amassa a almofada*", "melhor humano!", "*olhinhos brilhando*",
-      "faz mais!", "*vira a barriga*", "posso ficar aqui forever",
-      "*faz biscuit*", "meu humano favorito!",
-      "*estica as patinhas*", "*pega na mão*",
-      "carinho é vida", "*ronrona intensamente*",
-    ],
-    purring: [
-      "purrrrrr...", "*amassa pãozinho*", "tão quentinho...",
-      "*ronrona alto*", "não para...", "vida boa...",
-      "*derrete*", "hmmmm...", "*relaxa total*",
-      "*vibra de felicidade*", "melhor momento do dia",
-      "*ronrona no volume máximo*", "zen mode on",
-      "*deita no teclado*", "sou puro amor",
-    ],
-    sleeping: [
-      "zzz...", "*sonha com peixe*", "mrrrm...",
-      "*mexe a patinha*", "...atum...", "*suspira*",
-      "zzZzz...", "*vira de lado*", "*sonha com yarn*",
-      "*corre dormindo*", "...npm install...", "*ronca*",
-      "*murmura*...bug...", "*patinha treme*",
-      "...deploy...", "*ronca alto*", "...café...",
-      "*sonha que é tigre*", "...merge conflict...",
-    ],
+  const showMsg = useCallback((msg: string, duration = 3000) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(""), duration);
+  }, []);
+
+  const allMessages: Record<string, string[]> = {
+    idle: ["miau~", "...", "*estica*", "*boceja*", "meow?", "*olha pela janela*", "hmm...", "*rola no chão*", "*limpa a patinha*", "preguiça...", "tô de boa", "*derruba o copo*", "cadê o laser?"],
+    happy: ["nyaa~", "purrrr!", "*ronrona*", "mrrp!", "mais carinho!", "isso mesmo!", "*fecha os olhos*", "tão bom...", "*esfrega no braço*", "continua!", "adoro!", "*faz biscuit*"],
+    purring: ["purrrrrr...", "*amassa pãozinho*", "tão quentinho...", "*ronrona alto*", "não para...", "vida boa...", "*derrete*"],
+    sleeping: ["zzz...", "*sonha com peixe*", "mrrrm...", "*mexe a patinha*", "...atum...", "zzZzz...", "*ronca*"],
     coding: [
-      "git push", "npm run dev", "// TODO: dormir",
-      "console.log('miau')", "bug?", "LGTM!",
-      "refactor time", "café + código", "deploy friday?",
-      "tá compilando...", "hmm esse hook...",
-      "mais um commit", "testes passando!",
-      "clean code", "feature pronta!", "PR aprovado!",
-      "stack overflow", "ctrl+s ctrl+s", "debugando...",
-      "aquele bug...", "funciona na minha máquina",
-      "code review", "pair programming?",
-      "esse import...", "TypeScript!", "async await...",
-      "useEffect cleanup", "null pointer? aqui não",
-      "docker up", "git stash pop", "merge conflict 😱",
-      "CI passando ✓", "hotfix incoming", "404 sleep not found",
-      "chmod 777 😬", "sudo rm -rf preguiça", "localhost:3000",
-      `${catName} approved ✓`, "ship it! 🚀",
-      "const sleep = null", "try { code } catch { nap }",
-      "while(true) { code() }", "segfault emocional",
-      "grep -r 'bug' .", "vim ou vscode?",
-      "npm audit fix 🙏", "200 OK ✓",
-      "SELECT * FROM nap", "git blame quem?",
-      `${catName}.exe parou`, "sudo ${catName}",
-      "linting... ✓", "zero warnings!",
-      "dark mode > light mode", "café.length === 0 😱",
-      "bora pra produção?", "staging first!",
-      "esse regex...", "/^miau$/gi",
-      "Infinity loop 🔄", "404 motivation not found",
+      "git push", "npm run dev", "// TODO: dormir", "console.log('miau')", "bug?", "LGTM!", "refactor time",
+      "café + código", "deploy friday?", "tá compilando...", "testes passando!", "clean code", "feature pronta!",
+      "funciona na minha máquina", "TypeScript!", "ship it! 🚀", "200 OK ✓", "dark mode > light mode",
+      `${catName} approved ✓`, `sudo ${catName}`, "zero warnings!", "bora pra produção?",
     ],
-    excited: [
-      "MIAU!!", "WOOO!", "*pula*", "incrível!!",
-      "mandou bem!", "boa!!", "*faz dancinha*",
-      "isso aí!!", "perfeito!", "*olhos brilhando*",
-      "que orgulho!!", "show!!", "*gira de felicidade*",
-      `${catName} tá feliz!!`, "SHIP IT!! 🚀",
-      "PRODUÇÃO!! 🎉", "*pula no teclado*",
-      "MEGA PR!!", "100% coverage!!",
-      "*faz a dancinha do deploy*", "MIAU MIAU!!",
-    ],
-    belly: [
-      "*mostra a barriga*", "coça aqui!", "confia...",
-      "*rola pro lado*", "barriguinha!", "tô vulnerável",
-      "*patinhas pra cima*", "carinho na barriga?",
-      "*expõe o belly*", "armadilha? talvez...",
-      "prometo que não mordo", "*estiquinha total*",
-    ],
-    scratching: [
-      "*coça o nariz*", "*coça atrás da orelha*",
-      "*esfrega o focinho*", "tava coçando!",
-      "*coça a bochecha*", "*limpa o bigode*",
-      "*esfrega na patinha*", "hmm coceirinha",
-      "*coça coça*", "*patinha no focinho*",
-    ],
-    stretching: [
-      "*esticaaaa*", "*alongamento máximo*",
-      "*estica as patinhas*", "ahhhh que bom",
-      "*yoga cat pose*", "*estica e boceja*",
-      "*stretching time*", "*se alonga todo*",
-      "preguiça gostosa", "*estica até tremer*",
-    ],
+    excited: ["MIAU!!", "WOOO!", "*pula*", "incrível!!", "mandou bem!", "boa!!", "*faz dancinha*", "isso aí!!", "perfeito!", "que orgulho!!", "SHIP IT!! 🚀"],
+    belly: ["*mostra a barriga*", "coça aqui!", "confia...", "*rola pro lado*", "barriguinha!"],
+    scratching: ["*coça o nariz*", "*coça atrás da orelha*", "*esfrega o focinho*", "tava coçando!"],
+    stretching: ["*esticaaaa*", "*alongamento máximo*", "*estica as patinhas*", "ahhhh que bom"],
+    // New reaction messages
+    listening: ["♪ boa música!", "♫ *balança a cabeça*", "♪ gosto disso!", "~vibing~", "♫ nice beat", "*mexe a orelha*", "lofi mood ♪"],
+    thirsty: ["tô com sede!", "beba água, humano!", "💧 cadê a água?", "*olha pro copo vazio*", "hidratação é vida!", "miau... sede..."],
+    hydrated: ["boa! hidratado! 💧", "meta da água! 🎉", "*aprovação*", "isso aí! água é vida!"],
+    caffeinated: ["café! ☕", "*cheira o café*", "hmm café...", "mais café!", "☕ bom demais"],
+    focused: ["foco total! 🍅", "*concentrado*", "bora produzir!", "modo foco ON", "shh... focando"],
+    alert: ["⚠️ tarefa urgente!", "ei! tarefa atrasada!", "não esquece!", "humano, olha isso!", "URGENTE!! 🚨", "*pula preocupado*"],
   };
 
-  // Clamp eye offset to prevent going outside head
+  const pickMsg = useCallback((category: string) => {
+    const msgs = allMessages[category] || allMessages.coding;
+    return msgs[Math.floor(Math.random() * msgs.length)];
+  }, [catName]);
+
+  // Handle events from other components
+  useEffect(() => {
+    if (!lastEvent || lastEvent.timestamp === lastEventRef.current) return;
+    lastEventRef.current = lastEvent.timestamp;
+
+    switch (lastEvent.type) {
+      case "music_play":
+        setMood("listening");
+        showMsg(pickMsg("listening"));
+        setTimeout(() => setMood("coding"), 5000);
+        break;
+      case "music_stop":
+        showMsg("♪ acabou a música...");
+        break;
+      case "water_low":
+        setMood("thirsty");
+        showMsg(pickMsg("thirsty"), 4000);
+        setTimeout(() => setMood("coding"), 5000);
+        break;
+      case "water_full":
+        setMood("excited");
+        showMsg(pickMsg("hydrated"));
+        setTimeout(() => setMood("coding"), 4000);
+        break;
+      case "water_add":
+        showMsg("💧 +250ml!");
+        break;
+      case "coffee_add":
+        setMood("happy");
+        showMsg(pickMsg("caffeinated"));
+        setTimeout(() => setMood("coding"), 3000);
+        break;
+      case "coffee_excess":
+        showMsg("calma no café! 😰");
+        break;
+      case "pomodoro_start":
+        setMood("focused");
+        showMsg(pickMsg("focused"));
+        setTimeout(() => setMood("coding"), 4000);
+        break;
+      case "pomodoro_end":
+        setMood("excited");
+        showMsg("🍅 timer acabou!");
+        setTimeout(() => setMood("coding"), 4000);
+        break;
+      case "task_complete":
+        setMood("excited");
+        showMsg(pickMsg("excited"));
+        setTimeout(() => setMood("coding"), 4000);
+        break;
+      case "urgent_overdue":
+        setMood("alert");
+        showMsg(pickMsg("alert"), 5000);
+        setTimeout(() => setMood("coding"), 6000);
+        break;
+    }
+  }, [lastEvent, pickMsg, showMsg]);
+
+  // Legacy onTaskComplete support
+  useEffect(() => {
+    if (onTaskComplete) {
+      setMood("excited");
+      showMsg(pickMsg("excited"));
+      setTimeout(() => setMood("coding"), 4000);
+    }
+  }, [onTaskComplete, pickMsg, showMsg]);
+
+  // Eye tracking
   useEffect(() => {
     const handleMouse = (e: MouseEvent) => {
       if (!catRef.current) return;
       const rect = catRef.current.getBoundingClientRect();
-      const catCenterX = rect.left + rect.width / 2;
-      const catCenterY = rect.top + rect.height / 2;
-      const dx = e.clientX - catCenterX;
-      const dy = e.clientY - catCenterY;
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top + rect.height / 2);
       const dist = Math.sqrt(dx * dx + dy * dy);
       const maxOffset = 1.5;
       setEyeOffset({
@@ -157,16 +164,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     return () => window.removeEventListener("mousemove", handleMouse);
   }, []);
 
-  useEffect(() => {
-    if (onTaskComplete) {
-      setMood("excited");
-      const msgs = allMessages.excited;
-      setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-      setTimeout(() => setMessage(""), 3000);
-      setTimeout(() => setMood("coding"), 4000);
-    }
-  }, [onTaskComplete]);
-
+  // Blink
   useEffect(() => {
     if (mood === "sleeping") return;
     const interval = setInterval(() => {
@@ -176,6 +174,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     return () => clearInterval(interval);
   }, [mood]);
 
+  // Idle → sleeping
   useEffect(() => {
     if (mood === "idle") {
       const timeout = setTimeout(() => setMood("sleeping"), 25000);
@@ -183,6 +182,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     }
   }, [mood]);
 
+  // Purring / happy timeouts
   useEffect(() => {
     if (mood === "purring") {
       setIsKneading(true);
@@ -195,48 +195,33 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     }
   }, [mood]);
 
-  // Handle animation-driven moods — return to coding when CSS animation ends
   const handleAnimationEnd = useCallback(() => {
     if (mood === "belly" || mood === "scratching" || mood === "stretching") {
       setMood("coding");
     }
   }, [mood]);
 
-  // Random spontaneous animations during coding
+  // Random spontaneous actions during coding
   useEffect(() => {
     if (mood !== "coding") return;
-
     const doRandomAction = () => {
       const rand = Math.random();
       if (rand < 0.15) {
-        // Spontaneous belly
         setMood("belly");
-        const msgs = allMessages.belly;
-        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-        setTimeout(() => setMessage(""), 3000);
+        showMsg(pickMsg("belly"));
       } else if (rand < 0.30) {
-        // Spontaneous scratch
         setMood("scratching");
-        const msgs = allMessages.scratching;
-        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-        setTimeout(() => setMessage(""), 3000);
+        showMsg(pickMsg("scratching"));
       } else if (rand < 0.45) {
-        // Spontaneous stretch
         setMood("stretching");
-        const msgs = allMessages.stretching;
-        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-        setTimeout(() => setMessage(""), 3000);
+        showMsg(pickMsg("stretching"));
       } else {
-        // Normal coding message
-        const msgs = allMessages.coding;
-        setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-        setTimeout(() => setMessage(""), 4000);
+        showMsg(pickMsg("coding"), 4000);
       }
     };
-
     const interval = setInterval(doRandomAction, 8000 + Math.random() * 6000);
     return () => clearInterval(interval);
-  }, [mood, catName]);
+  }, [mood, catName, pickMsg, showMsg]);
 
   const handlePet = useCallback(() => {
     if (showSettings) return;
@@ -244,14 +229,11 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     setPets(newPets);
     const newMood = newPets % 5 === 0 ? "purring" : "happy";
     setMood(newMood);
-    const msgs = allMessages[newMood];
-    setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-    setTimeout(() => setMessage(""), 3000);
-
+    showMsg(pickMsg(newMood));
     const heartId = Date.now();
     setHearts((h) => [...h, heartId]);
     setTimeout(() => setHearts((h) => h.filter((id) => id !== heartId)), 2000);
-  }, [pets, showSettings]);
+  }, [pets, showSettings, pickMsg, showMsg]);
 
   const c = CAT_COLORS[colorIdx];
   const earInner = "#f0a0a0";
@@ -262,51 +244,42 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
   const eyeColor = c.eye;
 
   const showEyes = mood !== "sleeping" && !blink;
-  const isHappy = mood === "happy" || mood === "purring" || mood === "excited" || mood === "belly";
+  const isHappy = mood === "happy" || mood === "purring" || mood === "excited" || mood === "belly" || mood === "listening" || mood === "hydrated";
   const isBelly = mood === "belly";
   const isScratching = mood === "scratching";
   const isStretching = mood === "stretching";
+  const isAlert = mood === "alert" || mood === "thirsty";
 
   return (
     <div ref={catRef} className="fixed bottom-4 right-4 z-50 select-none group">
       {/* Speech bubble */}
       {message && !showSettings && (
-        <div className="absolute -top-12 right-0 bg-card/95 backdrop-blur-xl border border-border rounded-xl px-3 py-2 shadow-lg animate-fade-in whitespace-nowrap max-w-[200px]">
-          <p className="text-[10px] font-mono text-foreground truncate">{message}</p>
-          <div className="absolute -bottom-1 right-8 w-2 h-2 bg-card/95 border-r border-b border-border rotate-45" />
+        <div className={cn(
+          "absolute -top-12 right-0 backdrop-blur-xl border rounded-xl px-3 py-2 shadow-lg animate-fade-in whitespace-nowrap max-w-[200px]",
+          isAlert ? "bg-destructive/10 border-destructive/30" : "bg-card/95 border-border"
+        )}>
+          <p className={cn("text-[10px] font-mono truncate", isAlert ? "text-destructive" : "text-foreground")}>{message}</p>
+          <div className={cn("absolute -bottom-1 right-8 w-2 h-2 border-r border-b rotate-45", isAlert ? "bg-destructive/10 border-destructive/30" : "bg-card/95 border-border")} />
         </div>
       )}
 
       {/* Settings panel */}
       {showSettings && (
         <div className="absolute bottom-full right-0 mb-2 bg-card/95 backdrop-blur-xl border border-border rounded-xl p-4 shadow-xl animate-fade-in w-56">
-          <h4 className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-3">
-            // cat.config
-          </h4>
+          <h4 className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-3">// cat.config</h4>
           <div className="space-y-3">
             <div>
               <label className="text-[9px] font-mono text-muted-foreground/60 block mb-1">name:</label>
-              <input
-                value={catName}
-                onChange={(e) => saveName(e.target.value)}
-                className="w-full bg-muted/40 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
-                maxLength={12}
-              />
+              <input value={catName} onChange={(e) => saveName(e.target.value)}
+                className="w-full bg-muted/40 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30" maxLength={12} />
             </div>
             <div>
               <label className="text-[9px] font-mono text-muted-foreground/60 block mb-1.5">color:</label>
               <div className="grid grid-cols-3 gap-1.5">
                 {CAT_COLORS.map((color, i) => (
-                  <button
-                    key={i}
-                    onClick={() => saveColor(i)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-mono transition-all border",
-                      colorIdx === i
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border/50 text-muted-foreground hover:bg-muted/40"
-                    )}
-                  >
+                  <button key={i} onClick={() => saveColor(i)}
+                    className={cn("flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-mono transition-all border",
+                      colorIdx === i ? "border-primary bg-primary/10 text-primary" : "border-border/50 text-muted-foreground hover:bg-muted/40")}>
                     <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color.fur1 }} />
                     {color.name}
                   </button>
@@ -335,16 +308,24 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
         </div>
       )}
 
+      {/* Alert indicator */}
+      {isAlert && (
+        <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-destructive/80 animate-pulse flex items-center justify-center">
+          <span className="text-[8px] text-white font-bold">!</span>
+        </div>
+      )}
+
       <div
         className={cn(
           "transition-transform duration-500 ease-in-out",
           mood === "sleeping" ? "" : "animate-breathe",
           isBelly && "animate-belly-roll",
           isStretching && "animate-cat-stretch",
-          isScratching && "animate-cat-scratch"
+          isScratching && "animate-cat-scratch",
+          isAlert && "animate-[shake_0.5s_ease-in-out_infinite]",
+          mood === "listening" && "animate-[bounce_1s_ease-in-out_infinite]"
         )}
         onAnimationEnd={(e) => {
-          // Only handle the body animations, not children
           if (e.currentTarget === e.target) handleAnimationEnd();
         }}
       >
@@ -381,7 +362,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           <rect x="19" y="20" width="1" height="1" fill="white" opacity="0.4" />
 
           {/* Left ear */}
-          <g className="animate-ear-twitch">
+          <g className={mood === "listening" ? "animate-ear-twitch" : "animate-ear-twitch"}>
             <rect x="6" y="1" width="1" height="1" fill={c.fur2} />
             <rect x="7" y="0" width="4" height="1" fill={c.fur2} />
             <rect x="5" y="2" width="1" height="4" fill={c.fur2} />
@@ -409,7 +390,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           <rect x="6" y="14" width="6" height="4" fill={c.fur3} />
           <rect x="27" y="14" width="6" height="4" fill={c.fur3} />
 
-          {/* Eyes — clamped offset */}
+          {/* Eyes */}
           {!showEyes ? (
             <>
               <rect x="10" y="12" width="6" height="1" fill={eyeColor} />
@@ -426,11 +407,9 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
             </>
           ) : (
             <>
-              {/* Left eye */}
               <rect x={10 + eyeOffset.x} y={10 + eyeOffset.y} width="6" height="5" fill={eyeColor} />
               <rect x={11 + eyeOffset.x} y={10 + eyeOffset.y} width="3" height="2" fill="white" />
               <rect x={14 + eyeOffset.x} y={13 + eyeOffset.y} width="1" height="1" fill="white" opacity="0.4" />
-              {/* Right eye */}
               <rect x={22 + eyeOffset.x} y={10 + eyeOffset.y} width="6" height="5" fill={eyeColor} />
               <rect x={23 + eyeOffset.x} y={10 + eyeOffset.y} width="3" height="2" fill="white" />
               <rect x={26 + eyeOffset.x} y={13 + eyeOffset.y} width="1" height="1" fill="white" opacity="0.4" />
@@ -455,13 +434,11 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           {/* Front paws */}
           {isScratching ? (
             <>
-              {/* Left paw reaching to nose */}
               <g className="animate-scratch-paw">
                 <rect x="12" y="18" width="3" height="3" fill={c.fur1} />
                 <rect x="13" y="17" width="2" height="1" fill={c.fur3} />
                 <rect x="13" y="21" width="1" height="1" fill={pawPad} />
               </g>
-              {/* Right paw normal */}
               <rect x="25" y="32" width="7" height="4" fill={c.fur1} />
               <rect x="26" y="35" width="5" height="1" fill={c.fur3} />
               <rect x="27" y="34" width="1" height="1" fill={pawPad} />
@@ -469,7 +446,6 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
             </>
           ) : isBelly ? (
             <>
-              {/* Paws up in the air */}
               <g className="animate-belly-paws">
                 <rect x="9" y="26" width="5" height="3" fill={c.fur1} />
                 <rect x="10" y="25" width="3" height="1" fill={c.fur3} />
@@ -500,9 +476,8 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
             </>
           )}
 
-
           {/* Coding laptop */}
-          {mood === "coding" && (
+          {(mood === "coding" || mood === "focused") && (
             <>
               <rect x="14" y="30" width="11" height="2" fill="#444" />
               <rect x="13" y="32" width="13" height="1" fill="#555" />
@@ -512,6 +487,15 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
               <rect x="16" y="28" width="4" height="1" fill="#9cf" opacity="0.7" />
               <rect x="21" y="28" width="2" height="1" fill="#f9c" opacity="0.6" />
               <rect x="17" y="29" width="5" height="1" fill="#6f6" opacity="0.5" />
+            </>
+          )}
+
+          {/* Music notes when listening */}
+          {mood === "listening" && (
+            <>
+              <rect x="2" y="3" width="2" height="2" fill="hsl(var(--primary))" opacity="0.6" className="animate-float" />
+              <rect x="36" y="5" width="2" height="2" fill="hsl(var(--accent))" opacity="0.5" className="animate-float" style={{ animationDelay: "0.3s" }} />
+              <rect x="5" y="7" width="1" height="1" fill="hsl(var(--primary))" opacity="0.4" className="animate-float" style={{ animationDelay: "0.6s" }} />
             </>
           )}
 
@@ -526,7 +510,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
         </svg>
       </div>
 
-      {/* Bottom bar: name + settings */}
+      {/* Bottom bar */}
       <div className="flex items-center justify-between mt-0.5 px-1">
         <p className="text-[8px] text-muted-foreground/40 font-mono tracking-widest truncate">
           {catName}
@@ -540,6 +524,12 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
             {mood === "belly" && "🐾"}
             {mood === "scratching" && "👃"}
             {mood === "stretching" && "🧘"}
+            {mood === "listening" && "♪"}
+            {mood === "thirsty" && "💧"}
+            {mood === "hydrated" && "✓"}
+            {mood === "caffeinated" && "☕"}
+            {mood === "focused" && "🍅"}
+            {mood === "alert" && "⚠️"}
           </span>
         </p>
         <button

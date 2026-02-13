@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
-import { PixelCatCorner } from "@/components/PixelCatCorner";
+import { PixelCatCorner, type CatEvent } from "@/components/PixelCatCorner";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { QuickNotes } from "@/components/QuickNotes";
 import { MiniCalendar } from "@/components/MiniCalendar";
@@ -66,6 +66,25 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewByDay, setViewByDay] = useState(false);
+  const [catEvent, setCatEvent] = useState<CatEvent | null>(null);
+
+  const emitCatEvent = useCallback((type: CatEvent["type"]) => {
+    setCatEvent({ type, timestamp: Date.now() });
+  }, []);
+
+  // Check for urgent overdue tasks periodically
+  useEffect(() => {
+    const check = () => {
+      const hasUrgentOverdue = tasks.some(t =>
+        t.status !== "done" && t.importance === "alta" && t.dueDate &&
+        isPast(parseISO(t.dueDate)) && !isToday(parseISO(t.dueDate))
+      );
+      if (hasUrgentOverdue) emitCatEvent("urgent_overdue");
+    };
+    const interval = setInterval(check, 60000); // check every minute
+    check(); // initial check
+    return () => clearInterval(interval);
+  }, [tasks, emitCatEvent]);
 
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
@@ -75,7 +94,11 @@ const Index = () => {
     setTasks((p) => p.map((t) => {
       if (t.id === id) {
         const newStatus: TaskStatus = t.status === "done" ? "todo" : "done";
-        if (newStatus === "done") { setTaskCompleted(true); setTimeout(() => setTaskCompleted(false), 100); }
+        if (newStatus === "done") {
+          setTaskCompleted(true);
+          setTimeout(() => setTaskCompleted(false), 100);
+          emitCatEvent("task_complete");
+        }
         return { ...t, status: newStatus };
       }
       return t;
@@ -183,7 +206,7 @@ const Index = () => {
 
   const renderWidget = () => {
     switch (activeTab) {
-      case "timer": return <PomodoroWidget />;
+      case "timer": return <PomodoroWidget onTimerEnd={() => emitCatEvent("pomodoro_end")} onTimerStart={() => emitCatEvent("pomodoro_start")} />;
       case "calendar": return <MiniCalendar />;
       case "habits": return <HabitTracker />;
       case "notes": return <QuickNotes />;
@@ -212,8 +235,8 @@ const Index = () => {
       )}
 
       <AmbientParticles />
-      <PixelCatCorner onTaskComplete={taskCompleted} />
-      <LofiPlayer />
+      <PixelCatCorner onTaskComplete={taskCompleted} lastEvent={catEvent} />
+      <LofiPlayer onPlayingChange={(p) => emitCatEvent(p ? "music_play" : "music_stop")} />
 
       {/* Main content — z-10 above background */}
       <div className="relative z-10 flex flex-col h-full">
@@ -433,8 +456,8 @@ const Index = () => {
               <div className="min-h-0 flex flex-col gap-3">
                 {/* Water & Coffee */}
                 <div className="grid grid-cols-2 gap-3 shrink-0">
-                  <WaterTracker />
-                  <CoffeeTracker />
+                  <WaterTracker onWaterEvent={(t) => emitCatEvent(t)} />
+                  <CoffeeTracker onCoffeeEvent={(t) => emitCatEvent(t)} />
                 </div>
 
                 {/* Widget tabs panel */}

@@ -2,7 +2,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Droplets, Plus, Minus, Settings2 } from "lucide-react";
 
-export const WaterTracker = () => {
+interface WaterTrackerProps {
+  onWaterEvent?: (type: "water_add" | "water_low" | "water_full") => void;
+}
+
+export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
   const [ml, setMl] = useState(750);
   const [goal, setGoal] = useState(() => {
     const saved = localStorage.getItem("water-goal-ml");
@@ -12,8 +16,17 @@ export const WaterTracker = () => {
   const [customGoal, setCustomGoal] = useState("");
 
   const goalMl = goal * 1000;
-  const add = () => setMl((c) => Math.min(c + 250, goalMl));
-  const remove = () => setMl((c) => Math.max(c - 250, 0));
+  const add = () => {
+    const newMl = Math.min(ml + 250, goalMl);
+    setMl(newMl);
+    if (newMl >= goalMl) onWaterEvent?.("water_full");
+    else onWaterEvent?.("water_add");
+  };
+  const remove = () => {
+    const newMl = Math.max(ml - 250, 0);
+    setMl(newMl);
+    if (newMl === 0) onWaterEvent?.("water_low");
+  };
   const pct = Math.min((ml / goalMl) * 100, 100);
   const liters = (ml / 1000).toFixed(1);
 
@@ -51,18 +64,13 @@ export const WaterTracker = () => {
         <div className="mb-2 animate-fade-in">
           <p className="text-[8px] font-mono text-muted-foreground/50 mb-1">// meta diária (litros)</p>
           <div className="flex gap-1 items-center">
-            <input
-              type="number"
-              step="0.1"
-              min="0.5"
-              max="10"
+            <input type="number" step="0.1" min="0.5" max="10"
               value={customGoal || goal}
               onChange={(e) => setCustomGoal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCustomGoal()}
               onBlur={handleCustomGoal}
               className="w-full bg-muted/40 border border-border rounded-lg px-2 py-1 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
-              placeholder="ex: 2.5"
-            />
+              placeholder="ex: 2.5" />
           </div>
         </div>
       )}
@@ -70,30 +78,22 @@ export const WaterTracker = () => {
       {/* Water jug pixel art */}
       <div className="flex items-center justify-center py-1">
         <svg width="56" height="64" viewBox="0 0 28 32" className="image-rendering-pixelated">
-          {/* Jug handle */}
           <rect x="22" y="8" width="2" height="1" fill="hsl(var(--primary) / 0.3)" />
           <rect x="24" y="9" width="1" height="6" fill="hsl(var(--primary) / 0.3)" />
           <rect x="23" y="15" width="1" height="1" fill="hsl(var(--primary) / 0.3)" />
           <rect x="22" y="16" width="1" height="1" fill="hsl(var(--primary) / 0.3)" />
-          {/* Jug spout */}
           <rect x="3" y="4" width="2" height="1" fill="hsl(var(--primary) / 0.25)" />
           <rect x="2" y="5" width="2" height="1" fill="hsl(var(--primary) / 0.25)" />
-          {/* Jug body outline */}
           <rect x="4" y="3" width="18" height="1" fill="hsl(var(--primary) / 0.2)" />
           <rect x="3" y="4" width="1" height="1" fill="hsl(var(--primary) / 0.2)" />
           <rect x="22" y="4" width="1" height="1" fill="hsl(var(--primary) / 0.2)" />
           <rect x="3" y="5" width="19" height="1" fill="hsl(var(--primary) / 0.15)" />
-          {/* Jug body */}
           <rect x="3" y="6" width="19" height="22" fill="hsl(var(--primary) / 0.08)" />
           <rect x="4" y="28" width="17" height="1" fill="hsl(var(--primary) / 0.15)" />
-          {/* Left/right borders */}
           <rect x="3" y="6" width="1" height="22" fill="hsl(var(--primary) / 0.2)" />
           <rect x="21" y="6" width="1" height="22" fill="hsl(var(--primary) / 0.2)" />
-          {/* Bottom */}
           <rect x="4" y="28" width="17" height="1" fill="hsl(var(--primary) / 0.25)" />
-          {/* Water fill */}
           <rect x="4" y={6 + Math.round(22 * (1 - pct / 100))} width="17" height={Math.round(22 * pct / 100)} fill="hsl(var(--primary) / 0.3)" />
-          {/* Wave on top of water */}
           {pct > 5 && pct < 100 && (
             <>
               <rect x="5" y={5 + Math.round(22 * (1 - pct / 100))} width="3" height="1" fill="hsl(var(--primary) / 0.2)" />
@@ -101,10 +101,8 @@ export const WaterTracker = () => {
               <rect x="18" y={5 + Math.round(22 * (1 - pct / 100))} width="2" height="1" fill="hsl(var(--primary) / 0.2)" />
             </>
           )}
-          {/* Glass reflection */}
           <rect x="5" y="7" width="1" height="18" fill="white" opacity="0.06" />
           <rect x="6" y="7" width="1" height="14" fill="white" opacity="0.03" />
-          {/* Bubbles */}
           {pct > 20 && (
             <>
               <rect x="8" y={10 + Math.round(16 * (1 - pct / 100))} width="1" height="1" fill="hsl(var(--primary) / 0.15)" className="animate-bubble" />
@@ -114,7 +112,6 @@ export const WaterTracker = () => {
         </svg>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center gap-2 mt-1">
         <button onClick={remove} disabled={ml === 0}
           className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all border text-xs",
