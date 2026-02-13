@@ -62,41 +62,42 @@ export const CoffeeTracker = () => {
         </div>
       )}
 
-      {/* Coffee mug visual */}
+      {/* Coffee cup pixel art */}
       <div className="flex items-center justify-center py-1">
-        <div className="relative w-14 h-16 flex items-end justify-center">
-          {/* Mug body */}
-          <div className="absolute inset-0 rounded-b-xl rounded-t-md border-2 border-accent/25 overflow-hidden bg-muted/10">
-            {/* Coffee fill */}
-            <div
-              className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out"
-              style={{ height: `${pct}%` }}
-            >
-              <div className="absolute inset-0 bg-accent/20" />
-              {/* Steam-like wave on top */}
-              <svg className="absolute -top-2 left-0 w-full" viewBox="0 0 100 10" preserveAspectRatio="none" style={{ height: "8px" }}>
-                <path className="animate-wave" d="M0 5 Q 12.5 0, 25 5 Q 37.5 10, 50 5 Q 62.5 0, 75 5 Q 87.5 10, 100 5 L 100 10 L 0 10 Z" fill="hsl(var(--accent) / 0.2)" />
-                <path className="animate-wave-slow" d="M0 6 Q 15 2, 30 6 Q 45 10, 60 6 Q 75 2, 90 6 Q 97 9, 100 6 L 100 10 L 0 10 Z" fill="hsl(var(--accent) / 0.12)" />
-              </svg>
-              {/* Coffee crema highlight */}
-              <div className="absolute top-0 left-1 right-1 h-1 bg-accent/15 rounded-full" />
-            </div>
-            {/* Mug reflection */}
-            <div className="absolute top-0 left-0.5 bottom-0 w-1.5 bg-gradient-to-b from-white/5 to-transparent rounded-full" />
-          </div>
-
-          {/* Steam above mug when has coffee */}
-          {cups > 0 && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1">
-              <div className="w-0.5 h-2 bg-muted-foreground/10 rounded-full animate-steam" />
-              <div className="w-0.5 h-2.5 bg-muted-foreground/8 rounded-full animate-steam-2" />
-              <div className="w-0.5 h-2 bg-muted-foreground/10 rounded-full animate-steam" style={{ animationDelay: "0.3s" }} />
-            </div>
-          )}
-
+        <svg width="56" height="64" viewBox="0 0 28 32" className="image-rendering-pixelated">
+          {/* Saucer */}
+          <rect x="2" y="27" width="22" height="1" fill="hsl(var(--accent) / 0.2)" />
+          <rect x="3" y="28" width="20" height="1" fill="hsl(var(--accent) / 0.15)" />
+          <rect x="4" y="29" width="18" height="1" fill="hsl(var(--accent) / 0.1)" />
+          {/* Cup body */}
+          <rect x="4" y="10" width="16" height="1" fill="hsl(var(--accent) / 0.25)" />
+          <rect x="3" y="11" width="18" height="16" fill="hsl(var(--accent) / 0.1)" />
+          <rect x="3" y="11" width="1" height="16" fill="hsl(var(--accent) / 0.2)" />
+          <rect x="20" y="11" width="1" height="16" fill="hsl(var(--accent) / 0.2)" />
+          <rect x="4" y="27" width="16" height="1" fill="hsl(var(--accent) / 0.25)" />
           {/* Handle */}
-          <div className="absolute right-[-6px] top-[30%] w-1.5 h-5 border-2 border-accent/25 rounded-r-lg border-l-0" />
-        </div>
+          <rect x="21" y="13" width="2" height="1" fill="hsl(var(--accent) / 0.25)" />
+          <rect x="23" y="14" width="1" height="6" fill="hsl(var(--accent) / 0.25)" />
+          <rect x="22" y="20" width="1" height="1" fill="hsl(var(--accent) / 0.25)" />
+          <rect x="21" y="21" width="1" height="1" fill="hsl(var(--accent) / 0.25)" />
+          {/* Coffee fill */}
+          <rect x="4" y={11 + Math.round(16 * (1 - pct / 100))} width="16" height={Math.round(16 * pct / 100)} fill="hsl(var(--accent) / 0.3)" />
+          {/* Crema line */}
+          {pct > 10 && pct < 100 && (
+            <rect x="4" y={10 + Math.round(16 * (1 - pct / 100))} width="16" height="1" fill="hsl(var(--accent) / 0.15)" />
+          )}
+          {/* Cup reflection */}
+          <rect x="5" y="12" width="1" height="12" fill="white" opacity="0.05" />
+          <rect x="6" y="12" width="1" height="8" fill="white" opacity="0.03" />
+          {/* Steam */}
+          {cups > 0 && (
+            <>
+              <rect x="8" y="6" width="1" height="3" fill="hsl(var(--muted-foreground) / 0.08)" className="animate-steam" />
+              <rect x="12" y="5" width="1" height="4" fill="hsl(var(--muted-foreground) / 0.06)" className="animate-steam-2" />
+              <rect x="16" y="6" width="1" height="3" fill="hsl(var(--muted-foreground) / 0.08)" className="animate-steam" style={{ animationDelay: "0.4s" }} />
+            </>
+          )}
+        </svg>
       </div>
 
       {/* Controls */}
