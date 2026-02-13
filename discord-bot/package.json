@@ -1,0 +1,16 @@
+{
+  "name": "layla-gateway-bot",
+  "version": "1.0.0",
+  "description": "Layla Gateway Bot - Voice channel monitoring for Uzzo Solutions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "@napi-rs/canvas": "^0.1.65",
+    "express": "^4.21.0",
+    "cors": "^2.8.5"
+  }
+}
