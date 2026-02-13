@@ -96,15 +96,15 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-5 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-6 space-y-6">
           {/* Title */}
-          <h2 className="text-lg font-display font-bold text-foreground">{task.text}</h2>
+          <h2 className="text-xl font-display font-bold text-foreground">{task.text}</h2>
 
-          {/* Status + Importance + Due date row */}
-          <div className="flex gap-4 flex-wrap">
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">status</label>
-              <div className="flex gap-1">
+          {/* Status + Importance row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider">status</label>
+              <div className="flex gap-1.5">
                 {(Object.keys(STATUS_CONFIG) as TaskStatus[]).map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   return (
@@ -112,7 +112,7 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
                       key={s}
                       onClick={() => { setStatus(s); onUpdate({ ...task, description, importance, status: s }); }}
                       className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all border",
+                        "px-3 py-1.5 rounded-lg text-xs font-mono transition-all border",
                         status === s ? cfg.bg + " " + cfg.color : "border-border/30 text-muted-foreground/50 hover:bg-muted/30"
                       )}
                     >
@@ -122,11 +122,11 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
                 })}
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
-                <Flag className="w-3 h-3" /> importância
+            <div className="space-y-2">
+              <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
+                <Flag className="w-3.5 h-3.5" /> importância
               </label>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {(Object.keys(IMPORTANCE_CONFIG) as TaskImportance[]).map((imp) => {
                   const cfg = IMPORTANCE_CONFIG[imp];
                   return (
@@ -134,7 +134,7 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
                       key={imp}
                       onClick={() => { setImportance(imp); onUpdate({ ...task, description, status, importance: imp }); }}
                       className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all border",
+                        "px-3 py-1.5 rounded-lg text-xs font-mono transition-all border",
                         importance === imp ? `border-current ${cfg.color} bg-current/10` : "border-border/30 text-muted-foreground/50 hover:bg-muted/30"
                       )}
                     >
@@ -147,16 +147,16 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
           </div>
 
           {/* Due date */}
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
-              <CalendarIcon className="w-3 h-3" /> prazo
+          <div className="space-y-2">
+            <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
+              <CalendarIcon className="w-3.5 h-3.5" /> prazo
             </label>
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-mono transition-all",
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-mono transition-all",
                       dueDate
                         ? isOverdue
                           ? "border-urgent/30 bg-urgent/10 text-urgent"
@@ -164,11 +164,11 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
                         : "border-border/40 bg-muted/20 text-muted-foreground/50 hover:bg-muted/30"
                     )}
                   >
-                    <CalendarIcon className="w-3.5 h-3.5" />
+                    <CalendarIcon className="w-4 h-4" />
                     {dueDate
                       ? format(dueDate, "dd 'de' MMM, yyyy", { locale: ptBR })
                       : "Definir prazo..."}
-                    {isOverdue && <span className="text-[9px] font-bold">ATRASADA</span>}
+                    {isOverdue && <span className="text-[10px] font-bold">ATRASADA</span>}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-card border-border z-[110]" align="start">
@@ -184,7 +184,7 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
               {dueDate && (
                 <button
                   onClick={() => handleDueDate(undefined)}
-                  className="text-[9px] font-mono text-muted-foreground/40 hover:text-destructive transition-colors"
+                  className="text-xs font-mono text-muted-foreground/40 hover:text-destructive transition-colors"
                 >
                   limpar
                 </button>
@@ -193,9 +193,9 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
           </div>
 
           {/* Description */}
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
-              <FileText className="w-3 h-3" /> descrição
+          <div className="space-y-2">
+            <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5" /> descrição
             </label>
             <textarea
               value={description}
@@ -203,23 +203,23 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
               onBlur={handleSave}
               placeholder="Adicione uma descrição..."
               rows={3}
-              className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none"
+              className="w-full bg-muted/20 border border-border/40 rounded-xl px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none"
             />
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
-              <MessageSquare className="w-3 h-3" /> notas ({task.notes.length})
+          <div className="space-y-2.5">
+            <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
+              <MessageSquare className="w-3.5 h-3.5" /> notas ({task.notes.length})
             </label>
 
             {task.notes.length > 0 && (
               <div className="space-y-1.5">
                 {task.notes.map((note, idx) => (
-                  <div key={idx} className="flex items-start gap-2 bg-muted/20 rounded-lg px-3 py-2 group">
-                    <p className="text-xs font-mono text-foreground/80 flex-1">{note}</p>
+                  <div key={idx} className="flex items-start gap-2 bg-muted/20 rounded-lg px-4 py-2.5 group">
+                    <p className="text-sm font-mono text-foreground/80 flex-1">{note}</p>
                     <button onClick={() => deleteNote(idx)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0 mt-0.5">
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -232,29 +232,29 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
                 onChange={(e) => setNewNote(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") addNote(); }}
                 placeholder="Adicionar nota..."
-                className="flex-1 bg-muted/20 border border-border/40 rounded-lg px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                className="flex-1 bg-muted/20 border border-border/40 rounded-xl px-4 py-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
-              <button onClick={addNote} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 hover:bg-primary/20 transition-all">
-                <Plus className="w-3.5 h-3.5" />
+              <button onClick={addNote} className="bg-primary/10 text-primary border border-primary/20 rounded-xl px-4 hover:bg-primary/20 transition-all">
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>
 
           {/* Meta */}
-          <div className="text-[9px] font-mono text-muted-foreground/30 pt-2 border-t border-border/20">
+          <div className="text-[10px] font-mono text-muted-foreground/30 pt-3 border-t border-border/20">
             criada: {task.createdAt} · id: {task.id.slice(0, 8)}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border/30 px-4 py-2.5 flex justify-between items-center shrink-0">
+        <div className="border-t border-border/30 px-5 py-3 flex justify-between items-center shrink-0">
           <button
             onClick={() => { onDelete(task.id); onClose(); }}
-            className="text-[10px] font-mono text-destructive/60 hover:text-destructive transition-colors flex items-center gap-1"
+            className="text-xs font-mono text-destructive/60 hover:text-destructive transition-colors flex items-center gap-1.5"
           >
-            <Trash2 className="w-3 h-3" /> deletar
+            <Trash2 className="w-3.5 h-3.5" /> deletar
           </button>
-          <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded border", sc.bg, sc.color)}>
+          <span className={cn("text-xs font-mono px-3 py-1 rounded-lg border", sc.bg, sc.color)}>
             {sc.label}
           </span>
         </div>
