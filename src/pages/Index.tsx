@@ -161,7 +161,7 @@ const Index = () => {
                     <span className="text-sm font-bold text-primary font-mono">{progress}%</span>
                   </div>
                   <div className="h-2.5 bg-muted/60 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-700 ease-out"
+                    <div className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
                       style={{ width: `${progress}%` }} />
                   </div>
                 </div>
