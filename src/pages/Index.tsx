@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner, type CatEvent } from "@/components/PixelCatCorner";
@@ -14,8 +14,10 @@ import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
 import { TaskDetailDialog, type Task, type TaskStatus } from "@/components/TaskDetailDialog";
 import { LofiPlayer } from "@/components/LofiPlayer";
-import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
+import { format, isToday, isTomorrow, isPast, parseISO, addDays, subDays, startOfDay, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import deskBanner from "@/assets/desk-banner.jpg";
 
 const getGreeting = () => {
@@ -66,6 +68,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewByDay, setViewByDay] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [catEvent, setCatEvent] = useState<CatEvent | null>(null);
 
   const emitCatEvent = useCallback((type: CatEvent["type"]) => {
@@ -130,7 +133,16 @@ const Index = () => {
   const todoCount = tasks.filter(t => t.status === "todo").length;
   const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
 
-  // Group tasks by due date for day view
+  // Filter tasks for selected day view
+  const dayFilteredTasks = useMemo(() => {
+    if (!viewByDay) return filteredTasks;
+    return filteredTasks.filter((t) => {
+      if (!t.dueDate) return false;
+      return isSameDay(parseISO(t.dueDate), selectedDay);
+    });
+  }, [filteredTasks, viewByDay, selectedDay]);
+
+  // Group tasks by due date for day view (legacy grouped view, not used now but kept)
   const groupedByDay = useMemo(() => {
     if (!viewByDay) return null;
     const groups: Record<string, Task[]> = {};
@@ -148,6 +160,12 @@ const Index = () => {
     if (noDue.length) sorted.push(["sem-prazo", noDue]);
     return sorted;
   }, [filteredTasks, viewByDay]);
+
+  const selectedDayLabel = isToday(selectedDay)
+    ? "Hoje"
+    : isTomorrow(selectedDay)
+      ? "Amanhã"
+      : format(selectedDay, "dd 'de' MMM", { locale: ptBR });
 
   const renderTaskRow = (task: Task, idx: number) => {
     const isDone = task.status === "done";
@@ -399,6 +417,65 @@ const Index = () => {
                       </div>
                     </div>
 
+                    {/* Date navigation bar */}
+                    {viewByDay && (
+                      <div className="flex items-center gap-1 mb-2 animate-fade-in">
+                        <button
+                          onClick={() => setSelectedDay(d => subDays(d, 1))}
+                          className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all"
+                          title="Dia anterior"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedDay(startOfDay(new Date()))}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all",
+                            isToday(selectedDay)
+                              ? "bg-primary/15 text-primary border border-primary/20"
+                              : "text-muted-foreground hover:bg-muted/40"
+                          )}
+                        >
+                          hoje
+                        </button>
+
+                        <div className="flex-1 text-center">
+                          <span className="text-[11px] font-mono font-semibold text-foreground">
+                            {selectedDayLabel}
+                          </span>
+                          <span className="text-[9px] font-mono text-muted-foreground/40 ml-1.5">
+                            {format(selectedDay, "dd/MM/yyyy")}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => setSelectedDay(d => addDays(d, 1))}
+                          className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all"
+                          title="Próximo dia"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-all" title="Escolher dia">
+                              <CalendarDays className="w-3.5 h-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDay}
+                              onSelect={(d) => d && setSelectedDay(startOfDay(d))}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    )}
+
                     {showInput && (
                       <div className="flex gap-2 mb-2 animate-fade-in">
                         <div className="flex items-center gap-2 flex-1 bg-muted/30 border border-border rounded-xl px-3">
@@ -419,35 +496,12 @@ const Index = () => {
 
                   {/* Scrollable task list */}
                   <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
-                    {viewByDay && groupedByDay ? (
-                      <div className="space-y-3">
-                        {groupedByDay.map(([dateKey, dayTasks]) => {
-                          const label = dateKey === "sem-prazo"
-                            ? "Sem prazo"
-                            : isToday(parseISO(dateKey))
-                              ? "Hoje"
-                              : isTomorrow(parseISO(dateKey))
-                                ? "Amanhã"
-                                : format(parseISO(dateKey), "dd 'de' MMM", { locale: ptBR });
-                          const overdue = dateKey !== "sem-prazo" && isPast(parseISO(dateKey)) && !isToday(parseISO(dateKey));
-                          return (
-                            <div key={dateKey}>
-                              <p className={cn("text-[10px] font-mono px-2 py-1 flex items-center gap-1.5",
-                                overdue ? "text-urgent" : "text-muted-foreground/50")}>
-                                <CalendarIcon className="w-3 h-3" />
-                                {label}
-                                {overdue && <span className="text-[8px] font-bold">ATRASADO</span>}
-                                <span className="opacity-40">({dayTasks.length})</span>
-                              </p>
-                              <div className="space-y-1">
-                                {dayTasks.map((task, idx) => renderTaskRow(task, idx))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {groupedByDay.length === 0 && (
+                    {viewByDay ? (
+                      <div className="space-y-1">
+                        {dayFilteredTasks.map((task, idx) => renderTaskRow(task, idx))}
+                        {dayFilteredTasks.length === 0 && (
                           <div className="text-center py-6">
-                            <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa aqui</p>
+                            <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa para {selectedDayLabel.toLowerCase()}</p>
                           </div>
                         )}
                       </div>
