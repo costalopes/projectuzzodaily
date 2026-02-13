@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Pause, RotateCcw, SkipForward, Wifi, WifiOff } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const BOT_API_URL = "https://steadfast-integrity-production-4b30.up.railway.app/api";
-const API_SECRET = "meu-segredo-123";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 type TimerMode = "focus" | "short" | "long";
 
@@ -59,59 +59,33 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [showTransition, setShowTransition] = useState<{ from: TimerMode; suggested: TimerMode } | null>(null);
-  const [botConnected, setBotConnected] = useState(false);
   const prevRunning = useRef(false);
 
-  // Notify Discord bot when timer ends
-  const notifyBot = useCallback(async (completedMode: TimerMode, sessionCount: number) => {
+  // Notify Discord via Edge Function
+  const notifyDiscord = useCallback(async (completedMode: TimerMode, sessionCount: number) => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
     try {
-      const res = await fetch(`${BOT_API_URL}/pomodoro-end`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/discord-notify`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-secret": API_SECRET },
-        body: JSON.stringify({ mode: completedMode, sessions: sessionCount, userName: "App User" }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          type: "pomodoro",
+          mode: completedMode,
+          sessions: sessionCount,
+          userName: "App User",
+        }),
       });
       if (res.ok) {
-        setBotConnected(true);
         toast.success("🍅 Notificação enviada ao Discord!");
+      } else {
+        console.error("Discord notify failed:", await res.text());
       }
-    } catch {
-      setBotConnected(false);
+    } catch (err) {
+      console.error("Discord notify error:", err);
     }
-  }, []);
-
-  // Poll pending actions from Discord
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await fetch(`${BOT_API_URL}/pending-actions`, {
-          headers: { "x-api-secret": API_SECRET },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        setBotConnected(true);
-        data.actions?.forEach((action: { type: string; mode: TimerMode; user: string }) => {
-          if (action.type === "start_pomodoro") {
-            setMode(action.mode);
-            setTimeLeft(DURATIONS[action.mode]);
-            setIsRunning(true);
-            setShowTransition(null);
-            toast.info(`🎮 ${action.user} iniciou ${MODE_LABELS[action.mode]} pelo Discord!`);
-          }
-        });
-      } catch {
-        setBotConnected(false);
-      }
-    };
-    const interval = setInterval(poll, 5000);
-    poll(); // initial check
-    return () => clearInterval(interval);
-  }, []);
-
-  // Check bot health on mount
-  useEffect(() => {
-    fetch(`${BOT_API_URL}/health`)
-      .then(r => { if (r.ok) setBotConnected(true); })
-      .catch(() => setBotConnected(false));
   }, []);
 
   useEffect(() => {
@@ -129,7 +103,7 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
           setIsRunning(false);
           playAlarmChime();
           onTimerEnd?.(mode);
-          notifyBot(mode, mode === "focus" ? sessions + 1 : sessions);
+          notifyDiscord(mode, mode === "focus" ? sessions + 1 : sessions);
 
           if (mode === "focus") {
             setSessions((s) => s + 1);
@@ -182,11 +156,6 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold tracking-wide text-foreground flex items-center gap-2">
           🍅 <span className="uppercase font-mono text-xs tracking-widest">Pomodoro</span>
-          {botConnected ? (
-            <Wifi className="w-3 h-3 text-green-400" />
-          ) : (
-            <WifiOff className="w-3 h-3 text-muted-foreground/40" />
-          )}
         </h3>
         <div className="flex items-center bg-muted/30 rounded-full p-0.5">
           {(Object.keys(MODE_LABELS) as TimerMode[]).map((m) => (
