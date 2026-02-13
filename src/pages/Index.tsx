@@ -227,7 +227,7 @@ const Index = () => {
             </div>
 
             {/* Main grid: Tasks + Side panel — fills remaining space */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
 
               {/* Tasks — scrollable inside */}
               <div className="min-h-0">
