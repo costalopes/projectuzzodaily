@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
-import { Plus, Check, Trash2, Flame, Target, ArrowRight, Sparkles, Image as ImageIcon, Clock, AlertCircle, Minus } from "lucide-react";
+import { useState } from "react";
+import { Plus, Check, Trash2, Flame, ArrowRight, Sparkles, Image as ImageIcon, Clock, AlertCircle, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PixelCoffee, PixelClock } from "@/components/PixelArt";
+import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner } from "@/components/PixelCatCorner";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { QuickNotes } from "@/components/QuickNotes";
@@ -12,6 +12,8 @@ import { CodeQuote } from "@/components/CodeQuote";
 import { HabitTracker } from "@/components/HabitTracker";
 import { DailyIntention } from "@/components/DailyIntention";
 import { MoodTracker } from "@/components/MoodTracker";
+import { WaterTracker } from "@/components/WaterTracker";
+import { CoffeeTracker } from "@/components/CoffeeTracker";
 import deskBanner from "@/assets/desk-banner.jpg";
 
 type Priority = "urgent" | "medium" | "low";
@@ -89,13 +91,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative">
-      {/* BG */}
+      {/* BG - subtle noise texture */}
       {customBg ? (
         <div className="fixed inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${customBg})` }}>
           <div className="absolute inset-0 bg-background/85 backdrop-blur-sm" />
         </div>
       ) : (
-        <div className={`fixed inset-0 bg-gradient-to-br ${bgGradient} transition-all duration-1000`} />
+        <div className="fixed inset-0 bg-background">
+          {/* Subtle radial glows */}
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/[0.02] blur-[150px]" />
+        </div>
       )}
 
       <AmbientParticles />
@@ -148,9 +155,8 @@ const Index = () => {
                   {urgentCount > 0 && <span className="text-urgent ml-1">· {urgentCount} urgente{urgentCount > 1 ? "s" : ""}</span>}
                 </p>
               </div>
-              <div className="flex flex-col items-end gap-3 shrink-0">
+              <div className="shrink-0">
                 <PixelClock />
-                <PixelCoffee />
               </div>
             </div>
 
@@ -182,12 +188,18 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Main grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-6">
+          {/* Quick stats row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 animate-fade-in" style={{ animationDelay: "80ms" }}>
+            <MoodTracker />
+            <DailyIntention />
+            <WaterTracker />
+            <CoffeeTracker />
+          </div>
 
+          {/* Main grid: Tasks + sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
             {/* Tasks (2/3) */}
-            <div className="lg:col-span-2 space-y-4 animate-fade-in" style={{ animationDelay: "100ms" }}>
-              {/* Task header */}
+            <div className="lg:col-span-2 animate-fade-in" style={{ animationDelay: "100ms" }}>
               <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden">
                 <div className="p-5 pb-0">
                   <div className="flex items-center justify-between mb-4">
@@ -201,18 +213,13 @@ const Index = () => {
                     </button>
                   </div>
 
-                  {/* Filters */}
                   <div className="flex gap-1.5 mb-4">
                     {(["all", "urgent", "medium", "low"] as const).map((f) => (
                       <button key={f} onClick={() => setFilter(f)}
                         className={cn("px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all uppercase tracking-wider",
                           filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted")}>
                         {f === "all" ? "Todas" : priorityConfig[f].label}
-                        {f !== "all" && (
-                          <span className="ml-1 opacity-60">
-                            {tasks.filter(t => !t.done && t.priority === f).length}
-                          </span>
-                        )}
+                        {f !== "all" && <span className="ml-1 opacity-60">{tasks.filter(t => !t.done && t.priority === f).length}</span>}
                       </button>
                     ))}
                   </div>
@@ -232,16 +239,13 @@ const Index = () => {
                   )}
                 </div>
 
-                {/* Task list as table-like */}
                 <div className="px-3 pb-3">
-                  {/* Header row */}
                   <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 px-3 py-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/60">
                     <span className="w-5" />
                     <span>Tarefa</span>
                     <span className="hidden sm:block">Prioridade</span>
                     <span className="w-8" />
                   </div>
-
                   <div className="space-y-1">
                     {pendingTasks.map((task) => {
                       const pc = priorityConfig[task.priority];
@@ -249,8 +253,7 @@ const Index = () => {
                         <div key={task.id}
                           className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-3 py-3 rounded-xl hover:bg-muted/40 group transition-all cursor-default">
                           <button onClick={() => toggleTask(task.id)}
-                            className="w-5 h-5 rounded-md border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10">
-                          </button>
+                            className="w-5 h-5 rounded-md border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10" />
                           <span className="text-sm text-foreground truncate">{task.text}</span>
                           <span className={cn("hidden sm:flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg border", pc.bg)}>
                             <pc.icon className={cn("w-3 h-3", pc.color)} />
@@ -273,7 +276,6 @@ const Index = () => {
                   </div>
                 </div>
 
-                {/* Done section */}
                 {doneTasks.length > 0 && (
                   <div className="border-t border-border/50 px-3 pb-3 pt-2">
                     <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50 px-3 py-2 flex items-center gap-1.5">
@@ -301,19 +303,17 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Sidebar (1/3) */}
+            {/* Sidebar */}
             <div className="space-y-4 animate-fade-in" style={{ animationDelay: "200ms" }}>
-              <MoodTracker />
-              <DailyIntention />
-              <MiniCalendar />
               <PomodoroWidget />
+              <MiniCalendar />
               <HabitTracker />
               <QuickNotes />
             </div>
           </div>
 
           {/* Quote */}
-          <div className="mt-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
+          <div className="mt-6 animate-fade-in" style={{ animationDelay: "300ms" }}>
             <CodeQuote />
           </div>
         </div>
