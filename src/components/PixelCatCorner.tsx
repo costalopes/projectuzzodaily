@@ -79,7 +79,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
         mood,
         ...overrides,
       };
-      fetch("https://steadfast-integrity-production-4b30.up.railway.app:8080/api/cat-status", {
+      fetch("https://steadfast-integrity-production-4b30.up.railway.app/api/cat-status", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-secret": "meu-segredo-123" },
         body: JSON.stringify(payload),

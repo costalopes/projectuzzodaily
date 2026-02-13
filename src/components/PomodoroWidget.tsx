@@ -3,7 +3,7 @@ import { Play, Pause, RotateCcw, SkipForward, Wifi, WifiOff } from "lucide-react
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const BOT_API_URL = "https://steadfast-integrity-production-4b30.up.railway.app:8080/api";
+const BOT_API_URL = "https://steadfast-integrity-production-4b30.up.railway.app/api";
 const API_SECRET = "meu-segredo-123";
 
 type TimerMode = "focus" | "short" | "long";
