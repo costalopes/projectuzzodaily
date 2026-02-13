@@ -35,12 +35,14 @@ const IMPORTANCE_CONFIG: Record<TaskImportance, { label: string; color: string }
 interface TaskDetailDialogProps {
   task: Task;
   isOpen: boolean;
+  isNew?: boolean;
   onClose: () => void;
   onUpdate: (task: Task) => void;
   onDelete: (id: string) => void;
 }
 
-export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: TaskDetailDialogProps) => {
+export const TaskDetailDialog = ({ task, isOpen, isNew, onClose, onUpdate, onDelete }: TaskDetailDialogProps) => {
+  const [title, setTitle] = useState(task.text);
   const [description, setDescription] = useState(task.description);
   const [newNote, setNewNote] = useState("");
   const [importance, setImportance] = useState<TaskImportance>(task.importance);
@@ -49,17 +51,24 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    onUpdate({ ...task, description, importance, status });
+    onUpdate({ ...task, text: title, description, importance, status });
+  };
+
+  const handleClose = () => {
+    if (isNew && title.trim()) {
+      onUpdate({ ...task, text: title, description, importance, status });
+    }
+    onClose();
   };
 
   const handleDueDate = (date: Date | undefined) => {
-    onUpdate({ ...task, description, importance, status, dueDate: date ? date.toISOString() : undefined });
+    onUpdate({ ...task, text: title, description, importance, status, dueDate: date ? date.toISOString() : undefined });
   };
 
   const addNote = () => {
     if (!newNote.trim()) return;
     const now = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    onUpdate({ ...task, description, importance, status, notes: [...task.notes, `[${now}] ${newNote.trim()}`] });
+    onUpdate({ ...task, text: title, description, importance, status, notes: [...task.notes, `[${now}] ${newNote.trim()}`] });
     setNewNote("");
   };
 
@@ -73,7 +82,7 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
   const isOverdue = dueDate && dueDate < new Date() && task.status !== "done";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={handleClose}>
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm animate-fade-in" style={{ animationDuration: "200ms" }} />
       <div
         className="relative bg-card border border-border/50 rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col animate-enter"
@@ -90,7 +99,7 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
             </div>
             <span className="text-[9px] font-mono text-muted-foreground/50">task_detail.tsx</span>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors p-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -98,7 +107,14 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
         {/* Content */}
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-6 space-y-6">
           {/* Title */}
-          <h2 className="text-xl font-display font-bold text-foreground">{task.text}</h2>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={handleSave}
+            autoFocus={isNew}
+            placeholder="Nome da tarefa..."
+            className="text-xl font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/30 border-b border-transparent focus:border-primary/20 pb-1 transition-colors"
+          />
 
           {/* Status + Importance row */}
           <div className="grid grid-cols-2 gap-4">

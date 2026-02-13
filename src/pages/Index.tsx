@@ -57,6 +57,7 @@ const Index = () => {
 
   const [newTask, setNewTask] = useState("");
   const [showInput, setShowInput] = useState(false);
+  const [creatingTask, setCreatingTask] = useState<Task | null>(null);
   const [bgGradient, setBgGradient] = useState(PRESET_GRADIENTS[0].class);
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [showBgPicker, setShowBgPicker] = useState(false);
@@ -83,9 +84,16 @@ const Index = () => {
 
   const addTask = () => {
     if (!newTask.trim()) return;
-    setTasks((p) => [...p, { id: Date.now().toString(), text: newTask.trim(), status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" }]);
+    const draft: Task = { id: Date.now().toString(), text: newTask.trim(), status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
+    setTasks((p) => [...p, draft]);
     setNewTask("");
     setShowInput(false);
+    setCreatingTask(draft);
+  };
+
+  const startNewTask = () => {
+    const draft: Task = { id: Date.now().toString(), text: "", status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
+    setCreatingTask(draft);
   };
 
   const updateTask = (updated: Task) => {
@@ -318,8 +326,12 @@ const Index = () => {
                         <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
                       </div>
                     </div>
-                    <div className="ml-auto pr-2">
+                    <div className="ml-auto pr-2 flex gap-1.5">
                       <button onClick={() => setShowInput(true)}
+                        className="text-[10px] font-mono flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-lg px-2.5 py-1.5 transition-all">
+                        <Plus className="w-3.5 h-3.5" /> rápida
+                      </button>
+                      <button onClick={startNewTask}
                         className="text-[10px] font-mono flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 py-1.5 hover:bg-primary/20 transition-all">
                         <Plus className="w-3.5 h-3.5" /> new Task()
                       </button>
@@ -459,13 +471,24 @@ const Index = () => {
           </div>
         </div>
       </div>
-      {selectedTask && (
+      {(selectedTask || creatingTask) && (
         <TaskDetailDialog
-          task={selectedTask}
-          isOpen={!!selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onUpdate={updateTask}
-          onDelete={(id) => { deleteTask(id); setSelectedTask(null); }}
+          task={(selectedTask || creatingTask)!}
+          isOpen={true}
+          isNew={!!creatingTask}
+          onClose={() => { setSelectedTask(null); setCreatingTask(null); }}
+          onUpdate={(t) => {
+            if (creatingTask) {
+              // Adding new task
+              if (t.text.trim()) {
+                setTasks((p) => [...p, t]);
+              }
+              setCreatingTask(null);
+            } else {
+              updateTask(t);
+            }
+          }}
+          onDelete={(id) => { deleteTask(id); setSelectedTask(null); setCreatingTask(null); }}
         />
       )}
     </div>
