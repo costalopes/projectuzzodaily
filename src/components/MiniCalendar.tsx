@@ -115,8 +115,8 @@ export const MiniCalendar = ({ tasks = [] }: MiniCalendarProps) => {
               onClick={() => setSelectedDate(isSelected ? null : dk)}
               className={cn(
                 "aspect-square rounded-lg text-[11px] font-medium flex flex-col items-center justify-center transition-all relative",
-                isToday(day) && !isSelected && "bg-primary text-primary-foreground font-bold",
                 isSelected && "bg-primary text-primary-foreground ring-2 ring-primary/30 scale-110",
+                isToday(day) && !isSelected && (selectedDate ? "ring-2 ring-primary text-primary font-bold" : "bg-primary text-primary-foreground font-bold"),
                 !isToday(day) && !isSelected && "hover:bg-muted/40 text-foreground",
               )}
             >
