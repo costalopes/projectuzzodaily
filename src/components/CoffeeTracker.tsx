@@ -7,30 +7,28 @@ export const CoffeeTracker = () => {
   const MAX = 5;
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Coffee className="w-3.5 h-3.5 text-accent" />
-          cafés hoje
+    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+          <Coffee className="w-3 h-3 text-accent" />
+          cafés
         </h3>
       </div>
 
-      <div className="flex items-center justify-center gap-2 py-2">
+      <div className="flex items-center justify-center gap-1.5 py-1">
         {Array.from({ length: MAX }, (_, i) => (
           <button
             key={i}
             onClick={() => setCups(i + 1)}
             className="transition-all hover:scale-110"
           >
-            <svg width="28" height="28" viewBox="0 0 16 16" className="image-rendering-pixelated">
+            <svg width="22" height="22" viewBox="0 0 16 16" className="image-rendering-pixelated">
               {i < cups && (
-                <>
-                  <g className={i === cups - 1 ? "animate-steam" : ""}>
-                    <rect x="5" y="1" width="1" height="1" fill="hsl(var(--muted-foreground) / 0.25)" />
-                    <rect x="7" y="0" width="1" height="1" fill="hsl(var(--muted-foreground) / 0.15)" />
-                    <rect x="9" y="1" width="1" height="1" fill="hsl(var(--muted-foreground) / 0.25)" />
-                  </g>
-                </>
+                <g className={i === cups - 1 ? "animate-steam" : ""}>
+                  <rect x="5" y="1" width="1" height="1" fill="hsl(var(--muted-foreground) / 0.25)" />
+                  <rect x="7" y="0" width="1" height="1" fill="hsl(var(--muted-foreground) / 0.15)" />
+                  <rect x="9" y="1" width="1" height="1" fill="hsl(var(--muted-foreground) / 0.25)" />
+                </g>
               )}
               <rect x="3" y="5" width="9" height="1" fill={i < cups ? "hsl(var(--accent))" : "hsl(var(--muted))"} />
               <rect x="3" y="6" width="1" height="7" fill={i < cups ? "hsl(var(--accent))" : "hsl(var(--muted))"} />
@@ -46,13 +44,12 @@ export const CoffeeTracker = () => {
         ))}
       </div>
 
-      <p className="text-[10px] text-center text-muted-foreground/40 font-mono mt-1">
-        {cups === 0 && "sem café ainda?"}
-        {cups === 1 && "primeiro café do dia"}
-        {cups === 2 && "segundo café, bora!"}
-        {cups === 3 && "modo turbo ativado"}
-        {cups === 4 && "calma lá, dev..."}
-        {cups === 5 && "limite atingido! beba água"}
+      <p className="text-[9px] text-center text-muted-foreground/30 font-mono mt-0.5">
+        {cups === 1 && "primeiro café"}
+        {cups === 2 && "segundo, bora!"}
+        {cups === 3 && "modo turbo"}
+        {cups === 4 && "calma lá..."}
+        {cups === 5 && "beba água!"}
       </p>
     </div>
   );
