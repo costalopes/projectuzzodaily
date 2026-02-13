@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { ArrowLeft, Send, CheckCircle, XCircle, Loader2, Zap, Bell, Timer, AlertTriangle, Flame, Settings, Power, ChevronUp, Palette, Image as ImageIcon, Type, User, MessageSquare } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle, XCircle, Loader2, Zap, Bell, Timer, AlertTriangle, Flame, Settings, Power, ChevronUp, Palette, Image as ImageIcon, Type, User, MessageSquare, Code, FileText, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,9 +11,11 @@ interface EmbedConfig {
   botName: string;
   avatarUrl: string;
   embedTitle: string;
+  embedDescription: string;
   embedColor: string; // hex
   thumbnailUrl: string;
   footerText: string;
+  quoteText: string;
 }
 
 interface WebhookConfig {
@@ -30,13 +32,15 @@ interface WebhookConfig {
 const DEFAULT_AVATAR = "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/avatar.png?v=2";
 const DEFAULT_THUMB = "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/iconpomodoro.png";
 
-const defaultEmbed = (title: string): EmbedConfig => ({
+const defaultEmbed = (title: string, description: string): EmbedConfig => ({
   botName: "Layla | Pixel Planner",
   avatarUrl: DEFAULT_AVATAR,
   embedTitle: title,
+  embedDescription: description,
   embedColor: "#FFD700",
   thumbnailUrl: DEFAULT_THUMB,
   footerText: "Pixel Planner",
+  quoteText: "{random_quote}",
 });
 
 const DEFAULT_WEBHOOKS: WebhookConfig[] = [
@@ -44,50 +48,59 @@ const DEFAULT_WEBHOOKS: WebhookConfig[] = [
     id: "pomodoro_start_focus", label: "Timer Iniciado (Foco)", description: "Notifica início de sessão de foco de 25min",
     icon: Timer, color: "text-primary", enabled: true,
     payload: { type: "pomodoro", event: "start", mode: "focus", sessions: 2, userName: "App User" },
-    embed: defaultEmbed("🔔 | Timer Iniciado!"),
+    embed: defaultEmbed("🔔 | Timer Iniciado!", "**{mode_label}** iniciado! ({duration})\n**{user}** | 🔥 **{number_session} sessões**"),
   },
   {
     id: "pomodoro_end_focus", label: "Pomodoro Finalizado (Foco)", description: "Notifica conclusão de sessão de foco",
     icon: CheckCircle, color: "text-success", enabled: true,
     payload: { type: "pomodoro", event: "end", mode: "focus", sessions: 3, userName: "App User" },
-    embed: defaultEmbed("🔔 | Pomodoro Finalizado!"),
+    embed: defaultEmbed("🔔 | Pomodoro Finalizado!", "**{mode_label}** concluído! ⭐\n**{user}** | 🔥 **{number_session} sessões**"),
   },
   {
     id: "pomodoro_transition_short", label: "Transição → Pausa Curta", description: "Notifica início automático de pausa curta",
     icon: Zap, color: "text-accent", enabled: true,
     payload: { type: "pomodoro", event: "transition", mode: "short", sessions: 3, userName: "App User" },
-    embed: defaultEmbed("🔔 | Próxima Sessão!"),
+    embed: defaultEmbed("🔔 | Próxima Sessão!", "**{user}** | 🔥 **{number_session} sessões**\n\n**{mode_label}** — Pausa merecida! 😌"),
   },
   {
     id: "pomodoro_transition_long", label: "Transição → Descanso Longo", description: "Notifica início automático de descanso longo",
     icon: Zap, color: "text-blue-400", enabled: true,
     payload: { type: "pomodoro", event: "transition", mode: "long", sessions: 4, userName: "App User" },
-    embed: defaultEmbed("🔔 | Próxima Sessão!"),
+    embed: defaultEmbed("🔔 | Próxima Sessão!", "**{user}** | 🔥 **{number_session} sessões**\n\n**{mode_label}** — Recarregue as energias! ⚡"),
   },
   {
     id: "pomodoro_start_short", label: "Timer Iniciado (Pausa)", description: "Notifica início de pausa curta de 5min",
     icon: Timer, color: "text-success", enabled: true,
     payload: { type: "pomodoro", event: "start", mode: "short", sessions: 3, userName: "App User" },
-    embed: defaultEmbed("🔔 | Timer Iniciado!"),
+    embed: defaultEmbed("🔔 | Timer Iniciado!", "**{mode_label}** iniciado! ({duration})\n**{user}** | 🔥 **{number_session} sessões**"),
   },
   {
     id: "task_before_deadline", label: "Atividades Vencendo (30min)", description: "Lembrete de tarefas prestes a vencer",
     icon: Bell, color: "text-primary", enabled: true,
     payload: { type: "task_reminder", reminderType: "before_deadline", tasks: [{ title: "Estudar React", deadline: new Date(Date.now() + 1800000).toISOString() }, { title: "Entregar relatório", deadline: new Date(Date.now() + 3600000).toISOString() }], userName: "App User" },
-    embed: defaultEmbed("🔔 | Atividades Vencendo em 30min!"),
+    embed: defaultEmbed("🔔 | Atividades Vencendo em 30min!", "**{user}**\n\n{task_list}"),
   },
   {
     id: "task_overdue_1", label: "Atividades Atrasadas (1º Aviso)", description: "Primeiro aviso de tarefas atrasadas",
     icon: AlertTriangle, color: "text-accent", enabled: true,
     payload: { type: "task_reminder", reminderType: "overdue_1", tasks: [{ title: "Finalizar projeto", deadline: new Date(Date.now() - 3600000).toISOString() }], userName: "App User" },
-    embed: defaultEmbed("🔔 | Atividades Atrasadas! (1º Aviso)"),
+    embed: defaultEmbed("🔔 | Atividades Atrasadas! (1º Aviso)", "**{user}**\n\n{task_list}"),
   },
   {
     id: "task_overdue_3", label: "ÚLTIMO AVISO!", description: "Terceiro e último aviso de tarefas atrasadas",
     icon: Flame, color: "text-destructive", enabled: true,
     payload: { type: "task_reminder", reminderType: "overdue_3", tasks: [{ title: "Deploy urgente!", deadline: new Date(Date.now() - 7200000).toISOString() }], userName: "App User" },
-    embed: defaultEmbed("🔔 | ÚLTIMO AVISO!"),
+    embed: defaultEmbed("🔔 | ÚLTIMO AVISO!", "**{user}**\n\n{task_list}"),
   },
+];
+
+const TEMPLATE_VARS = [
+  { var: "{user}", desc: "Nome do usuário" },
+  { var: "{number_session}", desc: "Nº de sessões (pomodoro)" },
+  { var: "{mode_label}", desc: "Foco / Pausa Curta / Descanso Longo" },
+  { var: "{duration}", desc: "Duração (25min, 5min, 15min)" },
+  { var: "{random_quote}", desc: "Frase motivacional aleatória" },
+  { var: "{task_list}", desc: "Lista de tarefas (task_reminder)" },
 ];
 
 type TestStatus = "idle" | "loading" | "success" | "error";
@@ -128,9 +141,11 @@ const WebhookDashboard = () => {
           botName: wh.embed.botName,
           avatarUrl: wh.embed.avatarUrl,
           embedTitle: wh.embed.embedTitle,
+          embedDescription: wh.embed.embedDescription,
           embedColor: hexToDecimal(wh.embed.embedColor),
           thumbnailUrl: wh.embed.thumbnailUrl,
           footerText: wh.embed.footerText,
+          quoteText: wh.embed.quoteText,
         },
       };
 
@@ -248,18 +263,50 @@ const WebhookDashboard = () => {
   );
 };
 
-const FieldRow = ({ icon: Icon, label, value, onChange, type = "text", placeholder }: {
-  icon: typeof Type; label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string;
+/* ── Reusable field row ── */
+const FieldRow = ({ icon: Icon, label, value, onChange, type = "text", placeholder, multiline }: {
+  icon: typeof Type; label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; multiline?: boolean;
 }) => (
   <div>
     <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1.5 mb-1">
       <Icon className="w-3 h-3" /> {label}
     </label>
-    <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary/50" />
+    {multiline ? (
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3}
+        className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary/50 resize-none" />
+    ) : (
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary/50" />
+    )}
   </div>
 );
 
+/* ── Template Variables Badge ── */
+const TemplateVarsHelp = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-[10px] font-mono text-primary/70 hover:text-primary transition-colors">
+        <Info className="w-3 h-3" /> Variáveis disponíveis
+      </button>
+      {open && (
+        <div className="absolute z-20 top-6 left-0 bg-card border border-border/40 rounded-lg p-3 shadow-xl min-w-[260px] animate-fade-in">
+          <p className="text-[10px] font-mono text-muted-foreground/60 mb-2">Use no título, descrição, footer ou quote:</p>
+          <div className="space-y-1">
+            {TEMPLATE_VARS.map((v) => (
+              <div key={v.var} className="flex items-center gap-2 text-[10px] font-mono">
+                <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{v.var}</code>
+                <span className="text-muted-foreground/50">{v.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Webhook Card ── */
 const WebhookCard = ({ webhook, status, result, isEditing, onToggleEdit, onSend, onUpdate, onUpdatePayload, onUpdateEmbed }: {
   webhook: WebhookConfig; status: TestStatus; result?: string; isEditing: boolean;
   onToggleEdit: () => void; onSend: () => void;
@@ -268,14 +315,32 @@ const WebhookCard = ({ webhook, status, result, isEditing, onToggleEdit, onSend,
   onUpdateEmbed: (id: string, f: keyof EmbedConfig, v: string) => void;
 }) => {
   const Icon = webhook.icon;
-  const [tab, setTab] = useState<"embed" | "payload">("embed");
-  const [jsonMode, setJsonMode] = useState(false);
+  const [tab, setTab] = useState<"embed" | "payload" | "json">("embed");
   const [rawJson, setRawJson] = useState("");
 
-  const openJsonMode = () => { setRawJson(JSON.stringify(webhook.payload, null, 2)); setJsonMode(true); };
+  const openJsonTab = () => {
+    const fullConfig = {
+      embed: webhook.embed,
+      payload: webhook.payload,
+    };
+    setRawJson(JSON.stringify(fullConfig, null, 2));
+    setTab("json");
+  };
+
   const saveJson = () => {
-    try { onUpdate(webhook.id, { payload: JSON.parse(rawJson) }); setJsonMode(false); toast.success("Payload atualizado!"); }
-    catch { toast.error("JSON inválido"); }
+    try {
+      const parsed = JSON.parse(rawJson);
+      if (parsed.embed) {
+        onUpdate(webhook.id, { embed: { ...webhook.embed, ...parsed.embed } });
+      }
+      if (parsed.payload) {
+        onUpdate(webhook.id, { payload: { ...webhook.payload, ...parsed.payload } });
+      }
+      setTab("embed");
+      toast.success("Configuração atualizada!");
+    } catch {
+      toast.error("JSON inválido");
+    }
   };
 
   return (
@@ -312,16 +377,20 @@ const WebhookCard = ({ webhook, status, result, isEditing, onToggleEdit, onSend,
       {/* Settings panel */}
       {isEditing && (
         <div className="border-t border-border/20 animate-fade-in">
-          {/* Toggle + tabs */}
+          {/* Tabs + toggle */}
           <div className="px-4 pt-3 flex items-center justify-between">
             <div className="flex items-center gap-1 bg-muted/20 rounded-lg p-0.5">
               <button onClick={() => setTab("embed")} className={cn("text-[10px] font-mono px-3 py-1.5 rounded-md transition-all",
                 tab === "embed" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground/50 hover:text-foreground")}>
-                Embed
+                <span className="flex items-center gap-1"><Palette className="w-3 h-3" /> Embed</span>
               </button>
               <button onClick={() => setTab("payload")} className={cn("text-[10px] font-mono px-3 py-1.5 rounded-md transition-all",
                 tab === "payload" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground/50 hover:text-foreground")}>
-                Payload
+                <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> Payload</span>
+              </button>
+              <button onClick={openJsonTab} className={cn("text-[10px] font-mono px-3 py-1.5 rounded-md transition-all",
+                tab === "json" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground/50 hover:text-foreground")}>
+                <span className="flex items-center gap-1"><Code className="w-3 h-3" /> JSON</span>
               </button>
             </div>
             <button onClick={() => onUpdate(webhook.id, { enabled: !webhook.enabled })}
@@ -334,6 +403,9 @@ const WebhookCard = ({ webhook, status, result, isEditing, onToggleEdit, onSend,
           <div className="px-4 py-3 space-y-3">
             {tab === "embed" ? (
               <>
+                {/* Template vars helper */}
+                <TemplateVarsHelp />
+
                 {/* Avatar preview + URL */}
                 <div>
                   <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
@@ -347,7 +419,9 @@ const WebhookCard = ({ webhook, status, result, isEditing, onToggleEdit, onSend,
                   </div>
                 </div>
                 <FieldRow icon={User} label="Nome do Bot" value={webhook.embed.botName} onChange={(v) => onUpdateEmbed(webhook.id, "botName", v)} />
-                <FieldRow icon={Type} label="Título do Embed" value={webhook.embed.embedTitle} onChange={(v) => onUpdateEmbed(webhook.id, "embedTitle", v)} placeholder="🔔 | Título aqui" />
+                <FieldRow icon={Type} label="Título do Embed" value={webhook.embed.embedTitle} onChange={(v) => onUpdateEmbed(webhook.id, "embedTitle", v)} placeholder="🔔 | Título aqui — suporta {user}" />
+                <FieldRow icon={MessageSquare} label="Descrição do Embed" value={webhook.embed.embedDescription} onChange={(v) => onUpdateEmbed(webhook.id, "embedDescription", v)} placeholder="**{user}** | 🔥 **{number_session} sessões**" multiline />
+                <FieldRow icon={MessageSquare} label="Texto de Citação" value={webhook.embed.quoteText} onChange={(v) => onUpdateEmbed(webhook.id, "quoteText", v)} placeholder="{random_quote}" />
                 <FieldRow icon={MessageSquare} label="Footer" value={webhook.embed.footerText} onChange={(v) => onUpdateEmbed(webhook.id, "footerText", v)} placeholder="Pixel Planner" />
                 <FieldRow icon={ImageIcon} label="Thumbnail URL" value={webhook.embed.thumbnailUrl} onChange={(v) => onUpdateEmbed(webhook.id, "thumbnailUrl", v)} />
 
@@ -365,34 +439,36 @@ const WebhookCard = ({ webhook, status, result, isEditing, onToggleEdit, onSend,
                   </div>
                 </div>
 
-                {/* userName */}
-                <FieldRow icon={User} label="userName (no embed)" value={(webhook.payload.userName as string) || ""} onChange={(v) => onUpdatePayload(webhook.id, "userName", v)} />
+                {/* userName in payload */}
+                <FieldRow icon={User} label="userName (no payload)" value={(webhook.payload.userName as string) || ""} onChange={(v) => onUpdatePayload(webhook.id, "userName", v)} />
               </>
-            ) : (
+            ) : tab === "payload" ? (
               <>
                 <FieldRow icon={Type} label="Label" value={webhook.label} onChange={(v) => onUpdate(webhook.id, { label: v })} />
                 <FieldRow icon={MessageSquare} label="Descrição" value={webhook.description} onChange={(v) => onUpdate(webhook.id, { description: v })} />
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider">Payload JSON</label>
-                    {!jsonMode ? (
-                      <button onClick={openJsonMode} className="text-[10px] font-mono text-primary hover:underline">Editar</button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button onClick={saveJson} className="text-[10px] font-mono text-success hover:underline">Salvar</button>
-                        <button onClick={() => setJsonMode(false)} className="text-[10px] font-mono text-muted-foreground hover:underline">Cancelar</button>
-                      </div>
-                    )}
-                  </div>
-                  {jsonMode ? (
-                    <textarea value={rawJson} onChange={(e) => setRawJson(e.target.value)} rows={8}
-                      className="w-full bg-background/80 border border-border/30 rounded-lg px-3 py-2 text-[11px] font-mono text-foreground focus:outline-none focus:border-primary/50 resize-none" />
-                  ) : (
-                    <pre className="bg-background/40 border border-border/20 rounded-lg px-3 py-2 text-[10px] font-mono text-muted-foreground/70 overflow-x-auto max-h-32 scrollbar-hidden">
-                      {JSON.stringify(webhook.payload, null, 2)}
-                    </pre>
-                  )}
+                  <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-1 block">Payload JSON (read-only)</label>
+                  <pre className="bg-background/40 border border-border/20 rounded-lg px-3 py-2 text-[10px] font-mono text-muted-foreground/70 overflow-x-auto max-h-32 scrollbar-hidden">
+                    {JSON.stringify(webhook.payload, null, 2)}
+                  </pre>
+                  <p className="text-[9px] font-mono text-muted-foreground/40 mt-1">Use a aba JSON para editar o payload completo</p>
                 </div>
+              </>
+            ) : (
+              /* JSON tab - edit embed + payload together */
+              <>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1.5">
+                    <Code className="w-3 h-3" /> Configuração Completa (JSON)
+                  </label>
+                  <div className="flex gap-2">
+                    <button onClick={saveJson} className="text-[10px] font-mono text-success hover:underline font-semibold">Salvar</button>
+                    <button onClick={() => setTab("embed")} className="text-[10px] font-mono text-muted-foreground hover:underline">Cancelar</button>
+                  </div>
+                </div>
+                <textarea value={rawJson} onChange={(e) => setRawJson(e.target.value)} rows={14}
+                  className="w-full bg-background/80 border border-border/30 rounded-lg px-3 py-2 text-[11px] font-mono text-foreground focus:outline-none focus:border-primary/50 resize-none" />
+                <TemplateVarsHelp />
               </>
             )}
           </div>

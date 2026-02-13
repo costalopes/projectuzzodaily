@@ -10,9 +10,11 @@ interface EmbedOverrides {
   botName?: string;
   avatarUrl?: string;
   embedTitle?: string;
+  embedDescription?: string;
   embedColor?: number;
   thumbnailUrl?: string;
   footerText?: string;
+  quoteText?: string;
 }
 
 interface PomodoroPayload {
@@ -95,6 +97,15 @@ const MOTIVATIONAL_PHRASES = [
 const getRandomPhrase = () =>
   MOTIVATIONAL_PHRASES[Math.floor(Math.random() * MOTIVATIONAL_PHRASES.length)];
 
+// Replace template variables in a string
+const replaceTemplateVars = (text: string, vars: Record<string, string>): string => {
+  let result = text;
+  for (const [key, value] of Object.entries(vars)) {
+    result = result.replaceAll(`{${key}}`, value);
+  }
+  return result;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -108,6 +119,21 @@ serve(async (req) => {
 
     const payload: NotifyPayload = await req.json();
     const ov = payload.overrides || {};
+
+    // Build template variables available for substitution
+    const templateVars: Record<string, string> = {
+      user: payload.userName || "Anônimo",
+      random_quote: getRandomPhrase(),
+    };
+
+    if (payload.type === "pomodoro") {
+      templateVars.number_session = String(payload.sessions || 0);
+      templateVars.mode = payload.mode;
+      const modeLabels: Record<string, string> = { focus: "Foco", short: "Pausa Curta", long: "Descanso Longo" };
+      templateVars.mode_label = modeLabels[payload.mode] || payload.mode;
+      const durationLabels: Record<string, string> = { focus: "25 minutos", short: "5 minutos", long: "15 minutos" };
+      templateVars.duration = durationLabels[payload.mode] || "";
+    }
 
     let embed: Record<string, unknown>;
 
@@ -206,6 +232,8 @@ serve(async (req) => {
         })
         .join("\n");
 
+      templateVars.task_list = taskList;
+
       embed = {
         title: config.title,
         description: `**${payload.userName || "Anônimo"}**\n\n${taskList}\n\n\`${getRandomPhrase()}\``,
@@ -215,11 +243,20 @@ serve(async (req) => {
       };
     }
 
-    // Apply embed overrides
-    if (ov.embedTitle) embed.title = ov.embedTitle;
-    if (ov.embedColor !== undefined) embed.color = ov.embedColor;
-    if (ov.thumbnailUrl) embed.thumbnail = { url: ov.thumbnailUrl };
-    if (ov.footerText !== undefined) embed.footer = ov.footerText ? { text: ov.footerText } : undefined;
+    // Apply embed overrides with template variable support
+    if (ov.embedTitle) embed!.title = replaceTemplateVars(ov.embedTitle, templateVars);
+    if (ov.embedDescription) embed!.description = replaceTemplateVars(ov.embedDescription, templateVars);
+    if (ov.embedColor !== undefined) embed!.color = ov.embedColor;
+    if (ov.thumbnailUrl) embed!.thumbnail = { url: ov.thumbnailUrl };
+    if (ov.footerText !== undefined) embed!.footer = ov.footerText ? { text: replaceTemplateVars(ov.footerText, templateVars) } : undefined;
+    if (ov.quoteText !== undefined) {
+      // Append or replace the quote line at the end of description
+      const desc = String(embed!.description || "");
+      // Remove existing backtick quote if present
+      const cleanDesc = desc.replace(/\n\n`[^`]+`\s*$/, "");
+      const quote = replaceTemplateVars(ov.quoteText, templateVars);
+      embed!.description = quote ? `${cleanDesc}\n\n\`${quote}\`` : cleanDesc;
+    }
 
     const finalBotName = ov.botName || "Layla | Pixel Planner";
     const finalAvatarUrl = ov.avatarUrl || AVATAR_URL;
@@ -230,7 +267,7 @@ serve(async (req) => {
       body: JSON.stringify({
         username: finalBotName,
         avatar_url: finalAvatarUrl,
-        embeds: [embed],
+        embeds: [embed!],
       }),
     });
 
