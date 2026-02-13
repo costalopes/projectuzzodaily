@@ -93,3 +93,36 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Pixel art rendering */
+.image-rendering-pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Steam animation */
+@keyframes steam {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-3px); opacity: 0.6; }
+}
+@keyframes steam-2 {
+  0%, 100% { transform: translateY(0); opacity: 0.2; }
+  50% { transform: translateY(-4px); opacity: 0.5; }
+}
+.animate-steam {
+  animation: steam 2s ease-in-out infinite;
+}
+.animate-steam-2 {
+  animation: steam-2 2.5s ease-in-out infinite 0.5s;
+}
+
+/* Cat tail wag */
+@keyframes tail-wag {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-5deg); }
+}
+.animate-tail {
+  transform-origin: 15px 10px;
+  animation: tail-wag 2s ease-in-out infinite;
+}
