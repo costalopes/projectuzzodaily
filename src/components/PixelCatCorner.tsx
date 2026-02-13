@@ -66,8 +66,19 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   useEffect(() => { saveStat("happiness", happiness); }, [happiness]);
   useEffect(() => { saveStat("energy", energy); }, [energy]);
 
-  const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); };
-  const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); };
+  const syncCatToBot = useCallback((name: string, idx: number) => {
+    fetch("https://steadfast-integrity-production-4b30.up.railway.app:8080/api/cat-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-secret": "meu-segredo-123" },
+      body: JSON.stringify({ name, colorIdx: idx }),
+    }).catch(() => {});
+  }, []);
+
+  const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); syncCatToBot(n, colorIdx); };
+  const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); syncCatToBot(catName, i); };
+
+  // Sync on mount
+  useEffect(() => { syncCatToBot(catName, colorIdx); }, []);
 
   const showMsg = useCallback((msg: string, duration = 3000) => {
     setMessage(msg);
