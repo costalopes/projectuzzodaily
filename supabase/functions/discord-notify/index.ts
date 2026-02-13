@@ -22,8 +22,8 @@ interface TaskReminderPayload {
 
 type NotifyPayload = PomodoroPayload | TaskReminderPayload;
 
-const FOOTER_LOGO =
-  "https://rfajiyedyqalhnkzocfp.supabase.co/storage/v1/object/public/product-images/webhook/footer-logo.png";
+const ICON_URL =
+  "https://shziwwccvpxtdjvbmrab.supabase.co/storage/v1/object/public/webhook-assets/iconpomodoro.png";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -42,9 +42,9 @@ serve(async (req) => {
 
     if (payload.type === "pomodoro") {
       const modeLabels: Record<string, string> = {
-        focus: "🍅 Foco",
-        short: "☕ Pausa Curta",
-        long: "🌿 Descanso Longo",
+        focus: "Foco",
+        short: "Pausa Curta",
+        long: "Descanso Longo",
       };
       const modeColors: Record<string, number> = {
         focus: 0xff6347,
@@ -53,18 +53,17 @@ serve(async (req) => {
       };
 
       embed = {
-        title: "⏰ Pomodoro Finalizado!",
+        title: "<:sininho:1200187032308293662> Pomodoro Finalizado!",
         description:
-          `**${modeLabels[payload.mode] || payload.mode}** concluído!\n\n` +
-          `👤 **${payload.userName || "Anônimo"}** • 📊 **${payload.sessions || 0} sessões**\n\n` +
+          `**${modeLabels[payload.mode] || payload.mode}** concluído! <a:estrela_gif:1089377048579022888>\n\n` +
+          `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
           (payload.mode === "focus"
-            ? "Hora de descansar! ☕"
-            : "Hora de voltar ao foco! 🚀"),
+            ? "Hora de descansar! <:coffe:1471922341511430398>"
+            : "Hora de voltar ao foco!"),
         color: modeColors[payload.mode] || 0x0033ff,
-        thumbnail: { url: FOOTER_LOGO },
+        thumbnail: { url: ICON_URL },
         footer: {
-          text: "Pomodoro Tracker • Uzzo Solutions",
-          icon_url: FOOTER_LOGO,
+          text: "Continue sendo produtivo!",
         },
         timestamp: new Date().toISOString(),
       };
@@ -74,27 +73,27 @@ serve(async (req) => {
         { title: string; color: number; emoji: string; footer: string }
       > = {
         before_deadline: {
-          title: "⚠️ Atividades Vencendo em 30min!",
+          title: "<:sininho:1200187032308293662> Atividades Vencendo em 30min!",
           color: 0xffa500,
-          emoji: "⏳",
+          emoji: "<a:orange_fire:1323543791533162576>",
           footer: "Lembrete de prazo",
         },
         overdue_1: {
-          title: "🚨 Atividades Atrasadas! (1º Aviso)",
+          title: "<:sininho:1200187032308293662> Atividades Atrasadas! (1º Aviso)",
           color: 0xff6347,
-          emoji: "🔴",
+          emoji: "<a:orange_fire:1323543791533162576>",
           footer: "1º aviso",
         },
         overdue_2: {
-          title: "🚨🚨 Atividades Atrasadas! (2º Aviso)",
+          title: "<:sininho:1200187032308293662> Atividades Atrasadas! (2º Aviso)",
           color: 0xff0000,
-          emoji: "🔴🔴",
+          emoji: "<a:orange_fire:1323543791533162576>",
           footer: "2º aviso",
         },
         overdue_3: {
-          title: "🚨🚨🚨 ÚLTIMO AVISO!",
+          title: "<:sininho:1200187032308293662> ÚLTIMO AVISO!",
           color: 0x8b0000,
-          emoji: "🔴🔴🔴",
+          emoji: "<a:orange_fire:1323543791533162576>",
           footer: "Último aviso",
         },
       };
@@ -111,12 +110,11 @@ serve(async (req) => {
 
       embed = {
         title: config.title,
-        description: `👤 **${payload.userName || "Anônimo"}**\n\n${taskList}`,
+        description: `**${payload.userName || "Anônimo"}**\n\n${taskList}`,
         color: config.color,
-        thumbnail: { url: FOOTER_LOGO },
+        thumbnail: { url: ICON_URL },
         footer: {
-          text: `${config.footer} • Uzzo Solutions`,
-          icon_url: FOOTER_LOGO,
+          text: "Continue sendo produtivo!",
         },
         timestamp: new Date().toISOString(),
       };
@@ -128,8 +126,8 @@ serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "Layla 🤖",
-        avatar_url: FOOTER_LOGO,
+        username: "Layla | Pixel Planner",
+        avatar_url: ICON_URL,
         embeds: [embed],
       }),
     });
