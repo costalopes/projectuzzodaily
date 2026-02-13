@@ -227,7 +227,7 @@ const Index = () => {
             </div>
 
             {/* Main grid: Tasks + Side panel — fills remaining space */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
 
               {/* Tasks — scrollable inside */}
               <div className="min-h-0">
@@ -282,7 +282,7 @@ const Index = () => {
                   </div>
 
                   {/* Scrollable task list */}
-                  <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
                     <div className="space-y-1">
                       {pendingTasks.map((task, idx) => {
                         const pc = priorityConfig[task.priority];
@@ -371,7 +371,7 @@ const Index = () => {
                     ))}
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto" key={activeTab}>
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-2" key={activeTab}>
                     {renderWidget()}
                   </div>
                 </div>

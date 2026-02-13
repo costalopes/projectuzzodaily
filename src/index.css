@@ -64,6 +64,15 @@
   }
 }
 
+/* Hidden scrollbar */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 /* Pixel art */
 .image-rendering-pixelated {
   image-rendering: pixelated;
