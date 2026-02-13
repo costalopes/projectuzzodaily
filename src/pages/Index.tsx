@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, Sparkles, Image as ImageIcon, Clock, AlertCircle, Minus } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, Sparkles, Image as ImageIcon, Clock, AlertCircle, Minus, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner } from "@/components/PixelCatCorner";
@@ -40,6 +40,17 @@ const priorityConfig: Record<Priority, { color: string; bg: string; label: strin
   low: { color: "text-success", bg: "bg-success/10 border-success/20", label: "Baixo", icon: Minus },
 };
 
+type WidgetTab = "timer" | "calendar" | "habits" | "notes" | "water" | "coffee";
+
+const WIDGET_TABS: { id: WidgetTab; label: string; icon: typeof Timer; file: string }[] = [
+  { id: "timer", label: "pomodoro", icon: Timer, file: "timer.ts" },
+  { id: "calendar", label: "calendar", icon: CalendarDays, file: "cal.ts" },
+  { id: "habits", label: "habits", icon: ListChecks, file: "habits.ts" },
+  { id: "notes", label: "notes", icon: StickyNote, file: "notes.ts" },
+  { id: "water", label: "water", icon: Droplets, file: "water.ts" },
+  { id: "coffee", label: "coffee", icon: Coffee, file: "coffee.ts" },
+];
+
 const Index = () => {
   const greeting = getGreeting();
   const today = new Date();
@@ -61,6 +72,7 @@ const Index = () => {
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [filter, setFilter] = useState<"all" | Priority>("all");
+  const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
 
   const doneCount = tasks.filter((t) => t.done).length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
@@ -89,19 +101,36 @@ const Index = () => {
   const doneTasks = tasks.filter((t) => t.done);
   const urgentCount = tasks.filter((t) => !t.done && t.priority === "urgent").length;
 
+  const renderWidget = () => {
+    switch (activeTab) {
+      case "timer": return <PomodoroWidget />;
+      case "calendar": return <MiniCalendar />;
+      case "habits": return <HabitTracker />;
+      case "notes": return <QuickNotes />;
+      case "water": return <WaterTracker />;
+      case "coffee": return <CoffeeTracker />;
+    }
+  };
+
   return (
     <div className="min-h-screen relative">
-      {/* BG - subtle noise texture */}
+      {/* BG */}
       {customBg ? (
         <div className="fixed inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${customBg})` }}>
           <div className="absolute inset-0 bg-background/85 backdrop-blur-sm" />
         </div>
       ) : (
         <div className="fixed inset-0 bg-background">
-          {/* Subtle radial glows */}
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/[0.02] blur-[150px]" />
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-primary/[0.03] blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-accent/[0.03] blur-[100px]" />
+          {/* Dot grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: "radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          />
         </div>
       )}
 
@@ -110,78 +139,95 @@ const Index = () => {
 
       <div className="relative z-10">
         {/* Banner */}
-        <div className="relative w-full h-48 md:h-60 overflow-hidden">
-          <img src={deskBanner} alt="Cozy dev workspace" className="w-full h-full object-cover opacity-60" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        <div className="relative w-full h-48 md:h-56 overflow-hidden">
+          <img src={deskBanner} alt="Cozy dev workspace" className="w-full h-full object-cover opacity-40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
           <button onClick={() => setShowBgPicker(!showBgPicker)}
             className="absolute top-4 right-4 bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl p-2.5 hover:bg-card/60 transition-all group">
             <ImageIcon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
 
-          {/* Code overlay */}
-          <div className="absolute bottom-5 left-6 font-mono text-[11px] hidden md:block">
-            <span className="text-success/70">const</span>{" "}
-            <span className="text-accent/70">today</span>{" "}
-            <span className="text-foreground/30">=</span>{" "}
-            <span className="text-primary/70">"productive"</span>
-            <span className="animate-cursor text-foreground/70">│</span>
+          {/* Terminal-style overlay */}
+          <div className="absolute bottom-4 left-6 font-mono text-[11px] hidden md:flex items-center gap-4">
+            <div className="bg-card/60 backdrop-blur-xl border border-border/40 rounded-lg px-3 py-1.5 flex items-center gap-2">
+              <Terminal className="w-3 h-3 text-primary" />
+              <span className="text-success">~</span>
+              <span className="text-muted-foreground">/workspace</span>
+              <span className="text-foreground/40">$</span>
+              <span className="text-primary">npm run dev</span>
+              <span className="animate-pulse text-primary">▊</span>
+            </div>
           </div>
         </div>
 
         {/* BG Picker */}
         {showBgPicker && (
-          <div className="max-w-5xl mx-auto px-6 -mt-2 relative z-30">
+          <div className="max-w-6xl mx-auto px-6 -mt-2 relative z-30">
             <BackgroundPicker currentGradient={bgGradient} customBg={customBg}
               onGradientChange={setBgGradient} onCustomBg={setCustomBg}
               isOpen={showBgPicker} onClose={() => setShowBgPicker(false)} />
           </div>
         )}
 
-        <div className="max-w-5xl mx-auto px-6 -mt-12 relative z-10 pb-24">
+        <div className="max-w-6xl mx-auto px-6 -mt-12 relative z-10 pb-24">
 
-          {/* Header */}
-          <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-xl animate-fade-in">
-            <div className="flex items-start justify-between gap-6">
-              <div className="space-y-2 min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium font-mono">
-                  {dateStr}
-                </p>
-                <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground">
-                  {greeting.text}, <span className="text-primary">Pedro</span> {greeting.emoji}
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  {greeting.sub} · <span className="text-foreground font-medium">{pendingTasks.length}</span> pendentes
-                  {urgentCount > 0 && <span className="text-urgent ml-1">· {urgentCount} urgente{urgentCount > 1 ? "s" : ""}</span>}
-                </p>
+          {/* Header card */}
+          <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl animate-fade-in overflow-hidden">
+            {/* Terminal title bar */}
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-muted/20">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-primary/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-success/60" />
               </div>
-              <div className="shrink-0">
-                <PixelClock />
-              </div>
+              <span className="text-[10px] font-mono text-muted-foreground/50 ml-2">dashboard.tsx — Pedro's workspace</span>
             </div>
 
-            {/* Progress */}
-            <div className="mt-6 pt-5 border-t border-border/50">
-              <div className="flex items-center gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground font-medium font-mono">progresso</span>
-                    <span className="text-sm font-bold text-primary font-mono">{progress}%</span>
-                  </div>
-                  <div className="h-2.5 bg-muted/60 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${progress}%` }} />
-                  </div>
+            <div className="p-6 md:p-8">
+              <div className="flex items-start justify-between gap-6">
+                <div className="space-y-2 min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium font-mono flex items-center gap-2">
+                    <span className="text-success">●</span> {dateStr}
+                  </p>
+                  <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground">
+                    {greeting.text}, <span className="text-primary">Pedro</span> {greeting.emoji}
+                  </h1>
+                  <p className="text-muted-foreground text-sm font-mono">
+                    <span className="text-success/60">{">"}</span> {greeting.sub} · <span className="text-foreground font-medium">{pendingTasks.length}</span> pendentes
+                    {urgentCount > 0 && <span className="text-urgent ml-1">· {urgentCount} urgente{urgentCount > 1 ? "s" : ""}</span>}
+                  </p>
                 </div>
-                <div className="flex gap-4 text-center">
-                  <div>
-                    <p className="text-xl font-display font-bold">{doneCount}<span className="text-muted-foreground text-sm font-normal">/{tasks.length}</span></p>
-                    <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">feitas</p>
+                <div className="shrink-0">
+                  <PixelClock />
+                </div>
+              </div>
+
+              {/* Progress */}
+              <div className="mt-6 pt-5 border-t border-border/30">
+                <div className="flex items-center gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground font-medium font-mono">
+                        <span className="text-primary/60">const</span> progress <span className="text-foreground/30">=</span>
+                      </span>
+                      <span className="text-sm font-bold text-primary font-mono">{progress}%</span>
+                    </div>
+                    <div className="h-2 bg-muted/60 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${progress}%` }} />
+                    </div>
                   </div>
-                  <div className="w-px bg-border" />
-                  <div>
-                    <p className="text-xl font-display font-bold flex items-center gap-1">{streak} <Flame className="w-4 h-4 text-accent" /></p>
-                    <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">streak</p>
+                  <div className="flex gap-4 text-center">
+                    <div>
+                      <p className="text-xl font-display font-bold">{doneCount}<span className="text-muted-foreground text-sm font-normal">/{tasks.length}</span></p>
+                      <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">feitas</p>
+                    </div>
+                    <div className="w-px bg-border/30" />
+                    <div>
+                      <p className="text-xl font-display font-bold flex items-center gap-1">{streak} <Flame className="w-4 h-4 text-accent" /></p>
+                      <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">streak</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -189,48 +235,61 @@ const Index = () => {
           </div>
 
           {/* Quick stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <MoodTracker />
             <DailyIntention />
             <WaterTracker />
             <CoffeeTracker />
           </div>
 
-          {/* Main grid: Tasks + sidebar */}
+          {/* Main grid: Tasks + Widget panel */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+
             {/* Tasks (2/3) */}
             <div className="lg:col-span-2 animate-fade-in" style={{ animationDelay: "100ms" }}>
               <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden">
-                <div className="p-5 pb-0">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-display font-bold text-foreground flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      Tarefas
-                    </h2>
+                {/* File tab bar */}
+                <div className="flex items-center border-b border-border/30 bg-muted/10">
+                  <div className="flex items-center gap-0.5 px-1 py-1">
+                    <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-t-lg border border-border/30 border-b-0 -mb-px relative z-10">
+                      <Sparkles className="w-3 h-3 text-primary" />
+                      <span className="text-[11px] font-mono text-foreground">tasks.tsx</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                    </div>
+                  </div>
+                  <div className="ml-auto pr-3">
                     <button onClick={() => setShowInput(true)}
-                      className="text-xs font-medium flex items-center gap-1.5 bg-primary text-primary-foreground rounded-xl px-3.5 py-2 hover:opacity-90 transition-opacity shadow-md">
-                      <Plus className="w-3.5 h-3.5" /> Nova
+                      className="text-[10px] font-mono flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 py-1.5 hover:bg-primary/20 transition-all">
+                      <Plus className="w-3 h-3" /> new Task()
                     </button>
                   </div>
+                </div>
 
-                  <div className="flex gap-1.5 mb-4">
+                <div className="p-4 pb-0">
+                  {/* Filters as code comments */}
+                  <div className="flex gap-1.5 mb-3">
                     {(["all", "urgent", "medium", "low"] as const).map((f) => (
                       <button key={f} onClick={() => setFilter(f)}
-                        className={cn("px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all uppercase tracking-wider",
-                          filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted")}>
-                        {f === "all" ? "Todas" : priorityConfig[f].label}
-                        {f !== "all" && <span className="ml-1 opacity-60">{tasks.filter(t => !t.done && t.priority === f).length}</span>}
+                        className={cn("px-3 py-1.5 rounded-lg text-[10px] font-mono transition-all",
+                          filter === f
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
+                        {f === "all" ? "// all" : `// ${priorityConfig[f].label.toLowerCase()}`}
+                        {f !== "all" && <span className="ml-1 opacity-50">{tasks.filter(t => !t.done && t.priority === f).length}</span>}
                       </button>
                     ))}
                   </div>
 
                   {showInput && (
-                    <div className="flex gap-2 mb-4 animate-fade-in">
-                      <input type="text" autoFocus value={newTask}
-                        onChange={(e) => setNewTask(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setShowInput(false); }}
-                        placeholder="O que precisa fazer?"
-                        className="flex-1 bg-muted/40 border border-border rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono" />
+                    <div className="flex gap-2 mb-3 animate-fade-in">
+                      <div className="flex items-center gap-2 flex-1 bg-muted/30 border border-border rounded-xl px-3">
+                        <span className="text-primary/40 font-mono text-xs">{">"}</span>
+                        <input type="text" autoFocus value={newTask}
+                          onChange={(e) => setNewTask(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setShowInput(false); }}
+                          placeholder="O que precisa fazer?"
+                          className="flex-1 bg-transparent py-3 text-sm placeholder:text-muted-foreground/30 focus:outline-none font-mono" />
+                      </div>
                       <button onClick={addTask}
                         className="bg-primary text-primary-foreground rounded-xl px-5 font-medium hover:opacity-90 transition-opacity shadow-md">
                         <ArrowRight className="w-4 h-4" />
@@ -239,28 +298,25 @@ const Index = () => {
                   )}
                 </div>
 
-                <div className="px-3 pb-3">
-                  <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 px-3 py-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/60">
-                    <span className="w-5" />
-                    <span>Tarefa</span>
-                    <span className="hidden sm:block">Prioridade</span>
-                    <span className="w-8" />
-                  </div>
-                  <div className="space-y-1">
-                    {pendingTasks.map((task) => {
+                {/* Task list with line numbers */}
+                <div className="px-2 pb-3">
+                  <div className="space-y-0.5">
+                    {pendingTasks.map((task, idx) => {
                       const pc = priorityConfig[task.priority];
                       return (
                         <div key={task.id}
-                          className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-3 py-3 rounded-xl hover:bg-muted/40 group transition-all cursor-default">
+                          className="grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-2 py-2.5 rounded-xl hover:bg-muted/30 group transition-all cursor-default">
+                          {/* Line number */}
+                          <span className="text-[10px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
                           <button onClick={() => toggleTask(task.id)}
-                            className="w-5 h-5 rounded-md border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10" />
-                          <span className="text-sm text-foreground truncate">{task.text}</span>
-                          <span className={cn("hidden sm:flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg border", pc.bg)}>
+                            className="w-4.5 h-4.5 rounded-md border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10" />
+                          <span className="text-sm text-foreground truncate font-mono">{task.text}</span>
+                          <span className={cn("hidden sm:flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded-md border", pc.bg)}>
                             <pc.icon className={cn("w-3 h-3", pc.color)} />
                             <span className={pc.color}>{pc.label}</span>
                           </span>
                           <button onClick={() => deleteTask(task.id)}
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-8 flex justify-center">
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -268,8 +324,8 @@ const Index = () => {
                     })}
                     {pendingTasks.length === 0 && (
                       <div className="text-center py-10">
-                        <p className="text-sm text-muted-foreground/50 italic font-mono">
-                          {filter !== "all" ? "Nenhuma tarefa com este filtro" : "Tudo feito! Hora do café ☕"}
+                        <p className="text-sm text-muted-foreground/40 font-mono">
+                          {filter !== "all" ? "// nenhuma tarefa com este filtro" : "// tudo feito! hora do café ☕"}
                         </p>
                       </div>
                     )}
@@ -277,20 +333,22 @@ const Index = () => {
                 </div>
 
                 {doneTasks.length > 0 && (
-                  <div className="border-t border-border/50 px-3 pb-3 pt-2">
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50 px-3 py-2 flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-success" />
-                      Concluídas ({doneTasks.length})
+                  <div className="border-t border-border/30 px-2 pb-3 pt-2">
+                    <p className="text-[10px] font-mono text-muted-foreground/40 px-4 py-2 flex items-center gap-1.5">
+                      <span className="text-success/60">{"/*"}</span>
+                      concluídas ({doneTasks.length})
+                      <span className="text-success/60">{"*/"}</span>
                     </p>
                     <div className="space-y-0.5">
-                      {doneTasks.map((task) => (
+                      {doneTasks.map((task, idx) => (
                         <div key={task.id}
-                          className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-3 py-2.5 rounded-xl group transition-all opacity-50 hover:opacity-80">
+                          className="grid grid-cols-[2rem_auto_1fr_auto] gap-2 items-center px-2 py-2 rounded-xl group transition-all opacity-40 hover:opacity-70">
+                          <span className="text-[10px] font-mono text-muted-foreground/20 text-right select-none">{pendingTasks.length + idx + 1}</span>
                           <button onClick={() => toggleTask(task.id)}
-                            className="w-5 h-5 rounded-md bg-primary border-2 border-primary flex items-center justify-center transition-all shrink-0">
-                            <Check className="w-3 h-3 text-primary-foreground" />
+                            className="w-4.5 h-4.5 rounded-md bg-success/80 border-2 border-success/80 flex items-center justify-center transition-all shrink-0">
+                            <Check className="w-3 h-3 text-success-foreground" />
                           </button>
-                          <span className="text-sm line-through text-muted-foreground truncate">{task.text}</span>
+                          <span className="text-sm line-through text-muted-foreground truncate font-mono">{task.text}</span>
                           <button onClick={() => deleteTask(task.id)}
                             className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
                             <Trash2 className="w-3.5 h-3.5" />
@@ -303,17 +361,43 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-4 animate-fade-in" style={{ animationDelay: "200ms" }}>
-              <PomodoroWidget />
-              <MiniCalendar />
-              <HabitTracker />
-              <QuickNotes />
+            {/* Sidebar — IDE-style tabbed panel */}
+            <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+              <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden">
+                {/* Tab bar — file tabs */}
+                <div className="flex flex-wrap border-b border-border/30 bg-muted/10">
+                  {WIDGET_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-mono transition-all border-b-2 -mb-px",
+                        activeTab === tab.id
+                          ? "border-primary text-primary bg-card/60"
+                          : "border-transparent text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/20"
+                      )}
+                    >
+                      <tab.icon className="w-3 h-3" />
+                      <span className="hidden sm:inline">{tab.file}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Widget content */}
+                <div className="p-0 animate-fade-in" key={activeTab}>
+                  {renderWidget()}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Quote */}
           <div className="mt-6 animate-fade-in" style={{ animationDelay: "300ms" }}>
+            <div className="flex items-center gap-3 justify-center text-muted-foreground/30 font-mono text-[10px]">
+              <div className="h-px flex-1 bg-border/20" />
+              <span>{"// EOF"}</span>
+              <div className="h-px flex-1 bg-border/20" />
+            </div>
             <CodeQuote />
           </div>
         </div>
