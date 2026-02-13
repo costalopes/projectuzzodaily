@@ -276,65 +276,71 @@ const Index = () => {
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10 h-full flex flex-col gap-3">
 
-            {/* Header card — compact */}
+            {/* Header card */}
             <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl animate-fade-in overflow-hidden shrink-0">
-              {/* Terminal title bar */}
-              <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 bg-muted/20">
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-destructive/60" />
-                  <div className="w-2 h-2 rounded-full bg-primary/60" />
-                  <div className="w-2 h-2 rounded-full bg-success/60" />
-                </div>
-                <span className="text-[9px] font-mono text-muted-foreground/50 ml-1">dashboard.tsx — Pedro's workspace</span>
-              </div>
-
-              <div className="px-6 py-5">
-                <div className="flex items-center justify-between gap-4">
+              <div className="px-6 py-5 md:py-6">
+                <div className="flex items-center justify-between gap-6">
+                  {/* Left: greeting */}
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono flex items-center gap-1.5 mb-1">
-                      <span className="text-success">●</span> {dateStr}
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60 font-mono flex items-center gap-2 mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                      {dateStr}
                     </p>
-                    <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground">
-                      {greeting.text}, <span className="text-primary">Pedro</span> {greeting.emoji}
+                    <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground leading-tight">
+                      {greeting.text}, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pedro</span> {greeting.emoji}
                     </h1>
-                    <p className="text-muted-foreground text-sm font-mono mt-1">
-                      <span className="text-success/60">{">"}</span> {greeting.sub} · <span className="text-foreground font-medium">{todoCount}</span> a fazer
-                      {inProgressCount > 0 && <span className="text-primary ml-1">· {inProgressCount} em progresso</span>}
-                    </p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <p className="text-muted-foreground/70 text-sm font-mono">
+                        <span className="text-primary/50">{">"}</span> {greeting.sub}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/40 border border-border/30 rounded-lg px-2 py-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent/70" />
+                          <span className="text-foreground font-semibold">{todoCount}</span>
+                          <span className="text-muted-foreground/50">a fazer</span>
+                        </span>
+                        {inProgressCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5">
+                            <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />
+                            <span className="text-primary font-semibold">{inProgressCount}</span>
+                            <span className="text-primary/50">em progresso</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Right: stats + clock */}
                   <div className="shrink-0 flex items-center gap-3">
-                    {/* Stats cards */}
                     <div className="hidden md:flex items-center gap-2">
-                      {/* Progress card */}
-                      <div className="bg-muted/30 border border-border/30 rounded-xl px-3.5 py-2.5 min-w-[110px]">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wider">progresso</span>
+                      {/* Progress */}
+                      <div className="bg-muted/20 border border-border/20 rounded-xl px-4 py-3 min-w-[120px]">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[8px] text-muted-foreground/50 font-mono uppercase tracking-widest">progresso</span>
                           <span className="text-xs font-bold text-primary font-mono">{progress}%</span>
                         </div>
-                        <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-primary/80 to-primary rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_hsl(var(--primary)/0.3)]"
+                        <div className="h-1 bg-muted/50 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-primary/70 via-primary to-accent/70 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_hsl(var(--primary)/0.25)]"
                             style={{ width: `${progress}%` }} />
                         </div>
                       </div>
 
-                      {/* Done count */}
-                      <div className="bg-muted/30 border border-border/30 rounded-xl px-3.5 py-2.5 text-center min-w-[56px]">
-                        <p className="text-xl font-display font-bold leading-none tracking-tight">
-                          {doneCount}<span className="text-muted-foreground/40 text-sm font-normal">/{tasks.length}</span>
-                        </p>
-                        <p className="text-[7px] text-muted-foreground/50 font-mono uppercase tracking-widest mt-0.5">feitas</p>
-                      </div>
-
-                      {/* Streak */}
-                      <div className="bg-muted/30 border border-border/30 rounded-xl px-3.5 py-2.5 text-center min-w-[56px]">
-                        <p className="text-xl font-display font-bold leading-none tracking-tight flex items-center justify-center gap-0.5">
-                          {streak}<Flame className="w-4 h-4 text-accent" />
-                        </p>
-                        <p className="text-[7px] text-muted-foreground/50 font-mono uppercase tracking-widest mt-0.5">streak</p>
+                      {/* Done + Streak */}
+                      <div className="flex gap-1.5">
+                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center">
+                          <p className="text-xl font-display font-bold leading-none tracking-tight">
+                            {doneCount}<span className="text-muted-foreground/30 text-xs font-normal">/{tasks.length}</span>
+                          </p>
+                          <p className="text-[7px] text-muted-foreground/40 font-mono uppercase tracking-widest mt-1">feitas</p>
+                        </div>
+                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center">
+                          <p className="text-xl font-display font-bold leading-none tracking-tight flex items-center justify-center gap-0.5">
+                            {streak}<Flame className="w-4 h-4 text-accent" />
+                          </p>
+                          <p className="text-[7px] text-muted-foreground/40 font-mono uppercase tracking-widest mt-1">streak</p>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Clock */}
                     <PixelClock />
                   </div>
                 </div>
