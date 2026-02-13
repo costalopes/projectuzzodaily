@@ -18,12 +18,45 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
   const [isKneading, setIsKneading] = useState(false);
 
   const allMessages: Record<CatMood, string[]> = {
-    idle: ["miau~ 🐾", "...", "*estica*", "*boceja*", "meow?"],
-    happy: ["nyaa~ ♡", "purrrr!", "*ronrona*", "mrrp! 💕", "mais carinho!"],
-    purring: ["purrrrrr...", "*amassa pãozinho*", "tão bom...", "💜"],
-    sleeping: ["zzz...", "*sonha com peixe*", "mrrrm..."],
-    coding: ["git push 🐱", "npm run dev ✨", "// TODO: dormir", "console.log('🐱')", "bug? 🐛", "LGTM! ✅", "refactor time", "☕ + 💻 = 💜"],
-    excited: ["MIAU!! 🎉", "WOOO!", "*pula*", "incrível!! ✨"],
+    idle: [
+      "miau~", "...", "*estica*", "*boceja*", "meow?",
+      "*olha pela janela*", "hmm...", "*rola no chão*",
+      "*limpa a patinha*", "preguiça...", "*espreita*",
+      "tô de boa", "*ronca baixinho*",
+    ],
+    happy: [
+      "nyaa~", "purrrr!", "*ronrona*", "mrrp!", "mais carinho!",
+      "isso mesmo!", "*fecha os olhos*", "tão bom...",
+      "*esfrega no braço*", "continua!", "adoro!",
+      "*amassa a almofada*", "melhor humano!",
+    ],
+    purring: [
+      "purrrrrr...", "*amassa pãozinho*", "tão quentinho...",
+      "*ronrona alto*", "não para...", "vida boa...",
+      "*derrete*", "hmmmm...", "*relaxa total*",
+    ],
+    sleeping: [
+      "zzz...", "*sonha com peixe*", "mrrrm...",
+      "*mexe a patinha*", "...atum...", "*suspira*",
+      "zzZzz...", "*vira de lado*",
+    ],
+    coding: [
+      "git push", "npm run dev", "// TODO: dormir",
+      "console.log(meow)", "bug?", "LGTM!",
+      "refactor time", "café + código", "deploy friday?",
+      "tá compilando...", "hmm esse hook...",
+      "mais um commit", "testes passando!",
+      "clean code", "feature pronta!", "PR aprovado!",
+      "stack overflow", "ctrl+s ctrl+s", "debugando...",
+      "aquele bug...", "funciona na minha máquina",
+      "code review", "pair programming?",
+      "esse import...", "TypeScript!",
+    ],
+    excited: [
+      "MIAU!!", "WOOO!", "*pula*", "incrível!!",
+      "mandou bem!", "boa!!", "*faz dancinha*",
+      "isso aí!!", "perfeito!", "*olhos brilhando*",
+    ],
   };
 
   // Mouse tracking for eyes
@@ -50,7 +83,8 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
   useEffect(() => {
     if (onTaskComplete) {
       setMood("excited");
-      setMessage("Boa!! 🎉");
+      const msgs = allMessages.excited;
+      setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
       setTimeout(() => setMessage(""), 3000);
       setTimeout(() => setMood("coding"), 4000);
     }
@@ -87,14 +121,14 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
     }
   }, [mood]);
 
-  // Coding messages
+  // Coding messages - more frequent
   useEffect(() => {
     if (mood !== "coding") return;
     const interval = setInterval(() => {
       const msgs = allMessages.coding;
       setMessage(msgs[Math.floor(Math.random() * msgs.length)]);
-      setTimeout(() => setMessage(""), 3500);
-    }, 10000 + Math.random() * 8000);
+      setTimeout(() => setMessage(""), 4000);
+    }, 8000 + Math.random() * 6000);
     return () => clearInterval(interval);
   }, [mood]);
 
@@ -124,47 +158,40 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
   const isHappy = mood === "happy" || mood === "purring" || mood === "excited";
 
   return (
-    <div ref={catRef} className="fixed bottom-3 right-3 z-50 select-none group">
+    <div ref={catRef} className="fixed bottom-4 right-4 z-50 select-none group">
       {/* Speech bubble */}
       {message && (
-        <div className="absolute -top-14 right-0 bg-card/95 backdrop-blur-xl border border-border rounded-2xl px-4 py-2.5 shadow-2xl animate-fade-in whitespace-nowrap max-w-[200px]">
-          <p className="text-[11px] font-mono text-foreground font-medium">{message}</p>
-          <div className="absolute -bottom-1.5 right-8 w-3 h-3 bg-card/95 border-r border-b border-border rotate-45 rounded-br-sm" />
+        <div className="absolute -top-12 right-0 bg-card/95 backdrop-blur-xl border border-border rounded-xl px-3 py-2 shadow-lg animate-fade-in whitespace-nowrap max-w-[180px]">
+          <p className="text-[10px] font-mono text-foreground">{message}</p>
+          <div className="absolute -bottom-1 right-8 w-2 h-2 bg-card/95 border-r border-b border-border rotate-45" />
         </div>
       )}
 
       {/* Hearts */}
       {hearts.map((id, i) => (
-        <span key={id} className="absolute text-lg animate-heart-float pointer-events-none"
-          style={{ left: `${(i % 6) * 18}px`, top: "-12px" }}>
-          {["💜", "🧡", "✨", "💖", "⭐", "💕"][i % 6]}
+        <span key={id} className="absolute text-sm animate-heart-float pointer-events-none"
+          style={{ left: `${(i % 5) * 16}px`, top: "-8px" }}>
+          {["♡", "✦", "♡", "⋆", "♡"][i % 5]}
         </span>
       ))}
 
       {/* Sleeping Zs */}
       {mood === "sleeping" && (
-        <div className="absolute -top-12 right-2 flex gap-1.5">
+        <div className="absolute -top-10 right-2 flex gap-1.5">
           {[0, 0.4, 0.8].map((d, i) => (
-            <span key={i} className="animate-float font-mono text-muted-foreground/60"
-              style={{ animationDelay: `${d}s`, fontSize: `${10 + i * 3}px` }}>Z</span>
+            <span key={i} className="animate-float font-mono text-muted-foreground/50"
+              style={{ animationDelay: `${d}s`, fontSize: `${9 + i * 3}px` }}>z</span>
           ))}
         </div>
       )}
 
-      {/* Pet counter */}
-      {pets > 0 && (
-        <div className="absolute -top-1 -left-1 bg-accent text-white rounded-full min-w-[24px] h-[24px] flex items-center justify-center text-[10px] font-bold shadow-lg px-1.5 border-2 border-background">
-          {pets > 99 ? "99+" : pets}
-        </div>
-      )}
-
       <div className={mood === "sleeping" ? "" : "animate-breathe"}>
-        <svg width="132" height="118" viewBox="0 0 44 40"
-          className="image-rendering-pixelated cursor-pointer drop-shadow-2xl transition-transform duration-200 hover:scale-110 active:scale-90"
+        <svg width="120" height="108" viewBox="0 0 44 40"
+          className="image-rendering-pixelated cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-110 active:scale-95"
           onClick={handlePet} role="button" aria-label="Acariciar o gatinho">
 
           {/* Shadow */}
-          <ellipse cx="20" cy="38" rx="15" ry="2" fill="hsl(var(--foreground) / 0.06)" />
+          <ellipse cx="20" cy="38" rx="15" ry="2" fill="hsl(var(--foreground) / 0.04)" />
 
           {/* Tail */}
           <g className={isHappy ? "animate-tail-fast" : "animate-tail"}>
@@ -181,12 +208,10 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           {/* Body */}
           <rect x="7" y="21" width="25" height="11" fill={fur1} />
           <rect x="8" y="20" width="23" height="1" fill={fur2} />
-          {/* Stripes */}
           <rect x="9" y="23" width="3" height="1" fill={furStripe} />
           <rect x="10" y="25" width="2" height="1" fill={furStripe} />
           <rect x="26" y="23" width="3" height="1" fill={furStripe} />
           <rect x="27" y="25" width="2" height="1" fill={furStripe} />
-          {/* Belly */}
           <rect x="13" y="22" width="13" height="9" fill={belly} />
 
           {/* Collar */}
@@ -215,13 +240,11 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           <rect x="6" y="6" width="27" height="2" fill={fur2} />
           <rect x="5" y="8" width="29" height="11" fill={fur1} />
           <rect x="6" y="7" width="25" height="1" fill={fur1} />
-          {/* Forehead M */}
           <rect x="15" y="7" width="1" height="1" fill={furStripe} />
           <rect x="16" y="6" width="1" height="2" fill={furStripe} />
           <rect x="17" y="7" width="3" height="1" fill={furStripe} />
           <rect x="20" y="6" width="1" height="2" fill={furStripe} />
           <rect x="21" y="7" width="1" height="1" fill={furStripe} />
-          {/* Cheeks */}
           <rect x="6" y="14" width="6" height="4" fill={fur3} />
           <rect x="27" y="14" width="6" height="4" fill={fur3} />
 
@@ -242,21 +265,18 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
             </>
           ) : (
             <>
-              {/* Left eye with mouse tracking */}
               <rect x={10 + eyeOffset.x} y={10 + eyeOffset.y} width="6" height="5" fill={eyeColor} />
               <rect x={11 + eyeOffset.x} y={10 + eyeOffset.y} width="3" height="2" fill="white" />
               <rect x={14 + eyeOffset.x} y={13 + eyeOffset.y} width="1" height="1" fill="white" opacity="0.4" />
-              {/* Right eye */}
               <rect x={22 + eyeOffset.x} y={10 + eyeOffset.y} width="6" height="5" fill={eyeColor} />
               <rect x={23 + eyeOffset.x} y={10 + eyeOffset.y} width="3" height="2" fill="white" />
               <rect x={26 + eyeOffset.x} y={13 + eyeOffset.y} width="1" height="1" fill="white" opacity="0.4" />
             </>
           )}
 
-          {/* Nose */}
+          {/* Nose & mouth */}
           <rect x="17" y="15" width="4" height="2" fill={nose} />
           <rect x="18" y="15" width="2" height="1" fill="#f0909a" />
-          {/* Mouth */}
           <rect x="16" y="17" width="1" height="1" fill={fur2} />
           <rect x="21" y="17" width="1" height="1" fill={fur2} />
           {isHappy && <rect x="17" y="17" width="4" height="1" fill={nose} opacity="0.5" />}
@@ -269,7 +289,7 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
           <rect x="31" y="15" width="8" height="1" fill={fur3} opacity="0.5" />
           <rect x="30" y="17" width="7" height="1" fill={fur3} opacity="0.4" />
 
-          {/* Front paws - kneading */}
+          {/* Front paws */}
           <g className={isKneading ? "animate-knead-l" : ""}>
             <rect x="7" y="32" width="7" height="4" fill={fur1} />
             <rect x="8" y="35" width="5" height="1" fill={fur3} />
@@ -309,14 +329,14 @@ export const PixelCatCorner = ({ onTaskComplete }: CatProps) => {
         </svg>
       </div>
 
-      {/* Status */}
-      <p className="text-[8px] text-muted-foreground/40 text-center mt-0.5 font-mono tracking-wide">
-        {mood === "coding" && "⌨ coding"}
-        {mood === "sleeping" && "💤 zzz"}
-        {mood === "happy" && "😸 feliz"}
-        {mood === "purring" && "😻 purrr"}
-        {mood === "idle" && "🐱 idle"}
-        {mood === "excited" && "🎉 hype!"}
+      {/* Minimal status */}
+      <p className="text-[8px] text-muted-foreground/30 text-center mt-0.5 font-mono tracking-widest">
+        {mood === "coding" && "coding"}
+        {mood === "sleeping" && "zzz"}
+        {mood === "happy" && "happy"}
+        {mood === "purring" && "purring"}
+        {mood === "idle" && "idle"}
+        {mood === "excited" && "hype"}
       </p>
     </div>
   );
