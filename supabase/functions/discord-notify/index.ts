@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface PomodoroPayload {
   type: "pomodoro";
-  event: "start" | "end";
+  event: "start" | "end" | "transition";
   mode: "focus" | "short" | "long";
   sessions: number;
   userName: string;
@@ -112,6 +112,7 @@ serve(async (req) => {
       };
 
       const isStart = payload.event === "start";
+      const isTransition = payload.event === "transition";
 
       if (isStart) {
         const durationLabels: Record<string, string> = {
@@ -124,6 +125,22 @@ serve(async (req) => {
           description:
             `**${modeLabels[payload.mode]}** iniciado! (${durationLabels[payload.mode]})\n\n` +
             `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            `*${getRandomPhrase()}*`,
+          color: modeColors[payload.mode] || 0x0033ff,
+          thumbnail: { url: ICON_URL },
+          timestamp: new Date().toISOString(),
+        };
+      } else if (isTransition) {
+        const transitionMessages: Record<string, string> = {
+          focus: "Iniciando Foco! Você consegue! 🚀",
+          short: "Pausa merecida! Descanse um pouco 😌",
+          long: "Descanso longo! Aproveita para recarregar as energias ⚡",
+        };
+        embed = {
+          title: "<:sininho:1200187032308293662> Próxima Sessão!",
+          description:
+            `**${payload.userName || "Anônimo"}** | <a:orange_fire:1323543791533162576> **${payload.sessions || 0} sessões**\n\n` +
+            `**${modeLabels[payload.mode]}** — ${transitionMessages[payload.mode]}\n\n` +
             `*${getRandomPhrase()}*`,
           color: modeColors[payload.mode] || 0x0033ff,
           thumbnail: { url: ICON_URL },
