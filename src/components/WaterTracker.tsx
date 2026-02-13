@@ -67,26 +67,51 @@ export const WaterTracker = () => {
         </div>
       )}
 
-      {/* Water glass visual */}
+      {/* Water jug pixel art */}
       <div className="flex items-center justify-center py-1">
-        <div className="relative w-14 h-16 flex items-end justify-center">
-          <div className="absolute inset-0 rounded-b-xl rounded-t-md border-2 border-primary/20 overflow-hidden bg-muted/10">
-            <div className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out" style={{ height: `${pct}%` }}>
-              <div className="absolute inset-0 bg-primary/25" />
-              <svg className="absolute -top-2 left-0 w-full" viewBox="0 0 100 10" preserveAspectRatio="none" style={{ height: "8px" }}>
-                <path className="animate-wave" d="M0 5 Q 12.5 0, 25 5 Q 37.5 10, 50 5 Q 62.5 0, 75 5 Q 87.5 10, 100 5 L 100 10 L 0 10 Z" fill="hsl(var(--primary) / 0.25)" />
-                <path className="animate-wave-slow" d="M0 6 Q 15 2, 30 6 Q 45 10, 60 6 Q 75 2, 90 6 Q 97 9, 100 6 L 100 10 L 0 10 Z" fill="hsl(var(--primary) / 0.15)" />
-              </svg>
-              {pct > 20 && (
-                <>
-                  <div className="absolute bottom-1 left-2 w-1 h-1 rounded-full bg-primary/20 animate-bubble" />
-                  <div className="absolute bottom-3 right-3 w-0.5 h-0.5 rounded-full bg-primary/15 animate-bubble-slow" />
-                </>
-              )}
-            </div>
-            <div className="absolute top-0 left-0.5 bottom-0 w-1.5 bg-gradient-to-b from-white/5 to-transparent rounded-full" />
-          </div>
-        </div>
+        <svg width="56" height="64" viewBox="0 0 28 32" className="image-rendering-pixelated">
+          {/* Jug handle */}
+          <rect x="22" y="8" width="2" height="1" fill="hsl(var(--primary) / 0.3)" />
+          <rect x="24" y="9" width="1" height="6" fill="hsl(var(--primary) / 0.3)" />
+          <rect x="23" y="15" width="1" height="1" fill="hsl(var(--primary) / 0.3)" />
+          <rect x="22" y="16" width="1" height="1" fill="hsl(var(--primary) / 0.3)" />
+          {/* Jug spout */}
+          <rect x="3" y="4" width="2" height="1" fill="hsl(var(--primary) / 0.25)" />
+          <rect x="2" y="5" width="2" height="1" fill="hsl(var(--primary) / 0.25)" />
+          {/* Jug body outline */}
+          <rect x="4" y="3" width="18" height="1" fill="hsl(var(--primary) / 0.2)" />
+          <rect x="3" y="4" width="1" height="1" fill="hsl(var(--primary) / 0.2)" />
+          <rect x="22" y="4" width="1" height="1" fill="hsl(var(--primary) / 0.2)" />
+          <rect x="3" y="5" width="19" height="1" fill="hsl(var(--primary) / 0.15)" />
+          {/* Jug body */}
+          <rect x="3" y="6" width="19" height="22" fill="hsl(var(--primary) / 0.08)" />
+          <rect x="4" y="28" width="17" height="1" fill="hsl(var(--primary) / 0.15)" />
+          {/* Left/right borders */}
+          <rect x="3" y="6" width="1" height="22" fill="hsl(var(--primary) / 0.2)" />
+          <rect x="21" y="6" width="1" height="22" fill="hsl(var(--primary) / 0.2)" />
+          {/* Bottom */}
+          <rect x="4" y="28" width="17" height="1" fill="hsl(var(--primary) / 0.25)" />
+          {/* Water fill */}
+          <rect x="4" y={6 + Math.round(22 * (1 - pct / 100))} width="17" height={Math.round(22 * pct / 100)} fill="hsl(var(--primary) / 0.3)" />
+          {/* Wave on top of water */}
+          {pct > 5 && pct < 100 && (
+            <>
+              <rect x="5" y={5 + Math.round(22 * (1 - pct / 100))} width="3" height="1" fill="hsl(var(--primary) / 0.2)" />
+              <rect x="11" y={5 + Math.round(22 * (1 - pct / 100))} width="4" height="1" fill="hsl(var(--primary) / 0.2)" />
+              <rect x="18" y={5 + Math.round(22 * (1 - pct / 100))} width="2" height="1" fill="hsl(var(--primary) / 0.2)" />
+            </>
+          )}
+          {/* Glass reflection */}
+          <rect x="5" y="7" width="1" height="18" fill="white" opacity="0.06" />
+          <rect x="6" y="7" width="1" height="14" fill="white" opacity="0.03" />
+          {/* Bubbles */}
+          {pct > 20 && (
+            <>
+              <rect x="8" y={10 + Math.round(16 * (1 - pct / 100))} width="1" height="1" fill="hsl(var(--primary) / 0.15)" className="animate-bubble" />
+              <rect x="16" y={14 + Math.round(12 * (1 - pct / 100))} width="1" height="1" fill="hsl(var(--primary) / 0.1)" className="animate-bubble-slow" />
+            </>
+          )}
+        </svg>
       </div>
 
       {/* Controls */}
