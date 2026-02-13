@@ -530,7 +530,7 @@ const Index = () => {
                 {/* Widget tabs panel */}
                 <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden flex-1 min-h-0 flex flex-col">
                   {/* Tabs como "arquivos" estilo editor */}
-                  <div className="flex items-center gap-0.5 px-1.5 py-1.5 border-b border-border/30 bg-muted/10 shrink-0">
+                  <div className="flex items-center gap-0.5 px-1.5 py-1.5 border-b border-border/30 bg-muted/10 shrink-0 overflow-x-auto scrollbar-hidden">
                     {WIDGET_TABS.map((tab) => (
                       <button
                         key={tab.id}
