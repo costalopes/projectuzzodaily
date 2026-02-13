@@ -1,11 +1,18 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import GreetingHeader from "@/components/GreetingHeader";
+import TaskSection from "@/components/TaskSection";
+import HabitTracker from "@/components/HabitTracker";
+import QuickStats from "@/components/QuickStats";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 py-6 md:py-10 space-y-8">
+        <GreetingHeader />
+        <QuickStats />
+        <div className="grid md:grid-cols-1 gap-8">
+          <TaskSection />
+          <HabitTracker />
+        </div>
       </div>
     </div>
   );
