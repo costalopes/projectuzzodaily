@@ -13,26 +13,26 @@ export const MoodTracker = () => {
   const [selected, setSelected] = useState<number | null>(null);
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-4">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-5 flex flex-col h-full">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
         como você tá?
       </h3>
-      <div className="flex justify-between gap-0.5">
+      <div className="flex justify-between gap-1 flex-1 items-center">
         {MOODS.map((mood, i) => (
           <button
             key={i}
             onClick={() => setSelected(i)}
             className={cn(
-              "flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg border transition-all",
+              "flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border transition-all",
               selected === i
                 ? `${mood.color} scale-105`
                 : "border-transparent hover:bg-muted/40"
             )}
           >
-            <span className={cn("text-base transition-transform", selected === i && "scale-110")}>
+            <span className={cn("text-xl transition-transform", selected === i && "scale-110")}>
               {mood.emoji}
             </span>
-            <span className="text-[8px] text-muted-foreground">{mood.label}</span>
+            <span className="text-[9px] text-muted-foreground">{mood.label}</span>
           </button>
         ))}
       </div>

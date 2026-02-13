@@ -172,7 +172,7 @@ const Index = () => {
 
         {/* Scrollable main area */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          <div className="max-w-6xl mx-auto px-4 -mt-8 relative z-10 h-full flex flex-col gap-3">
+          <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10 h-full flex flex-col gap-3">
 
             {/* Header card — compact */}
             <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl animate-fade-in overflow-hidden shrink-0">
@@ -186,16 +186,16 @@ const Index = () => {
                 <span className="text-[9px] font-mono text-muted-foreground/50 ml-1">dashboard.tsx — Pedro's workspace</span>
               </div>
 
-              <div className="px-5 py-4">
+              <div className="px-6 py-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-mono flex items-center gap-1.5 mb-1">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono flex items-center gap-1.5 mb-1">
                       <span className="text-success">●</span> {dateStr}
                     </p>
-                    <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-foreground">
+                    <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground">
                       {greeting.text}, <span className="text-primary">Pedro</span> {greeting.emoji}
                     </h1>
-                    <p className="text-muted-foreground text-xs font-mono mt-0.5">
+                    <p className="text-muted-foreground text-sm font-mono mt-1">
                       <span className="text-success/60">{">"}</span> {greeting.sub} · <span className="text-foreground font-medium">{pendingTasks.length}</span> pendentes
                       {urgentCount > 0 && <span className="text-urgent ml-1">· {urgentCount} urgente{urgentCount > 1 ? "s" : ""}</span>}
                     </p>
@@ -232,8 +232,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Quick stats row — compact */}
-            <div className="grid grid-cols-4 gap-2 shrink-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
+            {/* Quick stats row */}
+            <div className="grid grid-cols-4 gap-3 shrink-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
               <MoodTracker />
               <DailyIntention />
               <WaterTracker />
@@ -241,7 +241,7 @@ const Index = () => {
             </div>
 
             {/* Main grid: Tasks + Widget panel — fills remaining space */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "100ms" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "100ms" }}>
 
               {/* Tasks (2/3) — scrollable inside */}
               <div className="lg:col-span-2 min-h-0">
@@ -257,8 +257,8 @@ const Index = () => {
                     </div>
                     <div className="ml-auto pr-2">
                       <button onClick={() => setShowInput(true)}
-                        className="text-[9px] font-mono flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-lg px-2.5 py-1 hover:bg-primary/20 transition-all">
-                        <Plus className="w-3 h-3" /> new Task()
+                        className="text-[10px] font-mono flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 py-1.5 hover:bg-primary/20 transition-all">
+                        <Plus className="w-3.5 h-3.5" /> new Task()
                       </button>
                     </div>
                   </div>
@@ -297,23 +297,23 @@ const Index = () => {
 
                   {/* Scrollable task list */}
                   <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                       {pendingTasks.map((task, idx) => {
                         const pc = priorityConfig[task.priority];
                         return (
                           <div key={task.id}
-                            className="grid grid-cols-[1.5rem_auto_1fr_auto_auto] gap-1.5 items-center px-2 py-2 rounded-xl hover:bg-muted/30 group transition-all cursor-default">
-                            <span className="text-[9px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
+                            className="grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-2.5 rounded-xl hover:bg-muted/30 group transition-all cursor-default">
+                            <span className="text-[10px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
                             <button onClick={() => toggleTask(task.id)}
-                              className="w-4 h-4 rounded-md border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10" />
-                            <span className="text-xs text-foreground truncate font-mono">{task.text}</span>
-                            <span className={cn("hidden sm:flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded-md border", pc.bg)}>
-                              <pc.icon className={cn("w-2.5 h-2.5", pc.color)} />
+                              className="w-5 h-5 rounded-lg border-2 border-muted-foreground/20 hover:border-primary flex items-center justify-center transition-all shrink-0 hover:bg-primary/10" />
+                            <span className="text-sm text-foreground truncate font-mono">{task.text}</span>
+                            <span className={cn("hidden sm:flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-md border", pc.bg)}>
+                              <pc.icon className={cn("w-3 h-3", pc.color)} />
                               <span className={pc.color}>{pc.label}</span>
                             </span>
                             <button onClick={() => deleteTask(task.id)}
-                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-6 flex justify-center">
-                              <Trash2 className="w-3 h-3" />
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         );
