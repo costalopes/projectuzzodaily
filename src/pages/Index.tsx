@@ -292,7 +292,7 @@ const Index = () => {
 
         {/* Scrollable main area */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10 h-full flex flex-col gap-3">
+          <div className="max-w-7xl mx-auto px-6 -mt-4 relative z-10 h-full flex flex-col gap-3">
 
             {/* Header card */}
             <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl animate-fade-in overflow-hidden shrink-0">
