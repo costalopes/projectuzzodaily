@@ -9,6 +9,9 @@ import { MiniCalendar } from "@/components/MiniCalendar";
 import { BackgroundPicker, PRESET_GRADIENTS } from "@/components/BackgroundPicker";
 import { AmbientParticles } from "@/components/AmbientParticles";
 import { CodeQuote } from "@/components/CodeQuote";
+import { HabitTracker } from "@/components/HabitTracker";
+import { DailyIntention } from "@/components/DailyIntention";
+import { MoodTracker } from "@/components/MoodTracker";
 import deskBanner from "@/assets/desk-banner.jpg";
 
 type Priority = "urgent" | "medium" | "low";
@@ -101,22 +104,21 @@ const Index = () => {
       <div className="relative z-10">
         {/* Banner */}
         <div className="relative w-full h-48 md:h-60 overflow-hidden">
-          <img src={deskBanner} alt="Cozy dev workspace" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 mix-blend-overlay" />
+          <img src={deskBanner} alt="Cozy dev workspace" className="w-full h-full object-cover opacity-60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
 
           <button onClick={() => setShowBgPicker(!showBgPicker)}
-            className="absolute top-4 right-4 bg-black/30 backdrop-blur-xl border border-white/10 rounded-xl p-2.5 hover:bg-black/50 transition-all group">
-            <ImageIcon className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
+            className="absolute top-4 right-4 bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl p-2.5 hover:bg-card/60 transition-all group">
+            <ImageIcon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
 
           {/* Code overlay */}
           <div className="absolute bottom-5 left-6 font-mono text-[11px] hidden md:block">
             <span className="text-success/70">const</span>{" "}
             <span className="text-accent/70">today</span>{" "}
-            <span className="text-primary-foreground/30">=</span>{" "}
+            <span className="text-foreground/30">=</span>{" "}
             <span className="text-primary/70">"productive"</span>
-            <span className="animate-cursor text-primary-foreground/70">│</span>
+            <span className="animate-cursor text-foreground/70">│</span>
           </div>
         </div>
 
@@ -132,14 +134,14 @@ const Index = () => {
         <div className="max-w-5xl mx-auto px-6 -mt-12 relative z-10 pb-24">
 
           {/* Header */}
-          <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-xl animate-fade-in animate-glow">
+          <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-xl animate-fade-in">
             <div className="flex items-start justify-between gap-6">
               <div className="space-y-2 min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium font-mono">
                   {dateStr}
                 </p>
                 <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground">
-                  {greeting.text}, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pedro</span> {greeting.emoji}
+                  {greeting.text}, <span className="text-primary">Pedro</span> {greeting.emoji}
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   {greeting.sub} · <span className="text-foreground font-medium">{pendingTasks.length}</span> pendentes
@@ -300,9 +302,12 @@ const Index = () => {
             </div>
 
             {/* Sidebar (1/3) */}
-            <div className="space-y-5 animate-fade-in" style={{ animationDelay: "200ms" }}>
+            <div className="space-y-4 animate-fade-in" style={{ animationDelay: "200ms" }}>
+              <MoodTracker />
+              <DailyIntention />
               <MiniCalendar />
               <PomodoroWidget />
+              <HabitTracker />
               <QuickNotes />
             </div>
           </div>
