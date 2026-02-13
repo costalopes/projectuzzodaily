@@ -90,8 +90,8 @@ function registerRoutes(app, client) {
       name: name || catState.name,
       color: color || catState.color,
       colorIdx: colorIdx ?? catState.colorIdx,
-      happiness: happiness ?? catState.happiness,
-      energy: energy ?? catState.energy,
+      happiness: Math.round(happiness ?? catState.happiness),
+      energy: Math.round(energy ?? catState.energy),
       mood: mood || catState.mood,
     });
     res.json({ success: true, catState: updated });
