@@ -73,6 +73,16 @@
   display: none;
 }
 
+/* Hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Pixel art */
 .image-rendering-pixelated {
   image-rendering: pixelated;
@@ -170,6 +180,48 @@
 }
 .animate-knead-l { animation: knead-left 0.8s ease-in-out infinite; }
 .animate-knead-r { animation: knead-left 0.8s ease-in-out infinite 0.4s; }
+
+/* Cat belly roll */
+@keyframes belly-roll {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(15deg); }
+  70% { transform: rotate(15deg) scaleY(0.95); }
+  100% { transform: rotate(15deg); }
+}
+.animate-belly-roll { transform-origin: bottom center; animation: belly-roll 0.6s ease-out forwards; }
+
+/* Belly paws wiggle */
+@keyframes belly-paws {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-1px) rotate(5deg); }
+  75% { transform: translateY(-1px) rotate(-5deg); }
+}
+.animate-belly-paws { animation: belly-paws 0.6s ease-in-out infinite; }
+
+/* Cat scratch paw */
+@keyframes scratch-paw {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-1px) translateX(1px); }
+  60% { transform: translateY(1px) translateX(-1px); }
+}
+.animate-scratch-paw { animation: scratch-paw 0.4s ease-in-out infinite; }
+
+/* Cat scratch body */
+@keyframes cat-scratch {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+.animate-cat-scratch { transform-origin: bottom center; animation: cat-scratch 0.5s ease-in-out infinite; }
+
+/* Cat stretch */
+@keyframes cat-stretch {
+  0% { transform: scaleX(1) scaleY(1); }
+  40% { transform: scaleX(1.08) scaleY(0.92); }
+  70% { transform: scaleX(1.08) scaleY(0.92); }
+  100% { transform: scaleX(1) scaleY(1); }
+}
+.animate-cat-stretch { transform-origin: bottom center; animation: cat-stretch 2s ease-in-out infinite; }
 
 /* Shimmer */
 @keyframes shimmer {
