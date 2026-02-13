@@ -117,10 +117,10 @@ export const TaskDetailDialog = ({ task, isOpen, isNew, onClose, onUpdate, onDel
           />
 
           {/* Status + Importance row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider">status</label>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(STATUS_CONFIG) as TaskStatus[]).map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   return (
@@ -142,7 +142,7 @@ export const TaskDetailDialog = ({ task, isOpen, isNew, onClose, onUpdate, onDel
               <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
                 <Flag className="w-3.5 h-3.5" /> importância
               </label>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(IMPORTANCE_CONFIG) as TaskImportance[]).map((imp) => {
                   const cfg = IMPORTANCE_CONFIG[imp];
                   return (
