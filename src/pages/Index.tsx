@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner } from "@/components/PixelCatCorner";
@@ -13,6 +13,8 @@ import { HabitTracker } from "@/components/HabitTracker";
 import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
 import { TaskDetailDialog, type Task, type TaskStatus } from "@/components/TaskDetailDialog";
+import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import deskBanner from "@/assets/desk-banner.jpg";
 
 const getGreeting = () => {
@@ -44,12 +46,12 @@ const Index = () => {
   const dateStr = today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", text: "Revisar PR do frontend", status: "done", importance: "alta", description: "", notes: [], createdAt: "hoje" },
-    { id: "2", text: "Setup CI/CD pipeline", status: "todo", importance: "alta", description: "Configurar GitHub Actions para deploy automático", notes: [], createdAt: "hoje" },
+    { id: "1", text: "Revisar PR do frontend", status: "done", importance: "alta", description: "", notes: [], createdAt: "hoje", dueDate: new Date().toISOString() },
+    { id: "2", text: "Setup CI/CD pipeline", status: "todo", importance: "alta", description: "Configurar GitHub Actions para deploy automático", notes: [], createdAt: "hoje", dueDate: new Date(Date.now() + 86400000).toISOString() },
     { id: "3", text: "Design system — tokens de cor", status: "done", importance: "média", description: "", notes: [], createdAt: "ontem" },
-    { id: "4", text: "Documentar API endpoints", status: "in_progress", importance: "média", description: "Swagger + exemplos de request/response", notes: ["[14:30] Iniciando pela rota de auth"], createdAt: "hoje" },
+    { id: "4", text: "Documentar API endpoints", status: "in_progress", importance: "média", description: "Swagger + exemplos de request/response", notes: ["[14:30] Iniciando pela rota de auth"], createdAt: "hoje", dueDate: new Date().toISOString() },
     { id: "5", text: "Call com cliente às 15h", status: "todo", importance: "baixa", description: "", notes: [], createdAt: "hoje" },
-    { id: "6", text: "Refatorar hook useAuth", status: "in_progress", importance: "média", description: "", notes: [], createdAt: "ontem" },
+    { id: "6", text: "Refatorar hook useAuth", status: "in_progress", importance: "média", description: "", notes: [], createdAt: "ontem", dueDate: new Date(Date.now() + 172800000).toISOString() },
   ]);
 
   const [newTask, setNewTask] = useState("");
@@ -61,6 +63,7 @@ const Index = () => {
   const [filter, setFilter] = useState<TaskStatus>("todo");
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [viewByDay, setViewByDay] = useState(false);
 
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
@@ -94,6 +97,80 @@ const Index = () => {
   const filteredTasks = tasks.filter((t) => t.status === filter);
   const todoCount = tasks.filter(t => t.status === "todo").length;
   const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
+
+  // Group tasks by due date for day view
+  const groupedByDay = useMemo(() => {
+    if (!viewByDay) return null;
+    const groups: Record<string, Task[]> = {};
+    const noDue: Task[] = [];
+    filteredTasks.forEach((t) => {
+      if (t.dueDate) {
+        const key = format(parseISO(t.dueDate), "yyyy-MM-dd");
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(t);
+      } else {
+        noDue.push(t);
+      }
+    });
+    const sorted = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    if (noDue.length) sorted.push(["sem-prazo", noDue]);
+    return sorted;
+  }, [filteredTasks, viewByDay]);
+
+  const renderTaskRow = (task: Task, idx: number) => {
+    const isDone = task.status === "done";
+    const isInProgress = task.status === "in_progress";
+    const hasDue = !!task.dueDate;
+    const dueDate = hasDue ? parseISO(task.dueDate!) : null;
+    const overdue = dueDate && isPast(dueDate) && !isToday(dueDate) && !isDone;
+    return (
+      <div key={task.id}
+        onClick={() => setSelectedTask(task)}
+        className={cn(
+          "grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-3 rounded-xl hover:bg-muted/30 group transition-all cursor-pointer border border-transparent hover:border-border/30",
+          isDone && "opacity-40 hover:opacity-70"
+        )}>
+        <span className="text-[10px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
+        <button onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+          className={cn(
+            "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
+            isDone ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary hover:bg-primary/10"
+          )}>
+          {isDone && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+        </button>
+        <div className="min-w-0">
+          <span className={cn("text-sm truncate font-mono block", isDone ? "line-through text-muted-foreground" : "text-foreground")}>
+            {task.text}
+          </span>
+          <div className="flex items-center gap-2">
+            {task.description && (
+              <span className="text-[10px] text-muted-foreground/40 font-mono truncate">{task.description}</span>
+            )}
+            {hasDue && !viewByDay && (
+              <span className={cn("text-[9px] font-mono flex items-center gap-0.5 shrink-0",
+                overdue ? "text-urgent" : "text-muted-foreground/40")}>
+                <CalendarIcon className="w-2.5 h-2.5" />
+                {isToday(dueDate!) ? "hoje" : isTomorrow(dueDate!) ? "amanhã" : format(dueDate!, "dd/MM")}
+              </span>
+            )}
+          </div>
+        </div>
+        <span className={cn(
+          "hidden sm:flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
+          isDone ? "bg-success/10 border-success/20 text-success" :
+          isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
+          "bg-accent/10 border-accent/20 text-accent"
+        )}>
+          {isInProgress && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
+        </span>
+        <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
 
   const renderWidget = () => {
     switch (activeTab) {
@@ -260,6 +337,16 @@ const Index = () => {
                           <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
                         </button>
                       ))}
+                      <div className="ml-auto">
+                        <button onClick={() => setViewByDay(!viewByDay)}
+                          className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
+                            viewByDay
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
+                          <CalendarIcon className="w-3 h-3" />
+                          por dia
+                        </button>
+                      </div>
                     </div>
 
                     {showInput && (
@@ -282,59 +369,48 @@ const Index = () => {
 
                   {/* Scrollable task list */}
                   <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
-                    <div className="space-y-1">
-                      {filteredTasks.map((task, idx) => {
-                        const isDone = task.status === "done";
-                        const isInProgress = task.status === "in_progress";
-                        return (
-                          <div key={task.id}
-                            onClick={() => setSelectedTask(task)}
-                            className={cn(
-                              "grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-3 rounded-xl hover:bg-muted/30 group transition-all cursor-pointer border border-transparent hover:border-border/30",
-                              isDone && "opacity-40 hover:opacity-70"
-                            )}>
-                            <span className="text-[10px] font-mono text-muted-foreground/30 text-right select-none">{idx + 1}</span>
-                            <button onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
-                              className={cn(
-                                "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
-                                isDone
-                                  ? "bg-success/80 border-success/80"
-                                  : "border-muted-foreground/20 hover:border-primary hover:bg-primary/10"
-                              )}>
-                              {isDone && <Check className="w-2.5 h-2.5 text-success-foreground" />}
-                            </button>
-                            <div className="min-w-0">
-                              <span className={cn("text-sm truncate font-mono block", isDone ? "line-through text-muted-foreground" : "text-foreground")}>
-                                {task.text}
-                              </span>
-                              {task.description && (
-                                <span className="text-[10px] text-muted-foreground/40 font-mono truncate block">{task.description}</span>
-                              )}
+                    {viewByDay && groupedByDay ? (
+                      <div className="space-y-3">
+                        {groupedByDay.map(([dateKey, dayTasks]) => {
+                          const label = dateKey === "sem-prazo"
+                            ? "Sem prazo"
+                            : isToday(parseISO(dateKey))
+                              ? "Hoje"
+                              : isTomorrow(parseISO(dateKey))
+                                ? "Amanhã"
+                                : format(parseISO(dateKey), "dd 'de' MMM", { locale: ptBR });
+                          const overdue = dateKey !== "sem-prazo" && isPast(parseISO(dateKey)) && !isToday(parseISO(dateKey));
+                          return (
+                            <div key={dateKey}>
+                              <p className={cn("text-[10px] font-mono px-2 py-1 flex items-center gap-1.5",
+                                overdue ? "text-urgent" : "text-muted-foreground/50")}>
+                                <CalendarIcon className="w-3 h-3" />
+                                {label}
+                                {overdue && <span className="text-[8px] font-bold">ATRASADO</span>}
+                                <span className="opacity-40">({dayTasks.length})</span>
+                              </p>
+                              <div className="space-y-1">
+                                {dayTasks.map((task, idx) => renderTaskRow(task, idx))}
+                              </div>
                             </div>
-                            <span className={cn(
-                              "hidden sm:flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
-                              isDone ? "bg-success/10 border-success/20 text-success" :
-                              isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
-                              "bg-accent/10 border-accent/20 text-accent"
-                            )}>
-                              {isInProgress && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                              {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
-                            </span>
-                            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          );
+                        })}
+                        {groupedByDay.length === 0 && (
+                          <div className="text-center py-6">
+                            <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa aqui</p>
                           </div>
-                        );
-                      })}
-                      {filteredTasks.length === 0 && (
-                        <div className="text-center py-6">
-                          <p className="text-xs text-muted-foreground/40 font-mono">
-                            // nenhuma tarefa aqui
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredTasks.map((task, idx) => renderTaskRow(task, idx))}
+                        {filteredTasks.length === 0 && (
+                          <div className="text-center py-6">
+                            <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa aqui</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

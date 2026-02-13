@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { X, MessageSquare, FileText, Flag, Plus, Trash2 } from "lucide-react";
+import { X, MessageSquare, FileText, Flag, Plus, Trash2, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskImportance = "alta" | "média" | "baixa";
@@ -13,6 +17,7 @@ export interface Task {
   description: string;
   notes: string[];
   createdAt: string;
+  dueDate?: string; // ISO date string
 }
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string; bg: string }> = {
@@ -47,6 +52,10 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
     onUpdate({ ...task, description, importance, status });
   };
 
+  const handleDueDate = (date: Date | undefined) => {
+    onUpdate({ ...task, description, importance, status, dueDate: date ? date.toISOString() : undefined });
+  };
+
   const addNote = () => {
     if (!newNote.trim()) return;
     const now = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -60,6 +69,8 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
   };
 
   const sc = STATUS_CONFIG[status];
+  const dueDate = task.dueDate ? new Date(task.dueDate) : undefined;
+  const isOverdue = dueDate && dueDate < new Date() && task.status !== "done";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={onClose}>
@@ -89,8 +100,8 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
           {/* Title */}
           <h2 className="text-lg font-display font-bold text-foreground">{task.text}</h2>
 
-          {/* Status + Importance row */}
-          <div className="flex gap-3 flex-wrap">
+          {/* Status + Importance + Due date row */}
+          <div className="flex gap-4 flex-wrap">
             <div className="space-y-1.5">
               <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">status</label>
               <div className="flex gap-1">
@@ -132,6 +143,52 @@ export const TaskDetailDialog = ({ task, isOpen, onClose, onUpdate, onDelete }: 
                   );
                 })}
               </div>
+            </div>
+          </div>
+
+          {/* Due date */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
+              <CalendarIcon className="w-3 h-3" /> prazo
+            </label>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-mono transition-all",
+                      dueDate
+                        ? isOverdue
+                          ? "border-urgent/30 bg-urgent/10 text-urgent"
+                          : "border-border/40 bg-muted/20 text-foreground"
+                        : "border-border/40 bg-muted/20 text-muted-foreground/50 hover:bg-muted/30"
+                    )}
+                  >
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                    {dueDate
+                      ? format(dueDate, "dd 'de' MMM, yyyy", { locale: ptBR })
+                      : "Definir prazo..."}
+                    {isOverdue && <span className="text-[9px] font-bold">ATRASADA</span>}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-card border-border z-[110]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={handleDueDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              {dueDate && (
+                <button
+                  onClick={() => handleDueDate(undefined)}
+                  className="text-[9px] font-mono text-muted-foreground/40 hover:text-destructive transition-colors"
+                >
+                  limpar
+                </button>
+              )}
             </div>
           </div>
 
