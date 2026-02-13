@@ -10,8 +10,6 @@ import { BackgroundPicker, PRESET_GRADIENTS } from "@/components/BackgroundPicke
 import { AmbientParticles } from "@/components/AmbientParticles";
 import { CodeQuote } from "@/components/CodeQuote";
 import { HabitTracker } from "@/components/HabitTracker";
-import { DailyIntention } from "@/components/DailyIntention";
-import { MoodTracker } from "@/components/MoodTracker";
 import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
 import deskBanner from "@/assets/desk-banner.jpg";
@@ -40,15 +38,13 @@ const priorityConfig: Record<Priority, { color: string; bg: string; label: strin
   low: { color: "text-success", bg: "bg-success/10 border-success/20", label: "Baixo", icon: Minus },
 };
 
-type WidgetTab = "timer" | "calendar" | "habits" | "notes" | "water" | "coffee";
+type WidgetTab = "timer" | "calendar" | "habits" | "notes";
 
 const WIDGET_TABS: { id: WidgetTab; label: string; icon: typeof Timer; file: string }[] = [
   { id: "timer", label: "pomodoro", icon: Timer, file: "timer.ts" },
   { id: "calendar", label: "calendar", icon: CalendarDays, file: "cal.ts" },
   { id: "habits", label: "habits", icon: ListChecks, file: "habits.ts" },
   { id: "notes", label: "notes", icon: StickyNote, file: "notes.ts" },
-  { id: "water", label: "water", icon: Droplets, file: "water.ts" },
-  { id: "coffee", label: "coffee", icon: Coffee, file: "coffee.ts" },
 ];
 
 const Index = () => {
@@ -107,8 +103,6 @@ const Index = () => {
       case "calendar": return <MiniCalendar />;
       case "habits": return <HabitTracker />;
       case "notes": return <QuickNotes />;
-      case "water": return <WaterTracker />;
-      case "coffee": return <CoffeeTracker />;
     }
   };
 
@@ -232,19 +226,11 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Quick stats row */}
-            <div className="grid grid-cols-4 gap-3 shrink-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
-              <MoodTracker />
-              <DailyIntention />
-              <WaterTracker />
-              <CoffeeTracker />
-            </div>
+            {/* Main grid: Tasks + Side panel — fills remaining space */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
 
-            {/* Main grid: Tasks + Widget panel — fills remaining space */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "100ms" }}>
-
-              {/* Tasks (2/3) — scrollable inside */}
-              <div className="lg:col-span-2 min-h-0">
+              {/* Tasks — scrollable inside */}
+              <div className="min-h-0">
                 <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
                   {/* File tab bar */}
                   <div className="flex items-center border-b border-border/30 bg-muted/10 shrink-0">
@@ -357,22 +343,29 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Sidebar — IDE-style tabbed panel — scrollable inside */}
-              <div className="min-h-0">
-                <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
+              {/* Sidebar — water, coffee + widgets */}
+              <div className="min-h-0 flex flex-col gap-3">
+                {/* Water & Coffee */}
+                <div className="grid grid-cols-2 gap-3 shrink-0">
+                  <WaterTracker />
+                  <CoffeeTracker />
+                </div>
+
+                {/* Widget tabs panel */}
+                <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg overflow-hidden flex-1 min-h-0 flex flex-col">
                   <div className="flex flex-wrap border-b border-border/30 bg-muted/10 shrink-0">
                     {WIDGET_TABS.map((tab) => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                          "flex items-center gap-1 px-2.5 py-2 text-[9px] font-mono transition-all border-b-2 -mb-px",
+                          "flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-mono transition-all border-b-2 -mb-px",
                           activeTab === tab.id
                             ? "border-primary text-primary bg-card/60"
                             : "border-transparent text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/20"
                         )}
                       >
-                        <tab.icon className="w-3 h-3" />
+                        <tab.icon className="w-3.5 h-3.5" />
                         <span className="hidden md:inline">{tab.file}</span>
                       </button>
                     ))}
