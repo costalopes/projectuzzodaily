@@ -83,7 +83,7 @@ const Auth = () => {
 
       if (profileError) throw profileError;
       if (!profile?.email) {
-        toast.error("Usuário não encontrado");
+        toast.error("> error: user not found", { description: "exit code 1 — auth.lookup() failed" });
         setLoading(false);
         return;
       }
@@ -93,10 +93,10 @@ const Auth = () => {
         password: loginPassword,
       });
       if (error) throw error;
-      toast.success("Login realizado!");
+      toast.success("> auth.login() — sucesso", { description: "exit code 0 — sessão iniciada" });
       setTimeout(() => navigate("/"), 1500);
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
+      toast.error(`> error: ${error.message || "auth failed"}`, { description: "exit code 1 — login rejected" });
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signupUsername.trim()) {
-      toast.error("Username é obrigatório");
+      toast.error("> error: username is required", { description: "exit code 1 — validation failed" });
       return;
     }
     setLoading(true);
@@ -123,10 +123,10 @@ const Auth = () => {
         },
       });
       if (error) throw error;
-      toast.success("Conta criada com sucesso!");
+      toast.success("> auth.signUp() — conta criada", { description: "exit code 0 — bem-vindo ao sistema" });
       setMode("login");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar conta");
+      toast.error(`> error: ${error.message || "signup failed"}`, { description: "exit code 1 — registro rejeitado" });
     } finally {
       setLoading(false);
     }
