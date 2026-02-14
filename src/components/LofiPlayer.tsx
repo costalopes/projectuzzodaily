@@ -83,17 +83,47 @@ export const LofiPlayer = ({ onPlayingChange }: LofiPlayerProps) => {
     stopAll();
     const cfg = MODE_CONFIG[m];
     if (!cfg.streams) return;
-    const audio = new Audio(cfg.streams[0]);
-    audio.crossOrigin = "anonymous";
-    audio.volume = muted ? 0 : volume;
-    audio.loop = true;
-    audio.play().catch(() => {
-      if (cfg.streams![1]) {
-        audio.src = cfg.streams![1];
-        audio.play().catch(() => {});
-      }
-    });
-    audioRef.current = audio;
+    let streamIndex = 0;
+
+    const tryStream = (idx: number) => {
+      if (!cfg.streams || idx >= cfg.streams.length) return;
+      const audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.volume = muted ? 0 : volume;
+      audio.preload = "auto";
+
+      // Auto-reconnect on stall/error
+      const reconnect = () => {
+        if (audioRef.current !== audio) return; // already replaced
+        console.log("[LofiPlayer] Stream interrupted, reconnecting...");
+        audio.src = "";
+        setTimeout(() => {
+          if (audioRef.current === audio) tryStream(idx);
+        }, 1500);
+      };
+
+      audio.addEventListener("error", () => {
+        if (audioRef.current !== audio) return;
+        // Try next stream on first error, reconnect on same stream after
+        if (idx === 0 && cfg.streams![1]) {
+          tryStream(1);
+        } else {
+          reconnect();
+        }
+      });
+      audio.addEventListener("stalled", reconnect);
+      audio.addEventListener("ended", reconnect);
+
+      audio.src = cfg.streams![idx];
+      audio.play().catch(() => {
+        if (idx === 0 && cfg.streams![1]) {
+          tryStream(1);
+        }
+      });
+      audioRef.current = audio;
+    };
+
+    tryStream(0);
   }, [volume, muted, stopAll]);
 
   const playWhiteNoise = useCallback(() => {
