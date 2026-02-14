@@ -47,6 +47,18 @@ interface TopicTask {
   dueDate?: string;
 }
 
+interface ContentPage {
+  id: string;
+  title: string;
+  content: string;
+  folderId?: string;
+}
+
+interface ContentFolder {
+  id: string;
+  name: string;
+}
+
 interface Topic {
   id: string;
   text: string;
@@ -55,6 +67,8 @@ interface Topic {
   tasks: TopicTask[];
   folders: NoteFolder[];
   content: string;
+  contentPages: ContentPage[];
+  contentFolders: ContentFolder[];
 }
 
 interface StudySession {
@@ -343,7 +357,7 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
 
   const addTopic = () => {
     if (!input.trim()) return;
-    onUpdate(s => ({ ...s, topics: [...s.topics, { id: uid(), text: input.trim(), done: false, notes: [], tasks: [], folders: [], content: "" }] }));
+    onUpdate(s => ({ ...s, topics: [...s.topics, { id: uid(), text: input.trim(), done: false, notes: [], tasks: [], folders: [], content: "", contentPages: [], contentFolders: [] }] }));
     setInput("");
   };
 
@@ -439,8 +453,14 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
   const [newFolder, setNewFolder] = useState("");
   const [activeTab, setActiveTab] = useState<"content" | "tasks" | "notes">("content");
   const [taskFilter, setTaskFilter] = useState<"all" | "todo" | "in_progress" | "done">("all");
-  const [activeFolder, setActiveFolder] = useState<string | null>(null); // null = root
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  // Content tab state
+  const [activeContentFolder, setActiveContentFolder] = useState<string | null>(null);
+  const [creatingContentFolder, setCreatingContentFolder] = useState(false);
+  const [newContentFolder, setNewContentFolder] = useState("");
+  const [editingPage, setEditingPage] = useState<string | null>(null);
+  const [newPageTitle, setNewPageTitle] = useState("");
 
   const saveTitle = () => {
     if (title.trim() && title !== topic.text) {
@@ -668,15 +688,192 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
               >
 
                 {/* Content tab */}
-                {activeTab === "content" && (
-                  <textarea
-                    value={topic.content}
-                    onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
-                    placeholder="Escreva livremente aqui... Resumos, fórmulas, conceitos, ideias.&#10;&#10;Use como uma página do Notion para organizar todo o conteúdo deste tópico."
-                    rows={14}
-                    className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
-                  />
-                )}
+                {activeTab === "content" && (() => {
+                  const contentFolders = topic.contentFolders || [];
+                  const contentPages = topic.contentPages || [];
+                  const editPage = editingPage ? contentPages.find(p => p.id === editingPage) : null;
+                  const currentPages = contentPages.filter(p =>
+                    activeContentFolder === null ? !p.folderId : p.folderId === activeContentFolder
+                  );
+
+                  const addContentFolder = () => {
+                    if (!newContentFolder.trim()) return;
+                    onUpdate(t => ({ ...t, contentFolders: [...(t.contentFolders || []), { id: uid(), name: newContentFolder.trim() }] }));
+                    setNewContentFolder("");
+                    setCreatingContentFolder(false);
+                  };
+
+                  const deleteContentFolder = (fid: string) => {
+                    onUpdate(t => ({
+                      ...t,
+                      contentFolders: (t.contentFolders || []).filter(f => f.id !== fid),
+                      contentPages: (t.contentPages || []).map(p => p.folderId === fid ? { ...p, folderId: undefined } : p)
+                    }));
+                    if (activeContentFolder === fid) setActiveContentFolder(null);
+                  };
+
+                  const addPage = () => {
+                    if (!newPageTitle.trim()) return;
+                    const id = uid();
+                    onUpdate(t => ({ ...t, contentPages: [...(t.contentPages || []), { id, title: newPageTitle.trim(), content: "", folderId: activeContentFolder || undefined }] }));
+                    setNewPageTitle("");
+                    setEditingPage(id);
+                  };
+
+                  const updatePage = (id: string, updates: Partial<ContentPage>) => {
+                    onUpdate(t => ({ ...t, contentPages: (t.contentPages || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
+                  };
+
+                  const deletePage = (id: string) => {
+                    onUpdate(t => ({ ...t, contentPages: (t.contentPages || []).filter(p => p.id !== id) }));
+                    if (editingPage === id) setEditingPage(null);
+                  };
+
+                  // If editing a page, show the editor
+                  if (editPage) {
+                    return (
+                      <div className="space-y-4">
+                        <button onClick={() => setEditingPage(null)} className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground/50 hover:text-foreground transition-colors">
+                          <ArrowLeft className="w-3.5 h-3.5" /> Voltar às páginas
+                        </button>
+                        <input
+                          value={editPage.title}
+                          onChange={e => updatePage(editPage.id, { title: e.target.value })}
+                          className="text-lg font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/20"
+                          placeholder="Título da página..."
+                        />
+                        <textarea
+                          value={editPage.content}
+                          onChange={e => updatePage(editPage.id, { content: e.target.value })}
+                          placeholder="Escreva o conteúdo aqui..."
+                          rows={12}
+                          className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
+                        />
+                      </div>
+                    );
+                  }
+
+                  // Pages list view
+                  return (
+                    <div className="space-y-4">
+                      {/* General content area */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-mono text-muted-foreground/30 uppercase tracking-wider">Notas gerais</span>
+                        <textarea
+                          value={topic.content}
+                          onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
+                          placeholder="Resumos rápidos, fórmulas, conceitos..."
+                          rows={4}
+                          className="w-full bg-muted/5 border border-border/10 rounded-xl px-4 py-3 text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
+                        />
+                      </div>
+
+                      <div className="h-px bg-border/15" />
+
+                      {/* Folder navigation */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => setActiveContentFolder(null)}
+                          className={cn("flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all",
+                            activeContentFolder === null
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border/20 text-muted-foreground/40 hover:text-muted-foreground/70"
+                          )}
+                        >
+                          <FileText className="w-3 h-3" /> Raiz
+                        </button>
+
+                        {contentFolders.map(f => (
+                          <div key={f.id} className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => setActiveContentFolder(f.id)}
+                              className={cn("flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-l-full border transition-all",
+                                activeContentFolder === f.id
+                                  ? "border-primary/40 bg-primary/10 text-primary"
+                                  : "border-border/20 text-muted-foreground/40 hover:text-muted-foreground/70"
+                              )}
+                            >
+                              <FolderOpen className="w-3 h-3" /> {f.name}
+                            </button>
+                            <button
+                              onClick={() => deleteContentFolder(f.id)}
+                              className="text-[10px] px-1.5 py-1 rounded-r-full border border-l-0 border-border/20 text-muted-foreground/20 hover:text-destructive hover:border-destructive/30 transition-all"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {creatingContentFolder ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              value={newContentFolder}
+                              onChange={e => setNewContentFolder(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") addContentFolder(); if (e.key === "Escape") setCreatingContentFolder(false); }}
+                              autoFocus
+                              placeholder="Nome..."
+                              className="text-[10px] font-mono bg-transparent border border-primary/30 rounded px-2 py-0.5 w-24 focus:outline-none text-foreground"
+                            />
+                            <button onClick={addContentFolder} className="text-primary/60 hover:text-primary"><Check className="w-3 h-3" /></button>
+                            <button onClick={() => setCreatingContentFolder(false)} className="text-muted-foreground/30 hover:text-foreground"><X className="w-3 h-3" /></button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setCreatingContentFolder(true)}
+                            className="flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-full border border-dashed border-border/30 text-muted-foreground/30 hover:text-primary/60 hover:border-primary/30 transition-all"
+                          >
+                            <FolderPlus className="w-3 h-3" /> Nova pasta
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Pages grid */}
+                      <div className="space-y-1.5">
+                        {currentPages.map(p => (
+                          <motion.div
+                            key={p.id}
+                            layout
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="group flex items-center gap-3 bg-muted/5 border border-border/10 rounded-xl px-4 py-3 hover:bg-muted/10 cursor-pointer transition-all"
+                            onClick={() => setEditingPage(p.id)}
+                          >
+                            <FileText className="w-4 h-4 text-muted-foreground/30 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-mono text-foreground/90 block truncate">{p.title}</span>
+                              {p.content && (
+                                <span className="text-[10px] font-mono text-muted-foreground/30 block truncate">{p.content.slice(0, 60)}...</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={e => { e.stopPropagation(); deletePage(p.id); }}
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground/25 hover:text-destructive transition-all shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      {/* Add page */}
+                      <div className="flex gap-2">
+                        <input
+                          value={newPageTitle}
+                          onChange={e => setNewPageTitle(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && addPage()}
+                          placeholder={`+ Nova página${activeContentFolder ? " nesta pasta" : ""}...`}
+                          className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors"
+                        />
+                      </div>
+
+                      {currentPages.length === 0 && (
+                        <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-4">
+                          {activeContentFolder ? "Nenhuma página nesta pasta." : "Crie páginas para organizar seu conteúdo."}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Tasks tab */}
                 {activeTab === "tasks" && (
