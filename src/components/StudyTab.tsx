@@ -424,9 +424,7 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
   const [title, setTitle] = useState(topic.text);
   const [newTask, setNewTask] = useState("");
   const [newNote, setNewNote] = useState("");
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-
-  const toggleSection = (key: string) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
+  const [activeTab, setActiveTab] = useState<"content" | "tasks" | "notes">("content");
 
   const saveTitle = () => {
     if (title.trim() && title !== topic.text) {
@@ -465,6 +463,12 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
   const tasksDone = topic.tasks.filter(t => t.done).length;
   const tasksProgress = topic.tasks.length > 0 ? Math.round((tasksDone / topic.tasks.length) * 100) : 0;
 
+  const tabs = [
+    { key: "content" as const, label: "Conteúdo", icon: FileText, count: topic.content.length > 0 ? 1 : 0 },
+    { key: "tasks" as const, label: "Subtarefas", icon: ListChecks, count: topic.tasks.length },
+    { key: "notes" as const, label: "Notas", icon: Layers, count: topic.notes.length },
+  ];
+
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
       {/* Backdrop */}
@@ -474,7 +478,7 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
         onClick={onClose}
       />
 
-      {/* Card — large, leaves space for cat in bottom-right */}
+      {/* Card */}
       <div
         className="relative bg-card border border-border/40 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] flex flex-col animate-enter"
         style={{ animationDuration: "300ms" }}
@@ -502,120 +506,136 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
-          <div className="max-w-2xl mx-auto px-6 md:px-10 py-8 space-y-8">
-            {/* Editable title */}
-            <div className="space-y-2">
-              <input
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                onBlur={saveTitle}
-                className="text-2xl md:text-3xl font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/20 leading-tight"
-                placeholder="Título do tópico..."
-              />
-              {topic.tasks.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-muted/20 rounded-full">
-                    <div className="h-full bg-primary/50 rounded-full transition-all" style={{ width: `${tasksProgress}%` }} />
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
-                    {tasksDone}/{topic.tasks.length} subtarefas
+        {/* Title + progress */}
+        <div className="px-6 md:px-10 pt-6 pb-2 space-y-2 shrink-0">
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onBlur={saveTitle}
+            className="text-2xl md:text-3xl font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/20 leading-tight"
+            placeholder="Título do tópico..."
+          />
+          {topic.tasks.length > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-1.5 bg-muted/20 rounded-full">
+                <div className="h-full bg-primary/50 rounded-full transition-all" style={{ width: `${tasksProgress}%` }} />
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                {tasksDone}/{topic.tasks.length} subtarefas
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs navigation */}
+        <div className="px-6 md:px-10 shrink-0">
+          <div className="flex gap-1 border-b border-border/20 pb-px">
+            {tabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 text-[11px] font-mono uppercase tracking-wider rounded-t-lg transition-all border-b-2",
+                  activeTab === tab.key
+                    ? "border-primary text-primary bg-primary/5"
+                    : "border-transparent text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/10"
+                )}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full",
+                    activeTab === tab.key ? "bg-primary/15 text-primary" : "bg-muted/20 text-muted-foreground/30"
+                  )}>
+                    {tab.count}
                   </span>
-                </div>
-              )}
-            </div>
-
-            {/* Divider */}
-            <div className="h-px bg-border/20" />
-
-            {/* Content area — main writing space */}
-            <div className="space-y-2">
-              <button onClick={() => toggleSection("content")} className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider hover:text-foreground/70 transition-colors">
-                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", collapsedSections.content && "-rotate-90")} />
-                <FileText className="w-3.5 h-3.5" /> conteúdo
+                )}
               </button>
-              {!collapsedSections.content && (
-                <textarea
-                  value={topic.content}
-                  onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
-                  placeholder="Escreva livremente aqui... Resumos, fórmulas, conceitos, ideias.&#10;&#10;Use como uma página do Notion para organizar todo o conteúdo deste tópico."
-                  rows={8}
-                  className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
-                />
-              )}
-            </div>
+            ))}
+          </div>
+        </div>
 
-            {/* Subtasks section */}
-            <div className="space-y-3">
-              <button onClick={() => toggleSection("tasks")} className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider hover:text-foreground/70 transition-colors">
-                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", collapsedSections.tasks && "-rotate-90")} />
-                <ListChecks className="w-3.5 h-3.5" /> subtarefas
-                <span className="text-muted-foreground/30">({topic.tasks.length})</span>
-              </button>
+        {/* Tab content — scrollable */}
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
+          <div className="max-w-2xl mx-auto px-6 md:px-10 py-6">
 
-              {!collapsedSections.tasks && (
-                <div className="space-y-1 pl-1">
-                  {topic.tasks.map(tk => (
-                    <div key={tk.id} className="flex items-start gap-3 group py-1.5 px-2 rounded-lg hover:bg-muted/10 transition-all">
-                      <button onClick={() => toggleTask(tk.id)}
-                        className={cn("w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
-                          tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
-                        )}>
-                        {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
-                      </button>
-                      <span className={cn("text-sm font-mono flex-1 leading-relaxed", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
-                        {tk.text}
-                      </span>
-                      <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all shrink-0 mt-0.5">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+            {/* Content tab */}
+            {activeTab === "content" && (
+              <textarea
+                value={topic.content}
+                onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
+                placeholder="Escreva livremente aqui... Resumos, fórmulas, conceitos, ideias.&#10;&#10;Use como uma página do Notion para organizar todo o conteúdo deste tópico."
+                rows={14}
+                className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
+              />
+            )}
 
-                  <div className="flex gap-2 pt-1">
-                    <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
-                      placeholder="+ Adicionar subtarefa..."
-                      className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
+            {/* Tasks tab */}
+            {activeTab === "tasks" && (
+              <div className="space-y-1">
+                {topic.tasks.map(tk => (
+                  <div key={tk.id} className="flex items-start gap-3 group py-1.5 px-2 rounded-lg hover:bg-muted/10 transition-all">
+                    <button onClick={() => toggleTask(tk.id)}
+                      className={cn("w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
+                        tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
+                      )}>
+                      {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+                    </button>
+                    <span className={cn("text-sm font-mono flex-1 leading-relaxed", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
+                      {tk.text}
+                    </span>
+                    <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all shrink-0 mt-0.5">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+                ))}
+
+                <div className="flex gap-2 pt-2">
+                  <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
+                    placeholder="+ Adicionar subtarefa..."
+                    className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
                 </div>
-              )}
-            </div>
 
-            {/* Notes section */}
-            <div className="space-y-3">
-              <button onClick={() => toggleSection("notes")} className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider hover:text-foreground/70 transition-colors">
-                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", collapsedSections.notes && "-rotate-90")} />
-                📌 notas
-                <span className="text-muted-foreground/30">({topic.notes.length})</span>
-              </button>
+                {topic.tasks.length === 0 && (
+                  <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-6">
+                    Nenhuma subtarefa ainda. Adicione acima.
+                  </p>
+                )}
+              </div>
+            )}
 
-              {!collapsedSections.notes && (
-                <div className="space-y-2 pl-1">
-                  {topic.notes.map(n => (
-                    <div key={n.id} className="group relative bg-muted/10 border border-border/15 rounded-xl px-4 py-3">
-                      <textarea
-                        value={n.text}
-                        onChange={e => updateNote(n.id, e.target.value)}
-                        rows={2}
-                        className="w-full bg-transparent text-sm font-mono text-foreground/80 focus:outline-none resize-none leading-relaxed placeholder:text-muted-foreground/20"
-                      />
-                      <button onClick={() => deleteNote(n.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all">
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-
-                  <div className="flex gap-2">
-                    <input value={newNote} onChange={e => setNewNote(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && addNote()}
-                      placeholder="+ Adicionar nota..."
-                      className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
+            {/* Notes tab */}
+            {activeTab === "notes" && (
+              <div className="space-y-2">
+                {topic.notes.map(n => (
+                  <div key={n.id} className="group relative bg-muted/10 border border-border/15 rounded-xl px-4 py-3">
+                    <textarea
+                      value={n.text}
+                      onChange={e => updateNote(n.id, e.target.value)}
+                      rows={2}
+                      className="w-full bg-transparent text-sm font-mono text-foreground/80 focus:outline-none resize-none leading-relaxed placeholder:text-muted-foreground/20"
+                    />
+                    <button onClick={() => deleteNote(n.id)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
+                ))}
+
+                <div className="flex gap-2">
+                  <input value={newNote} onChange={e => setNewNote(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && addNote()}
+                    placeholder="+ Adicionar nota..."
+                    className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
                 </div>
-              )}
-            </div>
+
+                {topic.notes.length === 0 && (
+                  <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-6">
+                    Nenhuma nota ainda. Adicione acima.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
