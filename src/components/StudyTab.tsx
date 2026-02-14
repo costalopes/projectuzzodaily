@@ -466,7 +466,7 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
   const tasksProgress = topic.tasks.length > 0 ? Math.round((tasksDone / topic.tasks.length) * 100) : 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-8 pb-8 px-4 md:px-8">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-fade-in"
