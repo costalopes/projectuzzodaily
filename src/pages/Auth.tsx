@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { LogIn, UserPlus, Hash, User, Lock, Terminal, ChevronRight } from "lucide-react";
-import { PixelIndieCharacter } from "@/components/PixelIndieCharacter";
+import pixelCharacter from "@/assets/pixel-blue-hair.png";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -95,7 +95,11 @@ const Auth = () => {
       <div className="w-full max-w-5xl mx-auto px-4 flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
         {/* Left side — character + branding */}
         <div className="flex-1 flex flex-col items-center lg:items-end text-center lg:text-right">
-          <PixelIndieCharacter onLogin={loginSuccess} />
+          <img
+            src={pixelCharacter}
+            alt="Indie character"
+            className="w-48 h-48 lg:w-64 lg:h-64 image-rendering-pixelated drop-shadow-[0_0_30px_hsl(var(--primary)/0.3)] animate-float rounded-2xl"
+          />
           <h1 className="text-3xl lg:text-4xl font-bold text-foreground font-['Space_Grotesk'] mt-4">
             Layla<span className="text-primary">.dev</span>
           </h1>
