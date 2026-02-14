@@ -8,9 +8,13 @@ interface PixelIndieCharacterProps {
   className?: string;
 }
 
-// pixel helper — each "pixel" is 1 unit in a 64×64 viewBox
-const P = ({ x, y, w = 1, h = 1, fill, opacity }: { x: number; y: number; w?: number; h?: number; fill: string; opacity?: number }) => (
-  <rect x={x} y={y} width={w} height={h} fill={fill} opacity={opacity} />
+// Pixel row helper: draws a horizontal run of pixels
+const Row = ({ y, pixels }: { y: number; pixels: [number, number, string, number?][] }) => (
+  <>
+    {pixels.map(([x, w, fill, op], i) => (
+      <rect key={i} x={x} y={y} width={w} height={1} fill={fill} opacity={op ?? 1} />
+    ))}
+  </>
 );
 
 export const PixelIndieCharacter = ({ onLogin, className }: PixelIndieCharacterProps) => {
@@ -19,181 +23,126 @@ export const PixelIndieCharacter = ({ onLogin, className }: PixelIndieCharacterP
   const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
   const [message, setMessage] = useState("");
   const [hearts, setHearts] = useState<number[]>([]);
-  const [pets, setPets] = useState(0);
-  const [breathPhase, setBreathPhase] = useState(0);
   const charRef = useRef<HTMLDivElement>(null);
   const lastClickTime = useRef<number>(0);
 
   // ── Palette ──
-  const C = {
-    // Hair — royal blue gradient
-    hairDark: "#1a2f80",
-    hair: "#2847b8",
-    hairMid: "#3b5ee0",
-    hairLight: "#5a7bff",
-    hairShine: "#8eaaff",
-    hairEdge: "#152470",
-    // Skin
-    skin: "#f5d4b0",
-    skinShadow: "#e8b890",
-    skinDark: "#d4a078",
-    blush: "#f09890",
-    // Eyes
-    eyeWhite: "#ffffff",
-    iris: "#2050c0",
-    irisDark: "#183898",
-    pupil: "#0a1030",
-    eyeShine: "rgba(255,255,255,0.85)",
-    eyeLash: "#182060",
-    // Mouth
-    mouth: "#c85860",
-    mouthDark: "#a04048",
-    teeth: "#fff8f0",
-    // Clothes — indie flannel
-    flannel1: "#b83830",    // red base
-    flannel2: "#982828",    // red dark
-    flannel3: "#d04838",    // red light
-    flannelLine: "#282828", // grid lines
-    // Undershirt
-    tee: "#2a2a2a",
-    teeLight: "#383838",
-    // Jeans
-    denim: "#3a4868",
-    denimDark: "#2c3850",
-    denimLight: "#485878",
-    denimStitch: "#506888",
-    // Accessories
-    belt: "#4a3828",
-    buckle: "#c8a858",
-    buckleShine: "#e8d090",
-    // Boots
-    boot: "#5a4030",
-    bootDark: "#483020",
-    bootSole: "#302820",
-    bootLace: "#887060",
-    // Necklace / pendant
-    chain: "#a09080",
-    pendant: "#c8a858",
-  } as const;
+  const h1 = "#162878"; // hair darkest
+  const h2 = "#1e3898"; // hair dark
+  const h3 = "#2848b8"; // hair mid
+  const h4 = "#3860d8"; // hair light
+  const h5 = "#5078f0"; // hair lighter
+  const h6 = "#6890ff"; // hair highlight
+  const h7 = "#88aaff"; // hair shine
+  const sk = "#f0cfb0"; // skin base
+  const sk2 = "#e4ba98"; // skin shadow
+  const sk3 = "#d8a880"; // skin darker
+  const bl = "#f09888"; // blush
+  const ew = "#ffffff"; // eye white
+  const ir = "#2050c8"; // iris
+  const ir2 = "#1840a0"; // iris dark
+  const pp = "#101830"; // pupil
+  const es = "rgba(255,255,255,0.9)"; // eye shine
+  const el = "#182060"; // eyelash
+  const mo = "#c05058"; // mouth
+  const mo2 = "#a04048"; // mouth dark
+  const fl1 = "#c03828"; // flannel red
+  const fl2 = "#a02818"; // flannel dark
+  const fl3 = "#d84838"; // flannel light
+  const flL = "#1a1a1a"; // flannel lines
+  const tee = "#1a1a1a"; // black tee
+  const tee2 = "#282828"; // tee lighter
+  const dn = "#3a4a6a"; // denim
+  const dn2 = "#2c3a58"; // denim dark
+  const dn3 = "#4a5a78"; // denim light
+  const bt = "#483020"; // belt
+  const bk = "#c8a050"; // buckle
+  const bo1 = "#3a2818"; // boot dark
+  const bo2 = "#4a3828"; // boot
+  const bo3 = "#2a2018"; // boot sole
 
   const messages: Record<string, string[]> = {
-    idle: ["...", "*mexe no cabelo*", "hmm", "*olha pro lado*", "yo", "oi ✌️", "*ajusta flanela*", "eae"],
-    happy: ["hehe!", "valeu! ♡", "massa!", "top!", "*sorri*", "nice!", "uwu"],
-    waving: ["oi! 👋", "bem-vindo!", "eae!", "bora codar!", "*acena*"],
-    typing: ["digitando...", "hmm...", "*tec tec*", "quase lá..."],
-    sleeping: ["zzz...", "*boceja*", "5 min...", "sono...", "*ronca*"],
-    excited: ["LETS GO!! 🔥", "boa!!", "AEEEE!", "WOOO!", "logou! 🎉", "SIIIM!"],
-    thinking: ["🤔 hmm", "pensando...", "deixa ver...", "será?...", "*coça a cabeça*"],
-    listening: ["♪ vibe", "~chilling~", "boa playlist!", "♫♪", "*balança a cabeça*"],
-    shy: ["ah...", "*fica vermelho*", "para heh...", "*esconde rosto*", "👉👈"],
+    idle: ["...", "*mexe no cabelo*", "hmm", "*olha pro lado*", "yo ✌️", "oi!", "eae"],
+    happy: ["hehe!", "valeu! 💙", "massa!", "*sorri*", "uwu"],
+    waving: ["oi! 👋", "bem-vindo!", "bora codar!"],
+    typing: ["digitando...", "*tec tec*", "quase lá..."],
+    sleeping: ["zzz...", "*boceja*", "5 min..."],
+    excited: ["LETS GO!! 🔥", "AEEEE!", "logou! 🎉"],
+    thinking: ["🤔 hmm", "pensando...", "será?..."],
+    listening: ["♪ vibe", "boa playlist!", "♫"],
+    shy: ["ah...", "*fica vermelho*", "👉👈"],
   };
 
-  const showMsg = useCallback((msg: string, duration = 3000) => {
+  const showMsg = useCallback((msg: string, dur = 3000) => {
     setMessage(msg);
-    setTimeout(() => setMessage(""), duration);
+    setTimeout(() => setMessage(""), dur);
   }, []);
 
-  const pickMsg = useCallback((category: string) => {
-    const msgs = messages[category] || messages.idle;
-    return msgs[Math.floor(Math.random() * msgs.length)];
+  const pickMsg = useCallback((cat: string) => {
+    const m = messages[cat] || messages.idle;
+    return m[Math.floor(Math.random() * m.length)];
   }, []);
 
-  // ── Eye tracking ──
+  // Eye tracking
   useEffect(() => {
-    const handleMouse = (e: MouseEvent) => {
+    const handler = (e: MouseEvent) => {
       if (!charRef.current) return;
-      const rect = charRef.current.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height * 0.35;
-      const dx = e.clientX - cx;
-      const dy = e.clientY - cy;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const max = 1.2;
+      const r = charRef.current.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2);
+      const dy = e.clientY - (r.top + r.height * 0.3);
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
       setEyeOffset({
-        x: Math.round(Math.max(-max, Math.min(max, (dx / dist) * max)) * 10) / 10,
-        y: Math.round(Math.max(-0.8, Math.min(0.8, (dy / dist) * max * 0.5)) * 10) / 10,
+        x: Math.round(Math.max(-1, Math.min(1, (dx / d) * 1.2)) * 10) / 10,
+        y: Math.round(Math.max(-0.6, Math.min(0.6, (dy / d) * 0.8)) * 10) / 10,
       });
     };
-    window.addEventListener("mousemove", handleMouse);
-    return () => window.removeEventListener("mousemove", handleMouse);
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
   }, []);
 
-  // ── Breathing ──
+  // Blink
   useEffect(() => {
     if (mood === "sleeping") return;
-    const interval = setInterval(() => setBreathPhase(p => (p + 1) % 60), 80);
-    return () => clearInterval(interval);
+    const iv = setInterval(() => { setBlink(true); setTimeout(() => setBlink(false), 120); }, 2500 + Math.random() * 2500);
+    return () => clearInterval(iv);
   }, [mood]);
 
-  // ── Blink ──
-  useEffect(() => {
-    if (mood === "sleeping") return;
-    const interval = setInterval(() => {
-      setBlink(true);
-      setTimeout(() => setBlink(false), 130);
-    }, 2800 + Math.random() * 2200);
-    return () => clearInterval(interval);
-  }, [mood]);
-
-  // ── Idle behavior ──
+  // Idle behavior
   useEffect(() => {
     if (mood !== "idle") return;
-    const interval = setInterval(() => {
-      const rand = Math.random();
-      if (rand < 0.12) {
-        setMood("waving"); showMsg(pickMsg("waving"));
-        setTimeout(() => setMood("idle"), 3000);
-      } else if (rand < 0.22) {
-        setMood("thinking"); showMsg(pickMsg("thinking"));
-        setTimeout(() => setMood("idle"), 3500);
-      } else if (rand < 0.30) {
-        setMood("listening"); showMsg(pickMsg("listening"));
-        setTimeout(() => setMood("idle"), 4000);
-      } else if (rand < 0.40) {
-        showMsg(pickMsg("idle"), 2500);
-      }
+    const iv = setInterval(() => {
+      const r = Math.random();
+      if (r < 0.12) { setMood("waving"); showMsg(pickMsg("waving")); setTimeout(() => setMood("idle"), 3000); }
+      else if (r < 0.22) { setMood("thinking"); showMsg(pickMsg("thinking")); setTimeout(() => setMood("idle"), 3500); }
+      else if (r < 0.30) { setMood("listening"); showMsg(pickMsg("listening")); setTimeout(() => setMood("idle"), 4000); }
+      else if (r < 0.38) { showMsg(pickMsg("idle"), 2500); }
     }, 5000 + Math.random() * 4000);
-    return () => clearInterval(interval);
+    return () => clearInterval(iv);
   }, [mood, pickMsg, showMsg]);
 
-  // ── Sleep after long idle ──
+  // Sleep
   useEffect(() => {
-    if (mood === "idle") {
-      const t = setTimeout(() => { setMood("sleeping"); showMsg(pickMsg("sleeping")); }, 35000);
-      return () => clearTimeout(t);
-    }
+    if (mood === "idle") { const t = setTimeout(() => { setMood("sleeping"); showMsg(pickMsg("sleeping")); }, 35000); return () => clearTimeout(t); }
   }, [mood, pickMsg, showMsg]);
-
-  // ── Wake up ──
   useEffect(() => {
     if (mood !== "sleeping") return;
     const t = setTimeout(() => { setMood("idle"); showMsg("*acorda* hm?"); }, 10000);
     return () => clearTimeout(t);
   }, [mood, showMsg]);
 
-  // ── React to login ──
+  // Login reaction
   useEffect(() => {
-    if (onLogin) {
-      setMood("excited"); showMsg(pickMsg("excited"));
-      setTimeout(() => setMood("idle"), 4000);
-    }
+    if (onLogin) { setMood("excited"); showMsg(pickMsg("excited")); setTimeout(() => setMood("idle"), 4000); }
   }, [onLogin, pickMsg, showMsg]);
 
-  // ── Click ──
+  // Click
   const handleClick = useCallback(() => {
     const now = Date.now();
-    const isDouble = now - lastClickTime.current < 350;
+    const dbl = now - lastClickTime.current < 350;
     lastClickTime.current = now;
-
-    if (isDouble) {
-      setMood("shy"); showMsg(pickMsg("shy"));
-      setTimeout(() => setMood("idle"), 3000);
-      return;
-    }
-
+    if (dbl) { setMood("shy"); showMsg(pickMsg("shy")); setTimeout(() => setMood("idle"), 3000); return; }
     setTimeout(() => {
       if (Date.now() - lastClickTime.current < 350) return;
-      setPets(p => p + 1);
       setMood("happy"); showMsg(pickMsg("happy"));
       const hid = Date.now();
       setHearts(h => [...h, hid]);
@@ -207,10 +156,8 @@ export const PixelIndieCharacter = ({ onLogin, className }: PixelIndieCharacterP
   const isWaving = mood === "waving";
   const isSleeping = mood === "sleeping";
   const isThinking = mood === "thinking";
-  const breathY = Math.sin(breathPhase * 0.1) * 0.3;
-
-  // Waving arm offset for animation
-  const waveArmY = isWaving ? Math.sin(Date.now() * 0.008) * 2 : 0;
+  const ox = eyeOffset.x;
+  const oy = eyeOffset.y;
 
   return (
     <div ref={charRef} className={cn("relative select-none", className)}>
@@ -222,40 +169,30 @@ export const PixelIndieCharacter = ({ onLogin, className }: PixelIndieCharacterP
         </div>
       )}
 
-      {/* Hearts */}
       {hearts.map((id, i) => (
         <span key={id} className="absolute text-sm pointer-events-none z-20"
-          style={{
-            left: `${40 + (i % 3) * 20}px`, top: "-10px",
-            animation: "float-up 2s ease-out forwards",
-          }}>
+          style={{ left: `${50 + (i % 3) * 18}px`, top: "-10px", animation: "indie-float 2s ease-out forwards" }}>
           {["💙", "✨", "💙"][i % 3]}
         </span>
       ))}
 
-      {/* Sleeping Zs */}
       {isSleeping && (
-        <div className="absolute -top-10 right-0 flex gap-1.5">
+        <div className="absolute -top-10 right-2 flex gap-1.5">
           {[0, 0.4, 0.8].map((d, i) => (
             <span key={i} className="animate-float font-mono text-primary/40 font-bold"
               style={{ animationDelay: `${d}s`, fontSize: `${10 + i * 4}px` }}>z</span>
           ))}
         </div>
       )}
-
-      {/* Thinking dots */}
       {isThinking && (
-        <div className="absolute -top-8 right-0 flex gap-1.5">
+        <div className="absolute -top-8 right-2 flex gap-1.5">
           {[0, 0.2, 0.4].map((d, i) => (
-            <span key={i} className="animate-float w-2 h-2 rounded-full bg-primary/30"
-              style={{ animationDelay: `${d}s` }} />
+            <span key={i} className="animate-float w-2 h-2 rounded-full bg-primary/30" style={{ animationDelay: `${d}s` }} />
           ))}
         </div>
       )}
-
-      {/* Music notes */}
       {mood === "listening" && (
-        <div className="absolute -top-8 left-6">
+        <div className="absolute -top-8 left-8">
           <span className="animate-float text-primary/50 text-sm" style={{ animationDelay: "0s" }}>♪</span>
           <span className="animate-float text-accent/40 text-sm ml-4" style={{ animationDelay: "0.5s" }}>♫</span>
         </div>
@@ -263,309 +200,373 @@ export const PixelIndieCharacter = ({ onLogin, className }: PixelIndieCharacterP
 
       <div className={cn(
         "transition-transform duration-500",
+        !isSleeping && "animate-breathe",
         mood === "excited" && "animate-[bounce_0.5s_ease-in-out_infinite]",
         mood === "listening" && "animate-[bounce_1.2s_ease-in-out_infinite]",
       )}>
         <svg
-          width="180" height="220" viewBox="0 0 64 70"
-          className="image-rendering-pixelated cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95"
+          width="200" height="240" viewBox="0 0 48 58"
+          className="cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95"
+          style={{ imageRendering: "pixelated" }}
           onClick={handleClick}
           role="button"
           aria-label="Personagem indie interativo"
-          style={{ imageRendering: "pixelated" }}
         >
-          {/* Ground shadow */}
-          <ellipse cx="32" cy="68" rx="16" ry="1.5" fill="hsl(var(--foreground) / 0.06)" />
+          {/* Shadow */}
+          <ellipse cx="24" cy="57" rx="12" ry="1" fill="hsl(var(--foreground) / 0.06)" />
 
-          {/* ════════════ HAIR BACK LAYER ════════════ */}
-          {/* Long flowing hair behind body */}
-          <P x={13} y={6} w={38} h={3} fill={C.hairDark} />
-          <P x={12} y={9} w={40} h={2} fill={C.hairDark} />
-          {/* Right side cascade */}
-          <P x={44} y={11} w={9} h={6} fill={C.hairDark} />
-          <P x={45} y={17} w={8} h={8} fill={C.hairDark} />
-          <P x={46} y={25} w={7} h={7} fill={C.hair} />
-          <P x={47} y={32} w={6} h={6} fill={C.hairMid} />
-          <P x={48} y={38} w={4} h={4} fill={C.hairMid} opacity={0.8} />
-          <P x={49} y={42} w={3} h={3} fill={C.hairLight} opacity={0.5} />
-          {/* Left side cascade */}
-          <P x={11} y={11} w={5} h={6} fill={C.hairDark} />
-          <P x={9} y={13} w={4} h={10} fill={C.hair} />
-          <P x={8} y={17} w={3} h={8} fill={C.hairMid} />
-          <P x={9} y={25} w={3} h={7} fill={C.hair} />
-          <P x={10} y={32} w={2} h={5} fill={C.hairMid} opacity={0.7} />
+          {/* ═══════ HAIR BACK — twin tails ═══════ */}
+          {/* Right twin tail */}
+          <Row y={10} pixels={[[35,5,h1]]} />
+          <Row y={11} pixels={[[36,5,h1]]} />
+          <Row y={12} pixels={[[37,5,h2]]} />
+          <Row y={13} pixels={[[37,5,h2]]} />
+          <Row y={14} pixels={[[37,6,h2]]} />
+          <Row y={15} pixels={[[38,6,h3]]} />
+          <Row y={16} pixels={[[38,6,h3]]} />
+          <Row y={17} pixels={[[38,5,h3]]} />
+          <Row y={18} pixels={[[39,5,h4]]} />
+          <Row y={19} pixels={[[39,4,h4]]} />
+          <Row y={20} pixels={[[39,4,h4]]} />
+          <Row y={21} pixels={[[39,4,h5]]} />
+          <Row y={22} pixels={[[39,3,h5]]} />
+          <Row y={23} pixels={[[40,3,h5]]} />
+          <Row y={24} pixels={[[40,2,h5]]} />
+          <Row y={25} pixels={[[40,2,h6]]} />
+          <Row y={26} pixels={[[40,2,h6,0.7]]} />
 
-          {/* ════════════ HEAD ════════════ */}
-          {/* Main face block */}
-          <P x={17} y={12} w={24} h={22} fill={C.skin} />
-          <P x={19} y={10} w={20} h={2} fill={C.skin} />
-          <P x={16} y={14} w={1} h={18} fill={C.skinShadow} />
-          <P x={41} y={14} w={1} h={18} fill={C.skinShadow} />
-          {/* Jaw */}
-          <P x={18} y={34} w={22} h={1} fill={C.skinShadow} />
-          <P x={20} y={35} w={18} h={1} fill={C.skinDark} />
-          {/* Ear hints */}
-          <P x={15} y={20} w={2} h={4} fill={C.skinShadow} />
-          <P x={41} y={20} w={2} h={4} fill={C.skinShadow} />
+          {/* Left twin tail */}
+          <Row y={10} pixels={[[8,5,h1]]} />
+          <Row y={11} pixels={[[7,5,h1]]} />
+          <Row y={12} pixels={[[6,5,h2]]} />
+          <Row y={13} pixels={[[6,5,h2]]} />
+          <Row y={14} pixels={[[5,6,h2]]} />
+          <Row y={15} pixels={[[4,6,h3]]} />
+          <Row y={16} pixels={[[4,6,h3]]} />
+          <Row y={17} pixels={[[5,5,h3]]} />
+          <Row y={18} pixels={[[4,5,h4]]} />
+          <Row y={19} pixels={[[5,4,h4]]} />
+          <Row y={20} pixels={[[5,4,h4]]} />
+          <Row y={21} pixels={[[5,4,h5]]} />
+          <Row y={22} pixels={[[6,3,h5]]} />
+          <Row y={23} pixels={[[5,3,h5]]} />
+          <Row y={24} pixels={[[6,2,h5]]} />
+          <Row y={25} pixels={[[6,2,h6]]} />
+          <Row y={26} pixels={[[6,2,h6,0.7]]} />
 
-          {/* ════════════ BLUSH ════════════ */}
-          <P x={18} y={26} w={4} h={2} fill={C.blush} opacity={isHappy ? 0.6 : 0.15} />
-          <P x={36} y={26} w={4} h={2} fill={C.blush} opacity={isHappy ? 0.6 : 0.15} />
+          {/* Hair back behind head */}
+          <Row y={5} pixels={[[13,22,h1]]} />
+          <Row y={6} pixels={[[12,24,h1]]} />
+          <Row y={7} pixels={[[11,26,h1]]} />
+          <Row y={8} pixels={[[10,28,h1]]} />
+          <Row y={9} pixels={[[10,28,h2]]} />
 
-          {/* ════════════ HAIR FRONT LAYER ════════════ */}
-          {/* Top volume */}
-          <P x={17} y={3} w={26} h={3} fill={C.hair} />
-          <P x={19} y={1} w={22} h={2} fill={C.hairMid} />
-          <P x={22} y={0} w={16} h={1} fill={C.hairLight} />
-          {/* Main front hair */}
-          <P x={14} y={6} w={32} h={6} fill={C.hair} />
-          <P x={16} y={6} w={28} h={4} fill={C.hairMid} />
-          <P x={18} y={6} w={24} h={2} fill={C.hairLight} />
-          {/* Left bangs — sweeping */}
-          <P x={15} y={12} w={10} h={5} fill={C.hair} />
-          <P x={16} y={12} w={8} h={4} fill={C.hairMid} />
-          <P x={17} y={12} w={6} h={3} fill={C.hairLight} />
-          <P x={15} y={17} w={3} h={2} fill={C.hair} opacity={0.7} />
-          {/* Right bangs */}
-          <P x={35} y={12} w={7} h={4} fill={C.hair} />
-          <P x={36} y={12} w={5} h={3} fill={C.hairMid} />
-          <P x={37} y={12} w={3} h={2} fill={C.hairLight} />
-          {/* Center part line */}
-          <P x={27} y={10} w={4} h={2} fill={C.hairDark} />
-          {/* Shine highlights */}
-          <P x={21} y={3} w={4} h={1} fill={C.hairShine} opacity={0.6} />
-          <P x={32} y={4} w={3} h={1} fill={C.hairShine} opacity={0.5} />
-          <P x={18} y={7} w={2} h={1} fill={C.hairShine} opacity={0.4} />
-          <P x={36} y={7} w={3} h={1} fill={C.hairShine} opacity={0.3} />
-          {/* Ahoge / antenna strand */}
-          <P x={28} y={-1} w={2} h={2} fill={C.hairLight} />
-          <P x={29} y={-3} w={2} h={2} fill={C.hairMid} />
-          <P x={30} y={-4} w={1} h={1} fill={C.hair} />
+          {/* ═══════ HEAD — rounded shape ═══════ */}
+          {/* Top of head — curved */}
+          <Row y={7} pixels={[[16,16,sk]]} />
+          <Row y={8} pixels={[[14,20,sk]]} />
+          <Row y={9} pixels={[[13,22,sk]]} />
+          <Row y={10} pixels={[[12,24,sk]]} />
+          <Row y={11} pixels={[[12,24,sk]]} />
+          <Row y={12} pixels={[[12,24,sk]]} />
+          <Row y={13} pixels={[[12,24,sk]]} />
+          <Row y={14} pixels={[[12,24,sk]]} />
+          <Row y={15} pixels={[[12,24,sk]]} />
+          <Row y={16} pixels={[[12,24,sk]]} />
+          <Row y={17} pixels={[[12,24,sk]]} />
+          <Row y={18} pixels={[[13,22,sk]]} />
+          <Row y={19} pixels={[[14,20,sk]]} />
+          {/* Jaw curve */}
+          <Row y={20} pixels={[[15,18,sk2]]} />
+          <Row y={21} pixels={[[17,14,sk2]]} />
+          <Row y={22} pixels={[[19,10,sk3]]} />
 
-          {/* ════════════ EYES ════════════ */}
-          {/* Eyebrows */}
-          <P x={19} y={17} w={7} h={1} fill={C.hairEdge} opacity={0.6} />
-          <P x={33} y={17} w={7} h={1} fill={C.hairEdge} opacity={0.6} />
+          {/* Face shadow edges */}
+          <Row y={10} pixels={[[12,1,sk2],[35,1,sk2]]} />
+          <Row y={11} pixels={[[12,1,sk2],[35,1,sk2]]} />
+          <Row y={12} pixels={[[12,1,sk2],[35,1,sk2]]} />
+          <Row y={13} pixels={[[12,1,sk2],[35,1,sk2]]} />
 
+          {/* Blush */}
+          <rect x={13} y={16} width={4} height={2} fill={bl} opacity={isHappy ? 0.55 : 0.15} rx="0" />
+          <rect x={31} y={16} width={4} height={2} fill={bl} opacity={isHappy ? 0.55 : 0.15} rx="0" />
+
+          {/* ═══════ HAIR FRONT — bangs & top ═══════ */}
+          {/* Very top */}
+          <Row y={0} pixels={[[20,8,h4]]} />
+          <Row y={1} pixels={[[17,14,h4]]} />
+          <Row y={2} pixels={[[15,18,h3]]} />
+          <Row y={3} pixels={[[13,22,h3]]} />
+          <Row y={4} pixels={[[12,24,h3]]} />
+          <Row y={5} pixels={[[11,26,h3]]} />
+          <Row y={6} pixels={[[11,26,h4]]} />
+          {/* Top surface highlights */}
+          <Row y={2} pixels={[[18,4,h5,0.6],[25,3,h6,0.4]]} />
+          <Row y={3} pixels={[[15,3,h5,0.5],[28,2,h6,0.3]]} />
+          <Row y={4} pixels={[[14,2,h5,0.4]]} />
+          {/* Mid-hair volume */}
+          <Row y={5} pixels={[[16,3,h5,0.5],[30,2,h5,0.4]]} />
+          <Row y={6} pixels={[[17,2,h6,0.4],[32,2,h6,0.3]]} />
+          {/* Bangs — left side swooping */}
+          <Row y={7} pixels={[[11,8,h3],[14,5,h4]]} />
+          <Row y={8} pixels={[[10,7,h3],[13,4,h4]]} />
+          <Row y={9} pixels={[[10,6,h3],[12,4,h4],[13,2,h5,0.5]]} />
+          <Row y={10} pixels={[[10,5,h3],[12,3,h4]]} />
+          <Row y={11} pixels={[[10,4,h3],[12,2,h4,0.8]]} />
+          {/* Bangs — right side */}
+          <Row y={7} pixels={[[29,8,h3],[31,5,h4]]} />
+          <Row y={8} pixels={[[31,7,h3],[33,4,h4]]} />
+          <Row y={9} pixels={[[32,6,h3],[34,3,h4]]} />
+          <Row y={10} pixels={[[33,5,h3],[35,2,h4]]} />
+          <Row y={11} pixels={[[34,4,h3]]} />
+          {/* Center parting */}
+          <Row y={7} pixels={[[22,4,h2,0.6]]} />
+          {/* Ahoge */}
+          <rect x={23} y={-2} width={2} height={3} fill={h4} />
+          <rect x={24} y={-3} width={1} height={1} fill={h5} />
+
+          {/* Hair shine streaks */}
+          <Row y={4} pixels={[[19,2,h7,0.5],[26,3,h7,0.35]]} />
+          <Row y={6} pixels={[[13,2,h7,0.3],[34,2,h7,0.25]]} />
+
+          {/* ═══════ EYES ═══════ */}
           {!showEyes ? (
-            // Closed / blink — cute line
+            /* Closed eyes — cute lines */
             <>
-              <P x={20} y={22} w={6} h={1} fill={C.iris} />
-              <P x={19} y={21} w={1} h={1} fill={C.eyeLash} opacity={0.4} />
-              <P x={26} y={21} w={1} h={1} fill={C.eyeLash} opacity={0.4} />
-              <P x={33} y={22} w={6} h={1} fill={C.iris} />
-              <P x={32} y={21} w={1} h={1} fill={C.eyeLash} opacity={0.4} />
-              <P x={39} y={21} w={1} h={1} fill={C.eyeLash} opacity={0.4} />
+              <Row y={14} pixels={[[15,5,ir],[28,5,ir]]} />
+              <Row y={13} pixels={[[14,1,el,0.3],[20,1,el,0.3],[27,1,el,0.3],[33,1,el,0.3]]} />
             </>
           ) : isHappy ? (
-            // Happy ∪ eyes
+            /* Happy ∪∪ eyes */
             <>
-              {/* Left */}
-              <P x={20} y={20} w={6} h={1} fill={C.iris} />
-              <P x={19} y={21} w={1} h={2} fill={C.iris} />
-              <P x={26} y={21} w={1} h={2} fill={C.iris} />
-              <P x={20} y={23} w={6} h={1} fill={C.iris} opacity={0.3} />
-              {/* Right */}
-              <P x={33} y={20} w={6} h={1} fill={C.iris} />
-              <P x={32} y={21} w={1} h={2} fill={C.iris} />
-              <P x={39} y={21} w={1} h={2} fill={C.iris} />
-              <P x={33} y={23} w={6} h={1} fill={C.iris} opacity={0.3} />
+              <Row y={13} pixels={[[15,5,ir],[28,5,ir]]} />
+              <Row y={14} pixels={[[14,1,ir],[20,1,ir],[27,1,ir],[33,1,ir]]} />
+              <Row y={15} pixels={[[14,1,ir],[20,1,ir],[27,1,ir],[33,1,ir]]} />
             </>
           ) : (
-            // Normal eyes with mouse tracking
+            /* Normal detailed eyes with tracking */
             <>
               {/* Left eye */}
-              <P x={19 + eyeOffset.x} y={19 + eyeOffset.y} w={8} h={6} fill={C.eyeWhite} />
-              <P x={21 + eyeOffset.x} y={20 + eyeOffset.y} w={5} h={4} fill={C.iris} />
-              <P x={22 + eyeOffset.x} y={20 + eyeOffset.y} w={3} h={3} fill={C.irisDark} />
-              <P x={23 + eyeOffset.x} y={21 + eyeOffset.y} w={2} h={2} fill={C.pupil} />
+              <rect x={14+ox} y={12+oy} width={7} height={5} fill={ew} />
+              <rect x={15+ox} y={11+oy} width={5} height={1} fill={ew} />
+              <rect x={15+ox} y={17+oy} width={5} height={1} fill={ew} opacity={0.5} />
+              {/* Iris */}
+              <rect x={16+ox} y={12+oy} width={4} height={5} fill={ir} />
+              <rect x={17+ox} y={13+oy} width={3} height={3} fill={ir2} />
+              {/* Pupil */}
+              <rect x={17+ox} y={13+oy} width={2} height={2} fill={pp} />
               {/* Shine */}
-              <P x={24 + eyeOffset.x} y={20 + eyeOffset.y} w={1} h={1} fill={C.eyeShine} />
-              <P x={21 + eyeOffset.x} y={23 + eyeOffset.y} w={1} h={1} fill={C.eyeShine} opacity={0.4} />
+              <rect x={18+ox} y={12+oy} width={2} height={1} fill={es} />
+              <rect x={16+ox} y={15+oy} width={1} height={1} fill={es} opacity={0.4} />
               {/* Lashes */}
-              <P x={19} y={19} w={1} h={1} fill={C.eyeLash} opacity={0.5} />
-              <P x={26} y={19} w={1} h={1} fill={C.eyeLash} opacity={0.5} />
+              <rect x={14} y={11} width={1} height={1} fill={el} opacity={0.6} />
+              <rect x={20} y={11} width={1} height={1} fill={el} opacity={0.6} />
 
               {/* Right eye */}
-              <P x={32 + eyeOffset.x} y={19 + eyeOffset.y} w={8} h={6} fill={C.eyeWhite} />
-              <P x={34 + eyeOffset.x} y={20 + eyeOffset.y} w={5} h={4} fill={C.iris} />
-              <P x={35 + eyeOffset.x} y={20 + eyeOffset.y} w={3} h={3} fill={C.irisDark} />
-              <P x={36 + eyeOffset.x} y={21 + eyeOffset.y} w={2} h={2} fill={C.pupil} />
+              <rect x={27+ox} y={12+oy} width={7} height={5} fill={ew} />
+              <rect x={28+ox} y={11+oy} width={5} height={1} fill={ew} />
+              <rect x={28+ox} y={17+oy} width={5} height={1} fill={ew} opacity={0.5} />
+              {/* Iris */}
+              <rect x={29+ox} y={12+oy} width={4} height={5} fill={ir} />
+              <rect x={30+ox} y={13+oy} width={3} height={3} fill={ir2} />
+              {/* Pupil */}
+              <rect x={30+ox} y={13+oy} width={2} height={2} fill={pp} />
               {/* Shine */}
-              <P x={37 + eyeOffset.x} y={20 + eyeOffset.y} w={1} h={1} fill={C.eyeShine} />
-              <P x={34 + eyeOffset.x} y={23 + eyeOffset.y} w={1} h={1} fill={C.eyeShine} opacity={0.4} />
+              <rect x={31+ox} y={12+oy} width={2} height={1} fill={es} />
+              <rect x={29+ox} y={15+oy} width={1} height={1} fill={es} opacity={0.4} />
               {/* Lashes */}
-              <P x={32} y={19} w={1} h={1} fill={C.eyeLash} opacity={0.5} />
-              <P x={39} y={19} w={1} h={1} fill={C.eyeLash} opacity={0.5} />
+              <rect x={27} y={11} width={1} height={1} fill={el} opacity={0.6} />
+              <rect x={33} y={11} width={1} height={1} fill={el} opacity={0.6} />
             </>
           )}
 
-          {/* ════════════ NOSE ════════════ */}
-          <P x={28} y={27} w={3} h={2} fill={C.skinShadow} />
-          <P x={29} y={28} w={1} h={1} fill={C.skinDark} opacity={0.4} />
+          {/* Eyebrows */}
+          <Row y={10} pixels={[[15,5,h1,0.5],[28,5,h1,0.5]]} />
 
-          {/* ════════════ MOUTH ════════════ */}
+          {/* ═══════ NOSE ═══════ */}
+          <rect x={22} y={18} width={2} height={1} fill={sk2} />
+          <rect x={23} y={19} width={1} height={1} fill={sk3} opacity={0.5} />
+
+          {/* ═══════ MOUTH ═══════ */}
           {isHappy ? (
             <>
-              <P x={26} y={30} w={1} h={1} fill={C.mouth} opacity={0.5} />
-              <P x={27} y={31} w={6} h={1} fill={C.mouth} />
-              <P x={28} y={32} w={4} h={1} fill={C.mouthDark} opacity={0.5} />
-              <P x={33} y={30} w={1} h={1} fill={C.mouth} opacity={0.5} />
-              {/* Teeth hint */}
-              <P x={28} y={31} w={4} h={1} fill={C.teeth} opacity={0.3} />
+              <Row y={20} pixels={[[21,6,mo]]} />
+              <Row y={21} pixels={[[22,4,mo2,0.5]]} />
             </>
           ) : isSleeping ? (
-            <>
-              <P x={28} y={31} w={4} h={1} fill={C.mouth} opacity={0.3} />
-              {/* Drool */}
-              <P x={32} y={32} w={1} h={2} fill={C.eyeWhite} opacity={0.3} />
-            </>
+            <Row y={20} pixels={[[22,4,mo,0.3]]} />
           ) : (
-            <P x={27} y={31} w={5} h={1} fill={C.mouth} opacity={0.6} />
+            <Row y={20} pixels={[[22,4,mo,0.6]]} />
           )}
 
-          {/* ════════════ NECK ════════════ */}
-          <P x={25} y={35} w={10} h={3} fill={C.skin} />
-          <P x={25} y={35} w={1} h={3} fill={C.skinShadow} opacity={0.3} />
+          {/* ═══════ NECK ═══════ */}
+          <Row y={22} pixels={[[20,8,sk]]} />
+          <Row y={23} pixels={[[21,6,sk]]} />
 
-          {/* ════════════ NECKLACE ════════════ */}
-          <P x={27} y={37} w={6} h={1} fill={C.chain} opacity={0.6} />
-          <P x={29} y={38} w={2} h={1} fill={C.pendant} />
-          <P x={29} y={38} w={1} h={1} fill={C.buckleShine} opacity={0.4} />
+          {/* ═══════ BODY ═══════ */}
+          {/* Black tee center */}
+          <Row y={24} pixels={[[19,10,tee]]} />
+          <Row y={25} pixels={[[19,10,tee]]} />
+          <Row y={26} pixels={[[19,10,tee]]} />
+          <Row y={27} pixels={[[19,10,tee]]} />
+          <Row y={28} pixels={[[19,10,tee]]} />
+          <Row y={29} pixels={[[19,10,tee]]} />
+          <Row y={30} pixels={[[19,10,tee]]} />
+          <Row y={31} pixels={[[19,10,tee]]} />
+          <Row y={32} pixels={[[19,10,tee]]} />
+          <Row y={33} pixels={[[19,10,tee]]} />
+          {/* Tee highlight */}
+          <Row y={25} pixels={[[21,2,tee2,0.4]]} />
+          {/* Small logo on tee */}
+          <rect x={22} y={27} width={3} height={2} fill={h4} opacity={0.3} />
 
-          {/* ════════════ BODY ════════════ */}
-          {/* Undershirt / tee visible at collar */}
-          <P x={26} y={38} w={8} h={4} fill={C.tee} />
-          <P x={27} y={38} w={6} h={2} fill={C.teeLight} />
+          {/* Flannel jacket — left side */}
+          <Row y={24} pixels={[[11,8,fl1]]} />
+          <Row y={25} pixels={[[11,8,fl1]]} />
+          <Row y={26} pixels={[[11,8,fl1]]} />
+          <Row y={27} pixels={[[11,8,fl2]]} />
+          <Row y={28} pixels={[[11,8,fl1]]} />
+          <Row y={29} pixels={[[11,8,fl1]]} />
+          <Row y={30} pixels={[[11,8,fl2]]} />
+          <Row y={31} pixels={[[11,8,fl1]]} />
+          <Row y={32} pixels={[[11,8,fl1]]} />
+          <Row y={33} pixels={[[11,8,fl1]]} />
+          {/* Flannel jacket — right side */}
+          <Row y={24} pixels={[[29,8,fl1]]} />
+          <Row y={25} pixels={[[29,8,fl1]]} />
+          <Row y={26} pixels={[[29,8,fl1]]} />
+          <Row y={27} pixels={[[29,8,fl2]]} />
+          <Row y={28} pixels={[[29,8,fl1]]} />
+          <Row y={29} pixels={[[29,8,fl1]]} />
+          <Row y={30} pixels={[[29,8,fl2]]} />
+          <Row y={31} pixels={[[29,8,fl1]]} />
+          <Row y={32} pixels={[[29,8,fl1]]} />
+          <Row y={33} pixels={[[29,8,fl1]]} />
+          {/* Flannel horizontal stripes */}
+          {[25,28,31].map(y => (
+            <Row key={`fls${y}`} y={y} pixels={[[12,2,fl3,0.4],[14,1,flL,0.15],[17,1,flL,0.15],[30,2,fl3,0.4],[33,1,flL,0.15],[35,1,flL,0.15]]} />
+          ))}
+          {/* Flannel vertical lines */}
+          {[14,17,32,35].map(x => (
+            <rect key={`flv${x}`} x={x} y={24} width={1} height={10} fill={flL} opacity={0.1} />
+          ))}
+          {/* Flannel collar / lapel */}
+          <Row y={24} pixels={[[18,1,fl3],[29,1,fl3]]} />
+          <Row y={25} pixels={[[18,1,fl3],[29,1,fl3]]} />
+          <Row y={26} pixels={[[18,1,fl3],[29,1,fl3]]} />
+          {/* Shoulder highlights */}
+          <Row y={24} pixels={[[12,2,fl3,0.5],[34,2,fl3,0.5]]} />
 
-          {/* Flannel shirt */}
-          <P x={15} y={38} w={11} h={16} fill={C.flannel1} />
-          <P x={34} y={38} w={11} h={16} fill={C.flannel1} />
-          <P x={17} y={37} w={8} h={1} fill={C.flannel1} />
-          <P x={35} y={37} w={8} h={1} fill={C.flannel1} />
-          {/* Flannel — horizontal stripes */}
-          <P x={15} y={41} w={11} h={1} fill={C.flannel2} />
-          <P x={34} y={41} w={11} h={1} fill={C.flannel2} />
-          <P x={15} y={45} w={11} h={1} fill={C.flannel2} />
-          <P x={34} y={45} w={11} h={1} fill={C.flannel2} />
-          <P x={15} y={49} w={11} h={1} fill={C.flannel2} />
-          <P x={34} y={49} w={11} h={1} fill={C.flannel2} />
-          {/* Flannel — vertical lines */}
-          <P x={19} y={38} w={1} h={16} fill={C.flannelLine} opacity={0.12} />
-          <P x={23} y={38} w={1} h={16} fill={C.flannelLine} opacity={0.12} />
-          <P x={38} y={38} w={1} h={16} fill={C.flannelLine} opacity={0.12} />
-          <P x={42} y={38} w={1} h={16} fill={C.flannelLine} opacity={0.12} />
-          {/* Light accents on shoulders */}
-          <P x={16} y={38} w={3} h={1} fill={C.flannel3} opacity={0.5} />
-          <P x={41} y={38} w={3} h={1} fill={C.flannel3} opacity={0.5} />
-          {/* Open front showing tee */}
-          <P x={26} y={42} w={8} h={12} fill={C.tee} />
-          <P x={25} y={38} w={1} h={16} fill={C.flannel3} />
-          <P x={34} y={38} w={1} h={16} fill={C.flannel3} />
-          {/* Tee graphic — tiny star/logo */}
-          <P x={29} y={44} w={2} h={2} fill={C.hairMid} opacity={0.4} />
-          <P x={28} y={45} w={1} h={1} fill={C.hairLight} opacity={0.2} />
-          <P x={31} y={45} w={1} h={1} fill={C.hairLight} opacity={0.2} />
-
-          {/* ════════════ ARMS ════════════ */}
+          {/* ═══════ ARMS ═══════ */}
           {isWaving ? (
             <>
-              {/* Left arm — down */}
-              <P x={9} y={40} w={6} h={12} fill={C.flannel1} />
-              <P x={9} y={41} w={6} h={1} fill={C.flannel2} />
-              <P x={9} y={45} w={6} h={1} fill={C.flannel2} />
-              <P x={9} y={52} w={6} h={2} fill={C.skin} />
-              <P x={10} y={53} w={4} h={1} fill={C.skinShadow} />
-              {/* Right arm — waving up */}
-              <P x={45} y={28} w={6} h={10} fill={C.flannel1} />
-              <P x={45} y={30} w={6} h={1} fill={C.flannel2} />
-              <P x={45} y={34} w={6} h={1} fill={C.flannel2} />
-              <P x={45} y={25} w={6} h={3} fill={C.skin} />
-              <P x={46} y={24} w={4} h={1} fill={C.skinShadow} />
+              {/* Left arm down */}
+              {[25,26,27,28,29,30,31,32].map(y => (
+                <Row key={`la${y}`} y={y} pixels={[[8,3,fl1]]} />
+              ))}
+              <Row y={33} pixels={[[8,3,sk]]} />
+              {/* Right arm up waving */}
+              {[18,19,20,21,22,23,24,25].map(y => (
+                <Row key={`ra${y}`} y={y} pixels={[[37,3,fl1]]} />
+              ))}
+              <Row y={17} pixels={[[37,3,sk]]} />
+              <Row y={16} pixels={[[38,2,sk2]]} />
             </>
           ) : (
             <>
               {/* Left arm */}
-              <P x={9} y={40} w={6} h={12} fill={C.flannel1} />
-              <P x={9} y={41} w={6} h={1} fill={C.flannel2} />
-              <P x={9} y={45} w={6} h={1} fill={C.flannel2} />
-              <P x={9} y={49} w={6} h={1} fill={C.flannel2} />
-              <P x={9} y={52} w={6} h={2} fill={C.skin} />
-              <P x={10} y={53} w={4} h={1} fill={C.skinShadow} />
+              {[25,26,27,28,29,30,31,32].map(y => (
+                <Row key={`la${y}`} y={y} pixels={[[8,3,fl1]]} />
+              ))}
+              <Row y={27} pixels={[[8,3,fl2]]} />
+              <Row y={30} pixels={[[8,3,fl2]]} />
+              <Row y={33} pixels={[[8,3,sk]]} />
+              <Row y={34} pixels={[[9,2,sk2]]} />
               {/* Right arm */}
-              <P x={45} y={40} w={6} h={12} fill={C.flannel1} />
-              <P x={45} y={41} w={6} h={1} fill={C.flannel2} />
-              <P x={45} y={45} w={6} h={1} fill={C.flannel2} />
-              <P x={45} y={49} w={6} h={1} fill={C.flannel2} />
-              <P x={45} y={52} w={6} h={2} fill={C.skin} />
-              <P x={46} y={53} w={4} h={1} fill={C.skinShadow} />
+              {[25,26,27,28,29,30,31,32].map(y => (
+                <Row key={`ra${y}`} y={y} pixels={[[37,3,fl1]]} />
+              ))}
+              <Row y={27} pixels={[[37,3,fl2]]} />
+              <Row y={30} pixels={[[37,3,fl2]]} />
+              <Row y={33} pixels={[[37,3,sk]]} />
+              <Row y={34} pixels={[[37,2,sk2]]} />
             </>
           )}
 
-          {/* ════════════ BELT ════════════ */}
-          <P x={15} y={54} w={30} h={2} fill={C.belt} />
-          <P x={28} y={54} w={4} h={2} fill={C.buckle} />
-          <P x={29} y={54} w={2} h={1} fill={C.buckleShine} opacity={0.5} />
+          {/* ═══════ BELT ═══════ */}
+          <Row y={34} pixels={[[11,26,bt]]} />
+          <rect x={22} y={34} width={4} height={1} fill={bk} />
+          <rect x={23} y={34} width={2} height={1} fill="#e8d090" opacity={0.4} />
 
-          {/* ════════════ JEANS ════════════ */}
-          <P x={15} y={56} w={30} h={4} fill={C.denim} />
+          {/* ═══════ JEANS ═══════ */}
+          <Row y={35} pixels={[[11,26,dn]]} />
+          <Row y={36} pixels={[[11,26,dn]]} />
+          <Row y={37} pixels={[[11,26,dn]]} />
+          <Row y={38} pixels={[[11,26,dn]]} />
           {/* Left leg */}
-          <P x={15} y={60} w={13} h={4} fill={C.denim} />
-          <P x={16} y={60} w={11} h={1} fill={C.denimLight} opacity={0.3} />
+          <Row y={39} pixels={[[11,12,dn]]} />
+          <Row y={40} pixels={[[11,12,dn]]} />
+          <Row y={41} pixels={[[12,11,dn]]} />
+          <Row y={42} pixels={[[12,11,dn]]} />
+          <Row y={43} pixels={[[12,11,dn]]} />
           {/* Right leg */}
-          <P x={32} y={60} w={13} h={4} fill={C.denim} />
-          <P x={33} y={60} w={11} h={1} fill={C.denimLight} opacity={0.3} />
-          {/* Center seam */}
-          <P x={29} y={58} w={2} h={6} fill={C.denimDark} />
-          {/* Stitching details */}
-          <P x={17} y={62} w={1} h={1} fill={C.denimStitch} opacity={0.3} />
-          <P x={42} y={62} w={1} h={1} fill={C.denimStitch} opacity={0.3} />
+          <Row y={39} pixels={[[25,12,dn]]} />
+          <Row y={40} pixels={[[25,12,dn]]} />
+          <Row y={41} pixels={[[25,11,dn]]} />
+          <Row y={42} pixels={[[25,11,dn]]} />
+          <Row y={43} pixels={[[25,11,dn]]} />
+          {/* Seam */}
+          <rect x={23} y={39} width={2} height={5} fill={dn2} />
+          {/* Denim details */}
+          <Row y={37} pixels={[[12,1,dn3,0.3],[35,1,dn3,0.3]]} />
+          <Row y={40} pixels={[[13,1,dn2,0.4],[34,1,dn2,0.4]]} />
 
-          {/* ════════════ BOOTS ════════════ */}
+          {/* ═══════ BOOTS ═══════ */}
           {/* Left boot */}
-          <P x={14} y={64} w={14} h={2} fill={C.bootDark} />
-          <P x={14} y={66} w={14} h={2} fill={C.boot} />
-          <P x={13} y={68} w={16} h={1} fill={C.bootSole} />
-          <P x={19} y={66} w={4} h={1} fill={C.bootLace} opacity={0.5} />
+          <Row y={44} pixels={[[11,12,bo1]]} />
+          <Row y={45} pixels={[[11,12,bo2]]} />
+          <Row y={46} pixels={[[11,12,bo2]]} />
+          <Row y={47} pixels={[[10,14,bo2]]} />
+          <Row y={48} pixels={[[10,14,bo3]]} />
           {/* Right boot */}
-          <P x={32} y={64} w={14} h={2} fill={C.bootDark} />
-          <P x={32} y={66} w={14} h={2} fill={C.boot} />
-          <P x={31} y={68} w={16} h={1} fill={C.bootSole} />
-          <P x={39} y={66} w={4} h={1} fill={C.bootLace} opacity={0.5} />
+          <Row y={44} pixels={[[25,12,bo1]]} />
+          <Row y={45} pixels={[[25,12,bo2]]} />
+          <Row y={46} pixels={[[25,12,bo2]]} />
+          <Row y={47} pixels={[[24,14,bo2]]} />
+          <Row y={48} pixels={[[24,14,bo3]]} />
+          {/* Boot laces */}
+          <Row y={45} pixels={[[15,3,"#685848",0.4],[30,3,"#685848",0.4]]} />
+          <Row y={47} pixels={[[15,3,"#685848",0.4],[30,3,"#685848",0.4]]} />
 
-          {/* ════════════ ACCESSORIES ════════════ */}
-          {/* Headphones when listening */}
+          {/* ═══════ HEADPHONES (listening) ═══════ */}
           {mood === "listening" && (
             <>
-              <P x={14} y={6} w={2} h={8} fill="#404040" />
-              <P x={44} y={6} w={2} h={8} fill="#404040" />
-              <P x={16} y={4} w={28} h={2} fill="#505050" />
-              <P x={12} y={13} w={3} h={5} fill="#353535" />
-              <P x={13} y={14} w={1} h={3} fill="#666" />
-              <P x={45} y={13} w={3} h={5} fill="#353535" />
-              <P x={46} y={14} w={1} h={3} fill="#666" />
+              <rect x={10} y={4} width={2} height={8} fill="#404040" />
+              <rect x={36} y={4} width={2} height={8} fill="#404040" />
+              <rect x={12} y={2} width={24} height={2} fill="#505050" />
+              <rect x={8} y={11} width={3} height={4} fill="#353535" />
+              <rect x={9} y={12} width={1} height={2} fill="#666" />
+              <rect x={37} y={11} width={3} height={4} fill="#353535" />
+              <rect x={38} y={12} width={1} height={2} fill="#666" />
             </>
           )}
 
-          {/* Sparkles when excited */}
+          {/* ═══════ SPARKLES (excited) ═══════ */}
           {mood === "excited" && (
             <>
-              <P x={4} y={10} w={2} h={2} fill="hsl(var(--primary))" opacity={0.8} />
-              <P x={56} y={8} w={2} h={2} fill="hsl(var(--accent))" opacity={0.7} />
-              <P x={6} y={4} w={1} h={1} fill="hsl(var(--primary))" opacity={0.5} />
-              <P x={54} y={14} w={1} h={1} fill="hsl(var(--accent))" opacity={0.5} />
-              <P x={2} y={20} w={1} h={1} fill="hsl(var(--primary))" opacity={0.4} />
-              <P x={58} y={22} w={1} h={1} fill="hsl(var(--accent))" opacity={0.4} />
+              <rect x={3} y={8} width={2} height={2} fill="hsl(var(--primary))" opacity={0.8} />
+              <rect x={43} y={6} width={2} height={2} fill="hsl(var(--accent))" opacity={0.7} />
+              <rect x={5} y={2} width={1} height={1} fill="hsl(var(--primary))" opacity={0.5} />
+              <rect x={42} y={14} width={1} height={1} fill="hsl(var(--accent))" opacity={0.4} />
             </>
           )}
         </svg>
       </div>
 
-      {/* CSS for heart float animation */}
       <style>{`
-        @keyframes float-up {
+        @keyframes indie-float {
           0% { opacity: 1; transform: translateY(0) scale(1); }
-          100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+          100% { opacity: 0; transform: translateY(-45px) scale(1.3); }
         }
       `}</style>
     </div>
