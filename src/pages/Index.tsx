@@ -307,90 +307,86 @@ const Index = () => {
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
           <div className="max-w-7xl mx-auto px-6 pt-2 pb-4 relative z-10 flex flex-col gap-3">
 
-            {/* Top bar — Notion-style mini profile */}
-            <div className="flex items-center justify-between gap-3 animate-fade-in shrink-0">
-              {/* Left: greeting + stats */}
-              <div className="flex items-center gap-3 min-w-0">
-                <h1 className="text-sm md:text-base font-display font-bold tracking-tight text-foreground leading-tight whitespace-nowrap">
-                  {greeting.text}, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pedro</span> {greeting.emoji}
-                </h1>
-                <span className="hidden md:inline text-muted-foreground/40 text-xs font-mono">—</span>
-                <p className="hidden md:block text-muted-foreground/50 text-xs font-mono truncate">{greeting.sub}</p>
-                <div className="hidden md:flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/40 border border-border/30 rounded-lg px-2 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/70" />
-                    <span className="text-foreground font-semibold">{todoCount}</span>
-                    <span className="text-muted-foreground/50">a fazer</span>
-                  </span>
-                  {inProgressCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5">
-                      <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />
-                      <span className="text-primary font-semibold">{inProgressCount}</span>
-                    </span>
-                  )}
-                </div>
+            {/* Top bar — Notion-style compact */}
+            <div className="flex items-center justify-between h-9 animate-fade-in shrink-0">
+              {/* Left: greeting */}
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-display font-semibold text-foreground whitespace-nowrap">
+                  {greeting.emoji} {greeting.text}, <span className="text-primary">Pedro</span>
+                </span>
+                <span className="hidden md:inline text-muted-foreground/30 font-mono text-[10px]">·</span>
+                <span className="hidden md:inline text-muted-foreground/40 text-[10px] font-mono truncate">{greeting.sub}</span>
               </div>
 
-              {/* Right: mini profile bar */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                {/* Stats pills */}
-                <div className="hidden md:flex items-center gap-1.5">
-                  <div className="flex items-center gap-1.5 bg-muted/20 border border-border/20 rounded-lg px-2.5 py-1.5">
-                    <span className="text-xs font-display font-bold">{doneCount}<span className="text-muted-foreground/30 text-[10px] font-normal">/{tasks.length}</span></span>
-                    <span className="text-[8px] text-muted-foreground/40 font-mono uppercase">feitas</span>
-                  </div>
-                  <div className="flex items-center gap-1 bg-muted/20 border border-border/20 rounded-lg px-2.5 py-1.5">
-                    <span className="text-xs font-display font-bold">{streak}</span>
-                    <Flame className="w-3 h-3 text-accent" />
-                    <span className="text-[8px] text-muted-foreground/40 font-mono uppercase">streak</span>
-                  </div>
-                  <div className="bg-muted/20 border border-border/20 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-[8px] text-muted-foreground/40 font-mono uppercase">prog</span>
-                    <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-primary/70 to-accent/70 rounded-full transition-all duration-700"
-                        style={{ width: `${progress}%` }} />
+              {/* Right: stats + actions — all same height */}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Counters */}
+                <div className="hidden md:flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/30 border border-border/20 rounded-md px-2 h-7">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent/60" />
+                    <span className="text-foreground/80">{todoCount}</span>
+                    <span className="text-muted-foreground/40">todo</span>
+                  </span>
+                  {inProgressCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-primary/5 border border-primary/10 rounded-md px-2 h-7">
+                      <Loader2 className="w-2.5 h-2.5 text-primary/60 animate-spin" />
+                      <span className="text-primary/70">{inProgressCount}</span>
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/30 border border-border/20 rounded-md px-2 h-7">
+                    <span className="text-foreground/80">{doneCount}</span>
+                    <span className="text-muted-foreground/30">/{tasks.length}</span>
+                    <Check className="w-2.5 h-2.5 text-success/50" />
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/30 border border-border/20 rounded-md px-2 h-7">
+                    <Flame className="w-2.5 h-2.5 text-accent/60" />
+                    <span className="text-foreground/80">{streak}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono bg-muted/30 border border-border/20 rounded-md px-2 h-7">
+                    <div className="w-12 h-1 bg-muted/50 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary/50 rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
                     </div>
-                    <span className="text-[10px] font-bold text-primary font-mono">{progress}%</span>
-                  </div>
+                    <span className="text-primary/70">{progress}%</span>
+                  </span>
                 </div>
 
-                {/* Separator */}
-                <div className="hidden md:block w-px h-6 bg-border/30" />
+                <div className="hidden md:block w-px h-4 bg-border/20 mx-0.5" />
 
-                {/* Dashboard button */}
+                {/* Dashboard */}
                 <button onClick={() => navigate("/webhooks")}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/20 border border-border/20 rounded-lg hover:bg-muted/30 transition-all text-[11px] text-muted-foreground hover:text-foreground font-mono">
-                  <Webhook className="w-3 h-3" />
+                  className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground/60 hover:text-foreground bg-muted/30 border border-border/20 rounded-md px-2 h-7 hover:bg-muted/40 transition-all">
+                  <Webhook className="w-2.5 h-2.5" />
                   <span className="hidden md:inline">dashboard</span>
                 </button>
 
-                {/* Mini profile + logout */}
+                {/* Clock */}
+                <PixelClock className="hidden md:flex" />
+
+                {/* Profile */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/20 border border-border/20 rounded-lg hover:bg-muted/30 transition-all group">
-                      <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/20 flex items-center justify-center">
-                        <User className="w-3 h-3 text-primary" />
+                    <button className="inline-flex items-center gap-1.5 bg-muted/30 border border-border/20 rounded-md px-2 h-7 hover:bg-muted/40 transition-all group">
+                      <div className="w-4 h-4 rounded bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/15 flex items-center justify-center">
+                        <User className="w-2.5 h-2.5 text-primary/70" />
                       </div>
-                      <span className="hidden md:block text-xs font-mono text-foreground/80 group-hover:text-foreground transition-colors">Pedro</span>
+                      <span className="hidden md:block text-[10px] font-mono text-foreground/60 group-hover:text-foreground transition-colors">Pedro</span>
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-56 p-2 bg-card/95 backdrop-blur-xl border-border/50">
-                    <div className="px-3 py-2 border-b border-border/30 mb-1">
-                      <p className="text-sm font-display font-semibold">Pedro</p>
-                      <p className="text-[10px] font-mono text-muted-foreground/50">online · {dateStr}</p>
+                  <PopoverContent align="end" className="w-52 p-1.5 bg-card/95 backdrop-blur-xl border-border/50">
+                    <div className="px-2.5 py-1.5 border-b border-border/30 mb-1">
+                      <p className="text-xs font-display font-semibold">Pedro</p>
+                      <p className="text-[9px] font-mono text-muted-foreground/40">online · {dateStr}</p>
                     </div>
                     <button onClick={async () => {
                       await supabase.auth.signOut();
                       navigate("/auth");
                     }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 transition-all text-xs font-mono text-destructive/80 hover:text-destructive">
-                      <LogOut className="w-3.5 h-3.5" />
+                      className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded hover:bg-destructive/10 transition-all text-[10px] font-mono text-destructive/70 hover:text-destructive">
+                      <LogOut className="w-3 h-3" />
                       auth.signOut()
                     </button>
                   </PopoverContent>
                 </Popover>
-
-                <PixelClock />
               </div>
             </div>
 

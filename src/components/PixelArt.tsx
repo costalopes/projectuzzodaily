@@ -40,10 +40,10 @@ export const PixelClock = ({ className = "" }: { className?: string }) => {
   const showColon = seconds % 2 === 0;
 
   return (
-    <div className={`font-mono text-sm font-bold tracking-wider ${className}`}>
-      <span className="text-primary">{hours}</span>
-      <span className={`text-primary transition-opacity duration-200 ${showColon ? "opacity-100" : "opacity-20"}`}>:</span>
-      <span className="text-primary">{minutes}</span>
+    <div className={`inline-flex items-center font-mono text-[10px] font-bold tracking-wider bg-muted/30 border border-border/20 rounded-md px-2 h-7 ${className}`}>
+      <span className="text-primary/70">{hours}</span>
+      <span className={`text-primary/70 transition-opacity duration-200 ${showColon ? "opacity-100" : "opacity-20"}`}>:</span>
+      <span className="text-primary/70">{minutes}</span>
     </div>
   );
 };
