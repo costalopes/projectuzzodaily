@@ -114,6 +114,16 @@ const Index = () => {
     setUploadingAvatar(false);
   };
 
+  const handleUsernameChange = async (newUsername: string) => {
+    if (!newUsername.trim()) return;
+    if (newUsername.length > 50) return;
+    setProfileData(p => ({ ...p, username: newUsername }));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("profiles").update({ username: newUsername }).eq("user_id", user.id);
+    }
+  };
+
   const handleTimezoneChange = async (tz: string) => {
     setProfileData(p => ({ ...p, timezone: tz }));
     const { data: { user } } = await supabase.auth.getUser();
@@ -449,6 +459,18 @@ const Index = () => {
                     {/* Timezone */}
                     <div className="px-1 py-1.5 mb-2">
                       <label className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60 mb-1.5">
+                        <User className="w-3 h-3" /> Nome do perfil
+                      </label>
+                      <input
+                        type="text"
+                        value={profileData.username}
+                        onChange={(e) => handleUsernameChange(e.target.value)}
+                        maxLength={50}
+                        placeholder="Seu nome"
+                        className="w-full bg-card border border-border/30 rounded-md px-2 py-1.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      />
+
+                      <label className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60 mb-1.5 mt-2">
                         <Globe className="w-3 h-3" /> Fuso horário
                       </label>
                       <Select value={profileData.timezone} onValueChange={handleTimezoneChange}>
