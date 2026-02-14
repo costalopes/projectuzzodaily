@@ -83,11 +83,16 @@ export const TaskDetailDialog = ({ task, isOpen, isNew, onClose, onUpdate, onDel
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm animate-fade-in" style={{ animationDuration: "200ms" }} onClick={handleClose} />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm animate-fade-in" style={{ animationDuration: "200ms" }}
+        onPointerDown={(e) => {
+          // Only close if clicking directly on the backdrop, not on portal content
+          if (e.target === e.currentTarget) handleClose();
+        }}
+      />
       <div
         className="relative bg-card border border-border/50 rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col animate-enter"
         style={{ animationDuration: "300ms" }}
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-4 py-2.5 rounded-t-2xl shrink-0">
