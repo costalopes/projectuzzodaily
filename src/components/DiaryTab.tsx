@@ -25,28 +25,32 @@ const MOODS = [
 
 // Generate leaf positions dynamically around tree branches
 const generateLeafPositions = () => [
-  // Upper canopy
-  { cx: 95, cy: 85, rotate: -20 },
-  { cx: 110, cy: 75, rotate: 15 },
-  { cx: 85, cy: 75, rotate: -5 },
+  // Upper canopy center
+  { cx: 100, cy: 65, rotate: 0 },
+  { cx: 108, cy: 72, rotate: 15 },
+  { cx: 92, cy: 72, rotate: -15 },
+  
+  // Upper middle
   { cx: 115, cy: 85, rotate: 25 },
+  { cx: 85, cy: 85, rotate: -25 },
+  { cx: 100, cy: 82, rotate: 5 },
   
   // Middle canopy
-  { cx: 75, cy: 105, rotate: -30 },
-  { cx: 125, cy: 105, rotate: 20 },
-  { cx: 95, cy: 115, rotate: 10 },
-  { cx: 120, cy: 95, rotate: 5 },
+  { cx: 125, cy: 105, rotate: 35 },
+  { cx: 75, cy: 105, rotate: -35 },
+  { cx: 100, cy: 100, rotate: 0 },
+  { cx: 110, cy: 110, rotate: 20 },
+  { cx: 90, cy: 110, rotate: -20 },
   
-  // Lower canopy
-  { cx: 70, cy: 135, rotate: -15 },
-  { cx: 130, cy: 140, rotate: 30 },
-  { cx: 85, cy: 145, rotate: -10 },
-  { cx: 110, cy: 130, rotate: 25 },
+  // Lower middle
+  { cx: 130, cy: 125, rotate: 40 },
+  { cx: 70, cy: 125, rotate: -40 },
+  { cx: 95, cy: 130, rotate: -10 },
+  { cx: 105, cy: 130, rotate: 10 },
   
-  // Branch edges
-  { cx: 55, cy: 125, rotate: -25 },
-  { cx: 145, cy: 120, rotate: 28 },
-  { cx: 100, cy: 70, rotate: 0 },
+  // Bottom edges
+  { cx: 140, cy: 140, rotate: 45 },
+  { cx: 60, cy: 140, rotate: -45 },
 ];
 
 const LEAF_COLORS = [
@@ -65,13 +69,6 @@ const TreeSVG = ({ leafCount }: { leafCount: number }) => {
   return (
     <div className="w-full h-full flex items-end justify-center">
       <svg viewBox="0 0 200 310" className="w-full h-full" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.2))" }}>
-        <defs>
-          {/* Clipping path to keep leaves inside tree bounds */}
-          <clipPath id="treeClip">
-            <circle cx="100" cy="120" r="80" />
-          </clipPath>
-        </defs>
-
         {/* Main trunk */}
         <path d="M95 300 Q93 250 90 220 Q88 200 92 180 Q95 165 98 150 Q100 140 100 130" 
           stroke="hsl(30, 25%, 30%)" strokeWidth="8" fill="none" strokeLinecap="round" />
@@ -94,28 +91,27 @@ const TreeSVG = ({ leafCount }: { leafCount: number }) => {
         {/* Ground */}
         <ellipse cx="100" cy="305" rx="80" ry="5" fill="hsl(30, 20%, 22%)" opacity="0.3" />
 
-        {/* Leaves group with clipping */}
-        <g clipPath="url(#treeClip)">
-          {visibleLeaves.map((pos, i) => (
-            <g key={`leaf-${i}`} transform={`translate(${pos.cx}, ${pos.cy}) rotate(${pos.rotate})`}>
-              <animateTransform
-                attributeName="transform"
-                type="translate"
-                values={`${pos.cx} ${pos.cy}; ${pos.cx} ${pos.cy - 2}; ${pos.cx} ${pos.cy}`}
-                dur={`${3 + (i % 3)}s`}
-                repeatCount="indefinite"
-                additive="sum"
-              />
-              <ellipse cx="0" cy="0" rx="7" ry="4.5"
-                fill={LEAF_COLORS[i % LEAF_COLORS.length]}
-                opacity="0.9"
-              >
-                <animate attributeName="opacity" values="0;0.9" dur="0.5s" begin={`${i * 0.1}s`} fill="freeze" />
-              </ellipse>
-              <line x1="-5" y1="0" x2="5" y2="0" stroke="hsl(120, 30%, 30%)" strokeWidth="0.5" opacity="0.5" />
-            </g>
-          ))}
-        </g>
+        {/* Leaves rendered inside SVG */}
+        {visibleLeaves.map((pos, i) => (
+          <g key={`leaf-${i}`} transform={`translate(${pos.cx}, ${pos.cy})`}>
+            <animateTransform
+              attributeName="transform"
+              type="translate"
+              values={`${pos.cx} ${pos.cy}; ${pos.cx} ${pos.cy - 2}; ${pos.cx} ${pos.cy}`}
+              dur={`${3 + (i % 3)}s`}
+              repeatCount="indefinite"
+              additive="sum"
+            />
+            <ellipse cx="0" cy="0" rx="7" ry="4.5"
+              fill={LEAF_COLORS[i % LEAF_COLORS.length]}
+              opacity="0.9"
+              transform={`rotate(${pos.rotate})`}
+            >
+              <animate attributeName="opacity" values="0;0.9" dur="0.5s" begin={`${i * 0.1}s`} fill="freeze" />
+            </ellipse>
+            <line x1="-5" y1="0" x2="5" y2="0" stroke="hsl(120, 30%, 30%)" strokeWidth="0.5" opacity="0.5" transform={`rotate(${pos.rotate})`} />
+          </g>
+        ))}
       </svg>
     </div>
   );
