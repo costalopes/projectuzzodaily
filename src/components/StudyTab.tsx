@@ -349,71 +349,89 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
 
   const opened = openTopic ? subject.topics.find(t => t.id === openTopic) : null;
 
-  if (opened) {
-    return <TopicPage topic={opened} onBack={() => setOpenTopic(null)} onUpdate={(u) => updateTopic(opened.id, u)} onDelete={() => deleteTopic(opened.id)} />;
-  }
-
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[10px] font-mono text-muted-foreground/40 uppercase">
-          {subject.topics.filter(t => t.done).length}/{subject.topics.length} concluídos
-        </span>
-        <HelpTip text="Clique no nome de um tópico para abri-lo como uma página. Dentro, adicione anotações, subtarefas e conteúdo detalhado." />
-      </div>
+    <>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-[10px] font-mono text-muted-foreground/40 uppercase">
+            {subject.topics.filter(t => t.done).length}/{subject.topics.length} concluídos
+          </span>
+          <HelpTip text="Clique no nome de um tópico para abri-lo como uma página completa. Dentro, adicione anotações, subtarefas e conteúdo detalhado." />
+        </div>
 
-      {subject.topics.map(t => {
-        const hasContent = t.content || t.notes.length > 0 || t.tasks.length > 0;
-        return (
-          <div key={t.id} className="flex items-center gap-2 group rounded-lg hover:bg-muted/20 px-2 py-2 transition-all">
-            <button onClick={(e) => { e.stopPropagation(); toggleTopic(t.id); }}
-              className={cn("w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
-                t.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
-              )}>
-              {t.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
-            </button>
-            <button onClick={() => setOpenTopic(t.id)} className="flex-1 text-left min-w-0 flex items-center gap-1.5">
-              <span className={cn("text-sm font-mono truncate", t.done ? "line-through text-muted-foreground/40" : "text-foreground hover:text-primary transition-colors")}>
-                {t.text}
-              </span>
-              {hasContent && <FileText className="w-3 h-3 text-muted-foreground/30 shrink-0" />}
-            </button>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-              <button onClick={() => setOpenTopic(t.id)} className="text-muted-foreground/40 hover:text-primary transition-colors" title="Abrir página">
-                <ChevronRight className="w-3.5 h-3.5" />
+        {subject.topics.map(t => {
+          const hasContent = t.content || t.notes.length > 0 || t.tasks.length > 0;
+          return (
+            <div key={t.id} className="flex items-center gap-2 group rounded-lg hover:bg-muted/20 px-2 py-2 transition-all">
+              <button onClick={(e) => { e.stopPropagation(); toggleTopic(t.id); }}
+                className={cn("w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                  t.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
+                )}>
+                {t.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
               </button>
-              <button onClick={() => deleteTopic(t.id)} className="text-muted-foreground/40 hover:text-destructive transition-colors">
-                <Trash2 className="w-3 h-3" />
+              <button onClick={() => setOpenTopic(t.id)} className="flex-1 text-left min-w-0 flex items-center gap-1.5">
+                <span className={cn("text-sm font-mono truncate", t.done ? "line-through text-muted-foreground/40" : "text-foreground hover:text-primary transition-colors")}>
+                  {t.text}
+                </span>
+                {hasContent && <FileText className="w-3 h-3 text-muted-foreground/30 shrink-0" />}
               </button>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <button onClick={() => setOpenTopic(t.id)} className="text-muted-foreground/40 hover:text-primary transition-colors" title="Abrir página">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => deleteTopic(t.id)} className="text-muted-foreground/40 hover:text-destructive transition-colors">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
-      <div className="flex gap-2 pt-1">
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addTopic()}
-          placeholder="Novo tópico..."
-          className="flex-1 bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-        <button onClick={addTopic} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 hover:bg-primary/20 transition-all">
-          <Plus className="w-4 h-4" />
-        </button>
+        <div className="flex gap-2 pt-1">
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addTopic()}
+            placeholder="Novo tópico..."
+            className="flex-1 bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          <button onClick={addTopic} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 hover:bg-primary/20 transition-all">
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Full-screen overlay for topic detail */}
+      {opened && (
+        <TopicOverlay
+          topic={opened}
+          onClose={() => setOpenTopic(null)}
+          onUpdate={(u) => updateTopic(opened.id, u)}
+          onDelete={() => deleteTopic(opened.id)}
+        />
+      )}
+    </>
   );
 };
 
-// ── Topic Page (Notion-like detail) ────────────────────────────
+// ── Topic Overlay (Notion-like full page) ──────────────────────
 
-interface TopicPageProps {
+interface TopicOverlayProps {
   topic: Topic;
-  onBack: () => void;
+  onClose: () => void;
   onUpdate: (updater: (t: Topic) => Topic) => void;
   onDelete: () => void;
 }
 
-const TopicPage = ({ topic, onBack, onUpdate, onDelete }: TopicPageProps) => {
+const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps) => {
+  const [title, setTitle] = useState(topic.text);
   const [newTask, setNewTask] = useState("");
   const [newNote, setNewNote] = useState("");
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (key: string) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
+
+  const saveTitle = () => {
+    if (title.trim() && title !== topic.text) {
+      onUpdate(t => ({ ...t, text: title.trim() }));
+    }
+  };
 
   const addTask = () => {
     if (!newTask.trim()) return;
@@ -435,109 +453,182 @@ const TopicPage = ({ topic, onBack, onUpdate, onDelete }: TopicPageProps) => {
     setNewNote("");
   };
 
+  const updateNote = (id: string, text: string) => {
+    onUpdate(t => ({ ...t, notes: t.notes.map(n => n.id === id ? { ...n, text } : n) }));
+  };
+
   const deleteNote = (id: string) => {
     onUpdate(t => ({ ...t, notes: t.notes.filter(n => n.id !== id) }));
   };
 
   const tasksDone = topic.tasks.filter(t => t.done).length;
+  const tasksProgress = topic.tasks.length > 0 ? Math.round((tasksDone / topic.tasks.length) * 100) : 0;
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b border-border/20">
-        <button onClick={onBack} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-display font-bold text-foreground truncate">{topic.text}</h3>
-          <div className="flex items-center gap-2 mt-0.5">
+    <div className="fixed inset-0 z-[90] flex items-start justify-center pt-8 pb-8 px-4 md:px-8">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-background/80 backdrop-blur-md animate-fade-in"
+        style={{ animationDuration: "200ms" }}
+        onClick={onClose}
+      />
+
+      {/* Card — large, leaves space for cat in bottom-right */}
+      <div
+        className="relative bg-card border border-border/40 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] flex flex-col animate-enter mr-0 md:mr-32"
+        style={{ animationDuration: "300ms" }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Terminal header */}
+        <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-5 py-2.5 rounded-t-2xl shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-destructive/60" />
+              <div className="w-2 h-2 rounded-full bg-primary/60" />
+              <div className="w-2 h-2 rounded-full bg-success/60" />
+            </div>
+            <span className="text-[9px] font-mono text-muted-foreground/40">topic_page.md</span>
+          </div>
+          <div className="flex items-center gap-2">
             <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded border",
               topic.done ? "bg-success/10 border-success/20 text-success" : "bg-muted/20 border-border/20 text-muted-foreground/50"
             )}>
               {topic.done ? "✓ concluído" : "pendente"}
             </span>
-            {topic.tasks.length > 0 && (
-              <span className="text-[10px] font-mono text-muted-foreground/40">
-                {tasksDone}/{topic.tasks.length} subtarefas
-              </span>
-            )}
+            <button onClick={onClose} className="text-muted-foreground/50 hover:text-foreground transition-colors p-1">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
-        <button onClick={onDelete} className="text-destructive/40 hover:text-destructive transition-colors">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
 
-      {/* Content / Description */}
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-mono text-muted-foreground/40 uppercase flex items-center gap-1">
-          <FileText className="w-3 h-3" /> conteúdo
-        </label>
-        <textarea
-          value={topic.content}
-          onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
-          placeholder="Escreva anotações, resumos, fórmulas... Como uma página do Notion."
-          rows={4}
-          className="w-full bg-muted/10 border border-border/20 rounded-xl px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/20 resize-none"
-        />
-      </div>
+        {/* Scrollable content */}
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
+          <div className="max-w-2xl mx-auto px-6 md:px-10 py-8 space-y-8">
+            {/* Editable title */}
+            <div className="space-y-2">
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                onBlur={saveTitle}
+                className="text-2xl md:text-3xl font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/20 leading-tight"
+                placeholder="Título do tópico..."
+              />
+              {topic.tasks.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-1.5 bg-muted/20 rounded-full">
+                    <div className="h-full bg-primary/50 rounded-full transition-all" style={{ width: `${tasksProgress}%` }} />
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                    {tasksDone}/{topic.tasks.length} subtarefas
+                  </span>
+                </div>
+              )}
+            </div>
 
-      {/* Subtasks */}
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-mono text-muted-foreground/40 uppercase flex items-center gap-1">
-          <ListChecks className="w-3 h-3" /> subtarefas ({topic.tasks.length})
-          <HelpTip text="Quebre o tópico em partes menores. Marque como feito ao completar cada uma." />
-        </label>
+            {/* Divider */}
+            <div className="h-px bg-border/20" />
 
-        {topic.tasks.map(tk => (
-          <div key={tk.id} className="flex items-center gap-2 group px-1 py-1">
-            <button onClick={() => toggleTask(tk.id)}
-              className={cn("w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-all",
-                tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
-              )}>
-              {tk.done && <Check className="w-2 h-2 text-success-foreground" />}
-            </button>
-            <span className={cn("text-xs font-mono flex-1", tk.done ? "line-through text-muted-foreground/40" : "text-foreground")}>
-              {tk.text}
-            </span>
-            <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all">
-              <Trash2 className="w-2.5 h-2.5" />
-            </button>
+            {/* Content area — main writing space */}
+            <div className="space-y-2">
+              <button onClick={() => toggleSection("content")} className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider hover:text-foreground/70 transition-colors">
+                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", collapsedSections.content && "-rotate-90")} />
+                <FileText className="w-3.5 h-3.5" /> conteúdo
+              </button>
+              {!collapsedSections.content && (
+                <textarea
+                  value={topic.content}
+                  onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
+                  placeholder="Escreva livremente aqui... Resumos, fórmulas, conceitos, ideias.&#10;&#10;Use como uma página do Notion para organizar todo o conteúdo deste tópico."
+                  rows={8}
+                  className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
+                />
+              )}
+            </div>
+
+            {/* Subtasks section */}
+            <div className="space-y-3">
+              <button onClick={() => toggleSection("tasks")} className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider hover:text-foreground/70 transition-colors">
+                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", collapsedSections.tasks && "-rotate-90")} />
+                <ListChecks className="w-3.5 h-3.5" /> subtarefas
+                <span className="text-muted-foreground/30">({topic.tasks.length})</span>
+              </button>
+
+              {!collapsedSections.tasks && (
+                <div className="space-y-1 pl-1">
+                  {topic.tasks.map(tk => (
+                    <div key={tk.id} className="flex items-start gap-3 group py-1.5 px-2 rounded-lg hover:bg-muted/10 transition-all">
+                      <button onClick={() => toggleTask(tk.id)}
+                        className={cn("w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
+                          tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
+                        )}>
+                        {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+                      </button>
+                      <span className={cn("text-sm font-mono flex-1 leading-relaxed", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
+                        {tk.text}
+                      </span>
+                      <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all shrink-0 mt-0.5">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div className="flex gap-2 pt-1">
+                    <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
+                      placeholder="+ Adicionar subtarefa..."
+                      className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Notes section */}
+            <div className="space-y-3">
+              <button onClick={() => toggleSection("notes")} className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider hover:text-foreground/70 transition-colors">
+                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", collapsedSections.notes && "-rotate-90")} />
+                📌 notas
+                <span className="text-muted-foreground/30">({topic.notes.length})</span>
+              </button>
+
+              {!collapsedSections.notes && (
+                <div className="space-y-2 pl-1">
+                  {topic.notes.map(n => (
+                    <div key={n.id} className="group relative bg-muted/10 border border-border/15 rounded-xl px-4 py-3">
+                      <textarea
+                        value={n.text}
+                        onChange={e => updateNote(n.id, e.target.value)}
+                        rows={2}
+                        className="w-full bg-transparent text-sm font-mono text-foreground/80 focus:outline-none resize-none leading-relaxed placeholder:text-muted-foreground/20"
+                      />
+                      <button onClick={() => deleteNote(n.id)}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div className="flex gap-2">
+                    <input value={newNote} onChange={e => setNewNote(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && addNote()}
+                      placeholder="+ Adicionar nota..."
+                      className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        ))}
-
-        <div className="flex gap-2">
-          <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
-            placeholder="Nova subtarefa..."
-            className="flex-1 bg-muted/10 border border-border/20 rounded-lg px-3 py-1.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/20" />
-          <button onClick={addTask} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-2.5 hover:bg-primary/20 transition-all">
-            <Plus className="w-3.5 h-3.5" />
-          </button>
         </div>
-      </div>
 
-      {/* Notes */}
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-mono text-muted-foreground/40 uppercase flex items-center gap-1">
-          📌 notas rápidas ({topic.notes.length})
-        </label>
-
-        {topic.notes.map(n => (
-          <div key={n.id} className="flex items-start gap-2 bg-muted/10 rounded-lg px-3 py-2 group">
-            <p className="text-xs font-mono text-foreground/80 flex-1 whitespace-pre-wrap">{n.text}</p>
-            <button onClick={() => deleteNote(n.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all shrink-0">
-              <Trash2 className="w-2.5 h-2.5" />
-            </button>
-          </div>
-        ))}
-
-        <div className="flex gap-2">
-          <input value={newNote} onChange={e => setNewNote(e.target.value)} onKeyDown={e => e.key === "Enter" && addNote()}
-            placeholder="Adicionar nota..."
-            className="flex-1 bg-muted/10 border border-border/20 rounded-lg px-3 py-1.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/20" />
-          <button onClick={addNote} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-2.5 hover:bg-primary/20 transition-all">
-            <Plus className="w-3.5 h-3.5" />
+        {/* Footer */}
+        <div className="border-t border-border/20 px-5 py-2.5 flex items-center justify-between shrink-0">
+          <button
+            onClick={() => { onDelete(); onClose(); }}
+            className="text-[11px] font-mono text-destructive/40 hover:text-destructive transition-colors flex items-center gap-1.5"
+          >
+            <Trash2 className="w-3 h-3" /> excluir tópico
           </button>
+          <span className="text-[10px] font-mono text-muted-foreground/25">
+            id: {topic.id.slice(0, 8)}
+          </span>
         </div>
       </div>
     </div>
