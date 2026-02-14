@@ -25,32 +25,32 @@ const MOODS = [
 
 // Generate leaf positions dynamically around tree branches
 const generateLeafPositions = () => [
-  // Upper canopy center
-  { cx: 100, cy: 65, rotate: 0 },
-  { cx: 108, cy: 72, rotate: 15 },
-  { cx: 92, cy: 72, rotate: -15 },
+  // Upper canopy center - tightly around trunk
+  { cx: 100, cy: 75, rotate: 0 },
+  { cx: 103, cy: 80, rotate: 15 },
+  { cx: 97, cy: 80, rotate: -15 },
   
-  // Upper middle
-  { cx: 115, cy: 85, rotate: 25 },
-  { cx: 85, cy: 85, rotate: -25 },
-  { cx: 100, cy: 82, rotate: 5 },
+  // Upper-middle
+  { cx: 108, cy: 92, rotate: 25 },
+  { cx: 92, cy: 92, rotate: -25 },
+  { cx: 100, cy: 88, rotate: 5 },
   
   // Middle canopy
-  { cx: 125, cy: 105, rotate: 35 },
-  { cx: 75, cy: 105, rotate: -35 },
-  { cx: 100, cy: 100, rotate: 0 },
-  { cx: 110, cy: 110, rotate: 20 },
-  { cx: 90, cy: 110, rotate: -20 },
+  { cx: 113, cy: 108, rotate: 35 },
+  { cx: 87, cy: 108, rotate: -35 },
+  { cx: 100, cy: 104, rotate: 0 },
+  { cx: 107, cy: 113, rotate: 20 },
+  { cx: 93, cy: 113, rotate: -20 },
   
   // Lower middle
-  { cx: 130, cy: 125, rotate: 40 },
-  { cx: 70, cy: 125, rotate: -40 },
-  { cx: 95, cy: 130, rotate: -10 },
-  { cx: 105, cy: 130, rotate: 10 },
+  { cx: 115, cy: 128, rotate: 40 },
+  { cx: 85, cy: 128, rotate: -40 },
+  { cx: 100, cy: 132, rotate: -10 },
+  { cx: 100, cy: 132, rotate: 10 },
   
   // Bottom edges
-  { cx: 140, cy: 140, rotate: 45 },
-  { cx: 60, cy: 140, rotate: -45 },
+  { cx: 120, cy: 145, rotate: 45 },
+  { cx: 80, cy: 145, rotate: -45 },
 ];
 
 const LEAF_COLORS = [
@@ -94,14 +94,6 @@ const TreeSVG = ({ leafCount }: { leafCount: number }) => {
         {/* Leaves rendered inside SVG */}
         {visibleLeaves.map((pos, i) => (
           <g key={`leaf-${i}`} transform={`translate(${pos.cx}, ${pos.cy})`}>
-            <animateTransform
-              attributeName="transform"
-              type="translate"
-              values={`${pos.cx} ${pos.cy}; ${pos.cx} ${pos.cy - 2}; ${pos.cx} ${pos.cy}`}
-              dur={`${3 + (i % 3)}s`}
-              repeatCount="indefinite"
-              additive="sum"
-            />
             <ellipse cx="0" cy="0" rx="7" ry="4.5"
               fill={LEAF_COLORS[i % LEAF_COLORS.length]}
               opacity="0.9"
