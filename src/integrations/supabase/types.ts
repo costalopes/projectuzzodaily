@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      diary_entries: {
+        Row: {
+          content: string
+          created_at: string
+          entry_date: string
+          id: string
+          mood: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
