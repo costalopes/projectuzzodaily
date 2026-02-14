@@ -173,7 +173,6 @@ const Index = () => {
     setTasks((p) => [...p, draft]);
     setNewTask("");
     setShowInput(false);
-    setCreatingTask(draft);
   };
 
   const startNewTask = () => {
