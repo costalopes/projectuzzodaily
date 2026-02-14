@@ -4,8 +4,10 @@ import {
   BookOpen, Plus, ArrowLeft, Link2, Trash2, Check, X,
   Timer, Layers, ListChecks, ExternalLink, Play, Pause,
   RotateCcw, ChevronRight, HelpCircle, Shuffle, ThumbsUp,
-  ThumbsDown, FileText, ChevronDown
+  ThumbsDown, FileText, ChevronDown, FolderOpen, FolderPlus,
+  Calendar, Flag, Clock, AlertTriangle
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,12 +30,21 @@ interface StudyLink {
 interface TopicNote {
   id: string;
   text: string;
+  folderId?: string; // null = root
+}
+
+interface NoteFolder {
+  id: string;
+  name: string;
 }
 
 interface TopicTask {
   id: string;
   text: string;
   done: boolean;
+  status: "todo" | "in_progress" | "done";
+  importance: "low" | "medium" | "high";
+  dueDate?: string;
 }
 
 interface Topic {
@@ -42,7 +53,8 @@ interface Topic {
   done: boolean;
   notes: TopicNote[];
   tasks: TopicTask[];
-  content: string; // rich text content like a page
+  folders: NoteFolder[];
+  content: string;
 }
 
 interface StudySession {
@@ -331,7 +343,7 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
 
   const addTopic = () => {
     if (!input.trim()) return;
-    onUpdate(s => ({ ...s, topics: [...s.topics, { id: uid(), text: input.trim(), done: false, notes: [], tasks: [], content: "" }] }));
+    onUpdate(s => ({ ...s, topics: [...s.topics, { id: uid(), text: input.trim(), done: false, notes: [], tasks: [], folders: [], content: "" }] }));
     setInput("");
   };
 
@@ -424,7 +436,11 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
   const [title, setTitle] = useState(topic.text);
   const [newTask, setNewTask] = useState("");
   const [newNote, setNewNote] = useState("");
+  const [newFolder, setNewFolder] = useState("");
   const [activeTab, setActiveTab] = useState<"content" | "tasks" | "notes">("content");
+  const [taskFilter, setTaskFilter] = useState<"all" | "todo" | "in_progress" | "done">("all");
+  const [activeFolder, setActiveFolder] = useState<string | null>(null); // null = root
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const saveTitle = () => {
     if (title.trim() && title !== topic.text) {
@@ -432,23 +448,47 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
     }
   };
 
+  // ── Task operations ──
   const addTask = () => {
     if (!newTask.trim()) return;
-    onUpdate(t => ({ ...t, tasks: [...t.tasks, { id: uid(), text: newTask.trim(), done: false }] }));
+    onUpdate(t => ({ ...t, tasks: [...t.tasks, { id: uid(), text: newTask.trim(), done: false, status: "todo" as const, importance: "medium" as const }] }));
     setNewTask("");
   };
 
   const toggleTask = (id: string) => {
-    onUpdate(t => ({ ...t, tasks: t.tasks.map(tk => tk.id === id ? { ...tk, done: !tk.done } : tk) }));
+    onUpdate(t => ({
+      ...t,
+      tasks: t.tasks.map(tk => {
+        if (tk.id !== id) return tk;
+        const newDone = !tk.done;
+        return { ...tk, done: newDone, status: newDone ? "done" as const : "todo" as const };
+      })
+    }));
+  };
+
+  const updateTaskStatus = (id: string, status: TopicTask["status"]) => {
+    onUpdate(t => ({
+      ...t,
+      tasks: t.tasks.map(tk => tk.id === id ? { ...tk, status, done: status === "done" } : tk)
+    }));
+  };
+
+  const updateTaskImportance = (id: string, importance: TopicTask["importance"]) => {
+    onUpdate(t => ({ ...t, tasks: t.tasks.map(tk => tk.id === id ? { ...tk, importance } : tk) }));
+  };
+
+  const updateTaskDueDate = (id: string, dueDate: string) => {
+    onUpdate(t => ({ ...t, tasks: t.tasks.map(tk => tk.id === id ? { ...tk, dueDate: dueDate || undefined } : tk) }));
   };
 
   const deleteTask = (id: string) => {
     onUpdate(t => ({ ...t, tasks: t.tasks.filter(tk => tk.id !== id) }));
   };
 
+  // ── Note & folder operations ──
   const addNote = () => {
     if (!newNote.trim()) return;
-    onUpdate(t => ({ ...t, notes: [...t.notes, { id: uid(), text: newNote.trim() }] }));
+    onUpdate(t => ({ ...t, notes: [...t.notes, { id: uid(), text: newNote.trim(), folderId: activeFolder || undefined }] }));
     setNewNote("");
   };
 
@@ -460,8 +500,46 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
     onUpdate(t => ({ ...t, notes: t.notes.filter(n => n.id !== id) }));
   };
 
+  const addFolder = () => {
+    if (!newFolder.trim()) return;
+    onUpdate(t => ({ ...t, folders: [...(t.folders || []), { id: uid(), name: newFolder.trim() }] }));
+    setNewFolder("");
+    setCreatingFolder(false);
+  };
+
+  const deleteFolder = (folderId: string) => {
+    onUpdate(t => ({
+      ...t,
+      folders: (t.folders || []).filter(f => f.id !== folderId),
+      notes: t.notes.map(n => n.folderId === folderId ? { ...n, folderId: undefined } : n)
+    }));
+    if (activeFolder === folderId) setActiveFolder(null);
+  };
+
+  // ── Computed ──
   const tasksDone = topic.tasks.filter(t => t.done).length;
   const tasksProgress = topic.tasks.length > 0 ? Math.round((tasksDone / topic.tasks.length) * 100) : 0;
+
+  const filteredTasks = topic.tasks.filter(tk => taskFilter === "all" || tk.status === taskFilter);
+
+  const folders = topic.folders || [];
+  const currentNotes = topic.notes.filter(n =>
+    activeFolder === null ? !n.folderId : n.folderId === activeFolder
+  );
+
+  const importanceColors: Record<string, string> = {
+    low: "text-muted-foreground/50 border-muted-foreground/20",
+    medium: "text-primary border-primary/30",
+    high: "text-destructive border-destructive/30"
+  };
+
+  const importanceLabels: Record<string, string> = { low: "Baixa", medium: "Média", high: "Alta" };
+  const statusLabels: Record<string, string> = { todo: "A fazer", in_progress: "Fazendo", done: "Concluída" };
+  const statusColors: Record<string, string> = {
+    todo: "bg-muted/20 text-muted-foreground/60",
+    in_progress: "bg-primary/10 text-primary",
+    done: "bg-success/10 text-success"
+  };
 
   const tabs = [
     { key: "content" as const, label: "Conteúdo", icon: FileText, count: topic.content.length > 0 ? 1 : 0 },
@@ -470,189 +548,358 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
   ];
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-md animate-fade-in"
-        style={{ animationDuration: "200ms" }}
-        onClick={onClose}
-      />
-
-      {/* Card */}
-      <div
-        className="relative bg-card border border-border/40 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] flex flex-col animate-enter"
-        style={{ animationDuration: "300ms" }}
-        onClick={e => e.stopPropagation()}
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
       >
-        {/* Terminal header */}
-        <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-5 py-2.5 rounded-t-2xl shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-destructive/60" />
-              <div className="w-2 h-2 rounded-full bg-primary/60" />
-              <div className="w-2 h-2 rounded-full bg-success/60" />
-            </div>
-            <span className="text-[9px] font-mono text-muted-foreground/40">topic_page.md</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded border",
-              topic.done ? "bg-success/10 border-success/20 text-success" : "bg-muted/20 border-border/20 text-muted-foreground/50"
-            )}>
-              {topic.done ? "✓ concluído" : "pendente"}
-            </span>
-            <button onClick={onClose} className="text-muted-foreground/50 hover:text-foreground transition-colors p-1">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        {/* Backdrop */}
+        <motion.div
+          className="absolute inset-0 bg-background/80 backdrop-blur-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={onClose}
+        />
 
-        {/* Title + progress */}
-        <div className="px-6 md:px-10 pt-6 pb-2 space-y-2 shrink-0">
-          <input
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onBlur={saveTitle}
-            className="text-2xl md:text-3xl font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/20 leading-tight"
-            placeholder="Título do tópico..."
-          />
-          {topic.tasks.length > 0 && (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-1.5 bg-muted/20 rounded-full">
-                <div className="h-full bg-primary/50 rounded-full transition-all" style={{ width: `${tasksProgress}%` }} />
+        {/* Card */}
+        <motion.div
+          className="relative bg-card border border-border/40 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] flex flex-col"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Terminal header */}
+          <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-5 py-2.5 rounded-t-2xl shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-destructive/60" />
+                <div className="w-2 h-2 rounded-full bg-primary/60" />
+                <div className="w-2 h-2 rounded-full bg-success/60" />
               </div>
-              <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
-                {tasksDone}/{topic.tasks.length} subtarefas
+              <span className="text-[9px] font-mono text-muted-foreground/40">topic_page.md</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded border",
+                topic.done ? "bg-success/10 border-success/20 text-success" : "bg-muted/20 border-border/20 text-muted-foreground/50"
+              )}>
+                {topic.done ? "✓ concluído" : "pendente"}
               </span>
-            </div>
-          )}
-        </div>
-
-        {/* Tabs navigation */}
-        <div className="px-6 md:px-10 shrink-0">
-          <div className="flex gap-1 border-b border-border/20 pb-px">
-            {tabs.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 text-[11px] font-mono uppercase tracking-wider rounded-t-lg transition-all border-b-2",
-                  activeTab === tab.key
-                    ? "border-primary text-primary bg-primary/5"
-                    : "border-transparent text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/10"
-                )}
-              >
-                <tab.icon className="w-3.5 h-3.5" />
-                {tab.label}
-                {tab.count > 0 && (
-                  <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full",
-                    activeTab === tab.key ? "bg-primary/15 text-primary" : "bg-muted/20 text-muted-foreground/30"
-                  )}>
-                    {tab.count}
-                  </span>
-                )}
+              <button onClick={onClose} className="text-muted-foreground/50 hover:text-foreground transition-colors p-1">
+                <X className="w-4 h-4" />
               </button>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* Tab content — scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
-          <div className="max-w-2xl mx-auto px-6 md:px-10 py-6">
-
-            {/* Content tab */}
-            {activeTab === "content" && (
-              <textarea
-                value={topic.content}
-                onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
-                placeholder="Escreva livremente aqui... Resumos, fórmulas, conceitos, ideias.&#10;&#10;Use como uma página do Notion para organizar todo o conteúdo deste tópico."
-                rows={14}
-                className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
-              />
+          {/* Title + progress */}
+          <div className="px-6 md:px-10 pt-6 pb-2 space-y-2 shrink-0">
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onBlur={saveTitle}
+              className="text-2xl md:text-3xl font-display font-bold text-foreground bg-transparent w-full focus:outline-none placeholder:text-muted-foreground/20 leading-tight"
+              placeholder="Título do tópico..."
+            />
+            {topic.tasks.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary/50 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${tasksProgress}%` }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                  {tasksDone}/{topic.tasks.length}
+                </span>
+              </div>
             )}
+          </div>
 
-            {/* Tasks tab */}
-            {activeTab === "tasks" && (
-              <div className="space-y-1">
-                {topic.tasks.map(tk => (
-                  <div key={tk.id} className="flex items-start gap-3 group py-1.5 px-2 rounded-lg hover:bg-muted/10 transition-all">
-                    <button onClick={() => toggleTask(tk.id)}
-                      className={cn("w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
-                        tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
-                      )}>
-                      {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
-                    </button>
-                    <span className={cn("text-sm font-mono flex-1 leading-relaxed", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
-                      {tk.text}
+          {/* Tabs navigation */}
+          <div className="px-6 md:px-10 shrink-0">
+            <div className="flex gap-1 border-b border-border/20 pb-px">
+              {tabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    "relative flex items-center gap-1.5 px-3 py-2 text-[11px] font-mono uppercase tracking-wider rounded-t-lg transition-all",
+                    activeTab === tab.key
+                      ? "text-primary"
+                      : "text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/10"
+                  )}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full",
+                      activeTab === tab.key ? "bg-primary/15 text-primary" : "bg-muted/20 text-muted-foreground/30"
+                    )}>
+                      {tab.count}
                     </span>
-                    <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all shrink-0 mt-0.5">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-
-                <div className="flex gap-2 pt-2">
-                  <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
-                    placeholder="+ Adicionar subtarefa..."
-                    className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
-                </div>
-
-                {topic.tasks.length === 0 && (
-                  <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-6">
-                    Nenhuma subtarefa ainda. Adicione acima.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Notes tab */}
-            {activeTab === "notes" && (
-              <div className="space-y-2">
-                {topic.notes.map(n => (
-                  <div key={n.id} className="group relative bg-muted/10 border border-border/15 rounded-xl px-4 py-3">
-                    <textarea
-                      value={n.text}
-                      onChange={e => updateNote(n.id, e.target.value)}
-                      rows={2}
-                      className="w-full bg-transparent text-sm font-mono text-foreground/80 focus:outline-none resize-none leading-relaxed placeholder:text-muted-foreground/20"
+                  )}
+                  {activeTab === tab.key && (
+                    <motion.div
+                      layoutId="topic-tab-indicator"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
-                    <button onClick={() => deleteNote(n.id)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-
-                <div className="flex gap-2">
-                  <input value={newNote} onChange={e => setNewNote(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && addNote()}
-                    placeholder="+ Adicionar nota..."
-                    className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
-                </div>
-
-                {topic.notes.length === 0 && (
-                  <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-6">
-                    Nenhuma nota ainda. Adicione acima.
-                  </p>
-                )}
-              </div>
-            )}
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="border-t border-border/20 px-5 py-2.5 flex items-center justify-between shrink-0">
-          <button
-            onClick={() => { onDelete(); onClose(); }}
-            className="text-[11px] font-mono text-destructive/40 hover:text-destructive transition-colors flex items-center gap-1.5"
-          >
-            <Trash2 className="w-3 h-3" /> excluir tópico
-          </button>
-          <span className="text-[10px] font-mono text-muted-foreground/25">
-            id: {topic.id.slice(0, 8)}
-          </span>
-        </div>
-      </div>
-    </div>,
+          {/* Tab content — scrollable */}
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                className="max-w-2xl mx-auto px-6 md:px-10 py-6"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+
+                {/* Content tab */}
+                {activeTab === "content" && (
+                  <textarea
+                    value={topic.content}
+                    onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
+                    placeholder="Escreva livremente aqui... Resumos, fórmulas, conceitos, ideias.&#10;&#10;Use como uma página do Notion para organizar todo o conteúdo deste tópico."
+                    rows={14}
+                    className="w-full bg-transparent text-sm font-mono text-foreground/90 placeholder:text-muted-foreground/20 focus:outline-none resize-none leading-relaxed"
+                  />
+                )}
+
+                {/* Tasks tab */}
+                {activeTab === "tasks" && (
+                  <div className="space-y-3">
+                    {/* Filter pills */}
+                    <div className="flex gap-1.5 flex-wrap">
+                      {(["all", "todo", "in_progress", "done"] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => setTaskFilter(f)}
+                          className={cn("text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all",
+                            taskFilter === f
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border/20 text-muted-foreground/40 hover:text-muted-foreground/70"
+                          )}
+                        >
+                          {f === "all" ? "Todas" : statusLabels[f]}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Task list */}
+                    <div className="space-y-1">
+                      {filteredTasks.map(tk => (
+                        <motion.div
+                          key={tk.id}
+                          layout
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 10 }}
+                          className="group rounded-lg hover:bg-muted/10 transition-all px-2 py-2"
+                        >
+                          <div className="flex items-start gap-3">
+                            <button onClick={() => toggleTask(tk.id)}
+                              className={cn("w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
+                                tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
+                              )}>
+                              {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+                            </button>
+                            <span className={cn("text-sm font-mono flex-1 leading-relaxed", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
+                              {tk.text}
+                            </span>
+                            <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all shrink-0 mt-0.5">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Task meta row */}
+                          <div className="flex items-center gap-2 mt-1.5 ml-7 flex-wrap">
+                            {/* Status selector */}
+                            <select
+                              value={tk.status}
+                              onChange={e => updateTaskStatus(tk.id, e.target.value as TopicTask["status"])}
+                              className={cn("text-[9px] font-mono px-2 py-0.5 rounded-full border appearance-none cursor-pointer bg-transparent", statusColors[tk.status])}
+                            >
+                              <option value="todo">A fazer</option>
+                              <option value="in_progress">Fazendo</option>
+                              <option value="done">Concluída</option>
+                            </select>
+
+                            {/* Priority selector */}
+                            <select
+                              value={tk.importance}
+                              onChange={e => updateTaskImportance(tk.id, e.target.value as TopicTask["importance"])}
+                              className={cn("text-[9px] font-mono px-2 py-0.5 rounded-full border appearance-none cursor-pointer bg-transparent", importanceColors[tk.importance])}
+                            >
+                              <option value="low">🟢 Baixa</option>
+                              <option value="medium">🟡 Média</option>
+                              <option value="high">🔴 Alta</option>
+                            </select>
+
+                            {/* Due date */}
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-muted-foreground/30" />
+                              <input
+                                type="date"
+                                value={tk.dueDate || ""}
+                                onChange={e => updateTaskDueDate(tk.id, e.target.value)}
+                                className="text-[9px] font-mono bg-transparent text-muted-foreground/50 focus:outline-none border-none cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Add task */}
+                    <div className="flex gap-2 pt-1">
+                      <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
+                        placeholder="+ Adicionar subtarefa..."
+                        className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
+                    </div>
+
+                    {filteredTasks.length === 0 && (
+                      <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-6">
+                        {taskFilter === "all" ? "Nenhuma subtarefa ainda." : `Nenhuma subtarefa "${statusLabels[taskFilter]}".`}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Notes tab */}
+                {activeTab === "notes" && (
+                  <div className="space-y-4">
+                    {/* Folder navigation */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Root button */}
+                        <button
+                          onClick={() => setActiveFolder(null)}
+                          className={cn("flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all",
+                            activeFolder === null
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border/20 text-muted-foreground/40 hover:text-muted-foreground/70"
+                          )}
+                        >
+                          <FileText className="w-3 h-3" /> Raiz
+                        </button>
+
+                        {/* Folder pills */}
+                        {folders.map(f => (
+                          <div key={f.id} className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => setActiveFolder(f.id)}
+                              className={cn("flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-l-full border transition-all",
+                                activeFolder === f.id
+                                  ? "border-primary/40 bg-primary/10 text-primary"
+                                  : "border-border/20 text-muted-foreground/40 hover:text-muted-foreground/70"
+                              )}
+                            >
+                              <FolderOpen className="w-3 h-3" /> {f.name}
+                            </button>
+                            <button
+                              onClick={() => deleteFolder(f.id)}
+                              className="text-[10px] px-1.5 py-1 rounded-r-full border border-l-0 border-border/20 text-muted-foreground/20 hover:text-destructive hover:border-destructive/30 transition-all"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* New folder */}
+                        {creatingFolder ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              value={newFolder}
+                              onChange={e => setNewFolder(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") addFolder(); if (e.key === "Escape") setCreatingFolder(false); }}
+                              autoFocus
+                              placeholder="Nome..."
+                              className="text-[10px] font-mono bg-transparent border border-primary/30 rounded px-2 py-0.5 w-24 focus:outline-none text-foreground"
+                            />
+                            <button onClick={addFolder} className="text-primary/60 hover:text-primary"><Check className="w-3 h-3" /></button>
+                            <button onClick={() => setCreatingFolder(false)} className="text-muted-foreground/30 hover:text-foreground"><X className="w-3 h-3" /></button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setCreatingFolder(true)}
+                            className="flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-full border border-dashed border-border/30 text-muted-foreground/30 hover:text-primary/60 hover:border-primary/30 transition-all"
+                          >
+                            <FolderPlus className="w-3 h-3" /> Nova pasta
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Notes list */}
+                    <div className="space-y-2">
+                      {currentNotes.map(n => (
+                        <motion.div
+                          key={n.id}
+                          layout
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="group relative bg-muted/10 border border-border/15 rounded-xl px-4 py-3"
+                        >
+                          <textarea
+                            value={n.text}
+                            onChange={e => updateNote(n.id, e.target.value)}
+                            rows={2}
+                            className="w-full bg-transparent text-sm font-mono text-foreground/80 focus:outline-none resize-none leading-relaxed placeholder:text-muted-foreground/20"
+                          />
+                          <button onClick={() => deleteNote(n.id)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      ))}
+
+                      <div className="flex gap-2">
+                        <input value={newNote} onChange={e => setNewNote(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && addNote()}
+                          placeholder={`+ Adicionar nota${activeFolder ? " nesta pasta" : ""}...`}
+                          className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none px-2 py-1.5 border-b border-transparent focus:border-primary/20 transition-colors" />
+                      </div>
+
+                      {currentNotes.length === 0 && (
+                        <p className="text-[11px] font-mono text-muted-foreground/25 text-center py-6">
+                          {activeFolder ? "Nenhuma nota nesta pasta." : "Nenhuma nota ainda."}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-border/20 px-5 py-2.5 flex items-center justify-between shrink-0">
+            <button
+              onClick={() => { onDelete(); onClose(); }}
+              className="text-[11px] font-mono text-destructive/40 hover:text-destructive transition-colors flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3 h-3" /> excluir tópico
+            </button>
+            <span className="text-[10px] font-mono text-muted-foreground/25">
+              id: {topic.id.slice(0, 8)}
+            </span>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>,
     document.body
   );
 };
