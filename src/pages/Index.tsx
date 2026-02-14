@@ -16,6 +16,7 @@ import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
 import { TaskDetailDialog, type Task, type TaskStatus } from "@/components/TaskDetailDialog";
 import { LofiPlayer } from "@/components/LofiPlayer";
+import { StudyTab } from "@/components/StudyTab";
 import { format, isToday, isTomorrow, isPast, parseISO, addDays, subDays, startOfDay, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -742,21 +743,13 @@ const Index = () => {
                         )}
                       </div>
                     </>
+                  ) : workspaceTab === "study" ? (
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-4">
+                      <StudyTab />
+                    </div>
                   ) : (
                     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-4">
                       <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
-                        {workspaceTab === "study" && (
-                          <>
-                            <BookOpen className="w-10 h-10 text-primary/30" />
-                            <h3 className="text-lg font-display font-bold text-foreground">Área de Estudo</h3>
-                            <p className="text-sm text-muted-foreground/50 font-mono text-center max-w-xs">
-                              Organize seus materiais de estudo, links, resumos e flashcards.
-                            </p>
-                            <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-3 py-1 rounded-lg">
-                              // em breve
-                            </span>
-                          </>
-                        )}
                         {workspaceTab === "diary" && (
                           <>
                             <PenLine className="w-10 h-10 text-primary/30" />
