@@ -313,21 +313,27 @@ const Index = () => {
         </div>
         <div className="hidden sm:flex items-center gap-1.5">
           <span className={cn(
-            "flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
-            isDone ? "bg-success/10 border-success/20 text-success" :
-            isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
-            "bg-accent/10 border-accent/20 text-accent"
-          )}>
-            {isInProgress && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
-          </span>
-          <span className={cn(
-            "flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
+            "inline-flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-md border transition-colors",
             task.importance === "alta" ? "bg-urgent/10 border-urgent/20 text-urgent" :
             task.importance === "média" ? "bg-accent/10 border-accent/20 text-accent" :
-            "bg-success/10 border-success/20 text-success"
+            "bg-muted/30 border-border/20 text-muted-foreground/60"
           )}>
-            {task.importance === "alta" ? "🔴 Alta" : task.importance === "média" ? "🟡 Média" : "🟢 Baixa"}
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full shrink-0",
+              task.importance === "alta" ? "bg-urgent" :
+              task.importance === "média" ? "bg-accent" :
+              "bg-muted-foreground/40"
+            )} />
+            {task.importance === "alta" ? "Alta" : task.importance === "média" ? "Média" : "Baixa"}
+          </span>
+          <span className={cn(
+            "inline-flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-md border transition-colors",
+            isDone ? "bg-success/10 border-success/20 text-success" :
+            isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
+            "bg-muted/30 border-border/20 text-muted-foreground/50"
+          )}>
+            {isInProgress && <Loader2 className="w-3 h-3 animate-spin" />}
+            {isDone ? "✓ Concluída" : isInProgress ? "Em progresso" : "A fazer"}
           </span>
         </div>
         <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
