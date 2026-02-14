@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { LogIn, UserPlus, Hash, User, Lock, Terminal, ChevronRight } from "lucide-react";
-import pixelCharacter from "@/assets/pixel-blue-hair.png";
+import pixelCharacter from "@/assets/indie-blue-char.png";
 
 const Auth = () => {
   const navigate = useNavigate();
