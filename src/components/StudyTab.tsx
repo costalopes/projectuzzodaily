@@ -2,9 +2,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   BookOpen, Plus, ArrowLeft, Link2, Trash2, Check, X,
   Timer, Layers, ListChecks, ExternalLink, Play, Pause,
-  RotateCcw, ChevronRight, ImageIcon, GripVertical
+  RotateCcw, ChevronRight, HelpCircle, Shuffle, ThumbsUp,
+  ThumbsDown, FileText, ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -12,6 +14,8 @@ interface Flashcard {
   id: string;
   front: string;
   back: string;
+  correct: number;
+  incorrect: number;
 }
 
 interface StudyLink {
@@ -20,10 +24,24 @@ interface StudyLink {
   url: string;
 }
 
+interface TopicNote {
+  id: string;
+  text: string;
+}
+
+interface TopicTask {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 interface Topic {
   id: string;
   text: string;
   done: boolean;
+  notes: TopicNote[];
+  tasks: TopicTask[];
+  content: string; // rich text content like a page
 }
 
 interface StudySession {
@@ -34,7 +52,7 @@ interface StudySession {
 interface Subject {
   id: string;
   name: string;
-  cover: string; // gradient class or emoji
+  cover: string;
   emoji: string;
   flashcards: Flashcard[];
   links: StudyLink[];
@@ -58,15 +76,8 @@ const COVER_PRESETS = [
 const EMOJI_PRESETS = ["📚", "💻", "🧮", "🎨", "🔬", "📐", "🌍", "🧠", "⚡", "🎯"];
 
 const uid = () => Math.random().toString(36).slice(2, 10);
-
 const LS_KEY = "pixel-planner-study";
-
-const loadSubjects = (): Subject[] => {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-  } catch { return []; }
-};
-
+const loadSubjects = (): Subject[] => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } };
 const saveSubjects = (s: Subject[]) => localStorage.setItem(LS_KEY, JSON.stringify(s));
 
 const formatTime = (s: number) => {
@@ -83,6 +94,23 @@ const formatTotal = (s: number) => {
   if (h > 0) return `${h}h ${m}m`;
   return `${m}min`;
 };
+
+// ── Help Tooltip ───────────────────────────────────────────────
+
+const HelpTip = ({ text }: { text: string }) => (
+  <TooltipProvider delayDuration={200}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button className="text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors">
+          <HelpCircle className="w-3.5 h-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px] text-xs font-mono bg-card border-border z-[120]">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 // ── Main Component ─────────────────────────────────────────────
 
@@ -120,13 +148,13 @@ export const StudyTab = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between px-1 pb-3">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-primary/60" />
           <span className="text-xs font-mono text-muted-foreground/60">
             {subjects.length} matéria{subjects.length !== 1 ? "s" : ""}
           </span>
+          <HelpTip text="Crie matérias como workspaces para organizar tópicos, flashcards, links e cronômetro de estudo." />
         </div>
         <button
           onClick={() => setCreating(true)}
@@ -136,7 +164,6 @@ export const StudyTab = () => {
         </button>
       </div>
 
-      {/* Create form */}
       {creating && (
         <CreateSubjectForm
           onSubmit={(s) => { setSubjects(prev => [s, ...prev]); setCreating(false); }}
@@ -144,7 +171,6 @@ export const StudyTab = () => {
         />
       )}
 
-      {/* Grid */}
       {subjects.length === 0 && !creating ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
           <BookOpen className="w-10 h-10 text-primary/20" />
@@ -155,36 +181,23 @@ export const StudyTab = () => {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pb-2">
           {subjects.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setActiveSubject(s.id)}
-              className="group relative rounded-xl border border-border/30 overflow-hidden hover:border-primary/30 transition-all text-left"
-            >
-              {/* Cover */}
+            <button key={s.id} onClick={() => setActiveSubject(s.id)}
+              className="group relative rounded-xl border border-border/30 overflow-hidden hover:border-primary/30 transition-all text-left">
               <div className={cn("h-20 bg-gradient-to-br flex items-center justify-center", s.cover)}>
                 <span className="text-3xl drop-shadow-lg">{s.emoji}</span>
               </div>
-              {/* Info */}
               <div className="p-3 bg-card/80 space-y-1">
                 <h4 className="text-sm font-display font-semibold text-foreground truncate">{s.name}</h4>
                 <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/50">
                   <span>{s.topics.length} tópicos</span>
                   <span>·</span>
                   <span>{s.flashcards.length} cards</span>
-                  {s.totalSeconds > 0 && (
-                    <>
-                      <span>·</span>
-                      <span className="text-primary/60">{formatTotal(s.totalSeconds)}</span>
-                    </>
-                  )}
+                  {s.totalSeconds > 0 && (<><span>·</span><span className="text-primary/60">{formatTotal(s.totalSeconds)}</span></>)}
                 </div>
-                {/* Progress bar */}
                 {s.topics.length > 0 && (
                   <div className="w-full h-1 bg-muted/30 rounded-full mt-1.5">
-                    <div
-                      className="h-full bg-primary/50 rounded-full transition-all"
-                      style={{ width: `${(s.topics.filter(t => t.done).length / s.topics.length) * 100}%` }}
-                    />
+                    <div className="h-full bg-primary/50 rounded-full transition-all"
+                      style={{ width: `${(s.topics.filter(t => t.done).length / s.topics.length) * 100}%` }} />
                   </div>
                 )}
               </div>
@@ -206,68 +219,43 @@ const CreateSubjectForm = ({ onSubmit, onCancel }: { onSubmit: (s: Subject) => v
   const handleSubmit = () => {
     if (!name.trim()) return;
     onSubmit({
-      id: uid(),
-      name: name.trim(),
-      cover,
-      emoji,
-      flashcards: [],
-      links: [],
-      topics: [],
-      sessions: [],
-      totalSeconds: 0,
-      createdAt: new Date().toISOString(),
+      id: uid(), name: name.trim(), cover, emoji,
+      flashcards: [], links: [], topics: [], sessions: [],
+      totalSeconds: 0, createdAt: new Date().toISOString(),
     });
   };
 
   return (
     <div className="bg-muted/20 border border-border/30 rounded-xl p-4 mb-3 space-y-3 animate-fade-in">
-      <input
-        value={name}
-        onChange={e => setName(e.target.value)}
-        onKeyDown={e => e.key === "Enter" && handleSubmit()}
-        placeholder="Nome da matéria..."
-        autoFocus
-        className="w-full bg-transparent text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/30 focus:outline-none border-b border-border/20 pb-2"
-      />
-      {/* Emoji picker */}
+      <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()}
+        placeholder="Nome da matéria..." autoFocus
+        className="w-full bg-transparent text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/30 focus:outline-none border-b border-border/20 pb-2" />
       <div className="space-y-1.5">
         <label className="text-[10px] font-mono text-muted-foreground/50 uppercase">ícone</label>
         <div className="flex flex-wrap gap-1.5">
           {EMOJI_PRESETS.map(e => (
-            <button
-              key={e}
-              onClick={() => setEmoji(e)}
+            <button key={e} onClick={() => setEmoji(e)}
               className={cn("w-8 h-8 rounded-lg text-lg flex items-center justify-center transition-all border",
                 emoji === e ? "bg-primary/10 border-primary/30 scale-110" : "border-border/20 hover:bg-muted/30"
-              )}
-            >{e}</button>
+              )}>{e}</button>
           ))}
         </div>
       </div>
-      {/* Cover picker */}
       <div className="space-y-1.5">
         <label className="text-[10px] font-mono text-muted-foreground/50 uppercase">capa</label>
         <div className="flex gap-1.5">
           {COVER_PRESETS.map(c => (
-            <button
-              key={c}
-              onClick={() => setCover(c)}
-              className={cn("w-8 h-8 rounded-lg bg-gradient-to-br transition-all border-2",
-                c,
+            <button key={c} onClick={() => setCover(c)}
+              className={cn("w-8 h-8 rounded-lg bg-gradient-to-br transition-all border-2", c,
                 cover === c ? "border-primary scale-110" : "border-transparent"
-              )}
-            />
+              )} />
           ))}
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-1">
-        <button onClick={onCancel} className="text-xs font-mono text-muted-foreground/50 hover:text-foreground transition-colors px-3 py-1.5">
-          cancelar
-        </button>
+        <button onClick={onCancel} className="text-xs font-mono text-muted-foreground/50 hover:text-foreground transition-colors px-3 py-1.5">cancelar</button>
         <button onClick={handleSubmit} disabled={!name.trim()}
-          className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-4 py-1.5 hover:bg-primary/20 transition-all disabled:opacity-30">
-          criar
-        </button>
+          className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-4 py-1.5 hover:bg-primary/20 transition-all disabled:opacity-30">criar</button>
       </div>
     </div>
   );
@@ -297,7 +285,6 @@ const SubjectDetail = ({ subject, view, onViewChange, onBack, onUpdate, onDelete
 
   return (
     <div className="h-full flex flex-col">
-      {/* Cover + back */}
       <div className={cn("relative h-16 bg-gradient-to-br rounded-xl mb-3 flex items-center px-4 shrink-0", subject.cover)}>
         <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-mono text-foreground/80 hover:text-foreground bg-card/40 backdrop-blur-sm rounded-lg px-2.5 py-1.5 transition-all">
           <ArrowLeft className="w-3.5 h-3.5" /> voltar
@@ -306,39 +293,25 @@ const SubjectDetail = ({ subject, view, onViewChange, onBack, onUpdate, onDelete
           <span className="text-2xl">{subject.emoji}</span>
           <div className="text-right">
             <h3 className="text-sm font-display font-bold text-foreground">{subject.name}</h3>
-            <span className="text-[10px] font-mono text-foreground/60">
-              {progress}% · {formatTotal(subject.totalSeconds)} estudados
-            </span>
+            <span className="text-[10px] font-mono text-foreground/60">{progress}% · {formatTotal(subject.totalSeconds)} estudados</span>
           </div>
         </div>
       </div>
 
-      {/* View tabs */}
       <div className="flex gap-1 mb-3 shrink-0">
         {VIEW_TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => onViewChange(t.id)}
-            className={cn(
-              "flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border transition-all",
-              view === t.id
-                ? "bg-primary/10 border-primary/20 text-primary"
-                : "border-border/20 text-muted-foreground/50 hover:bg-muted/20"
-            )}
-          >
-            <t.icon className="w-3.5 h-3.5" />
-            {t.label}
+          <button key={t.id} onClick={() => onViewChange(t.id)}
+            className={cn("flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border transition-all",
+              view === t.id ? "bg-primary/10 border-primary/20 text-primary" : "border-border/20 text-muted-foreground/50 hover:bg-muted/20"
+            )}>
+            <t.icon className="w-3.5 h-3.5" />{t.label}
           </button>
         ))}
-        <button
-          onClick={onDelete}
-          className="ml-auto text-[11px] font-mono text-destructive/50 hover:text-destructive transition-colors px-2"
-        >
+        <button onClick={onDelete} className="ml-auto text-[11px] font-mono text-destructive/50 hover:text-destructive transition-colors px-2">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
         {view === "topics" && <TopicsView subject={subject} onUpdate={onUpdate} />}
         {view === "flashcards" && <FlashcardsView subject={subject} onUpdate={onUpdate} />}
@@ -349,14 +322,15 @@ const SubjectDetail = ({ subject, view, onViewChange, onBack, onUpdate, onDelete
   );
 };
 
-// ── Topics View ────────────────────────────────────────────────
+// ── Topics View (Notion-like) ──────────────────────────────────
 
 const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s: Subject) => Subject) => void }) => {
   const [input, setInput] = useState("");
+  const [openTopic, setOpenTopic] = useState<string | null>(null);
 
   const addTopic = () => {
     if (!input.trim()) return;
-    onUpdate(s => ({ ...s, topics: [...s.topics, { id: uid(), text: input.trim(), done: false }] }));
+    onUpdate(s => ({ ...s, topics: [...s.topics, { id: uid(), text: input.trim(), done: false, notes: [], tasks: [], content: "" }] }));
     setInput("");
   };
 
@@ -366,34 +340,60 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
 
   const deleteTopic = (id: string) => {
     onUpdate(s => ({ ...s, topics: s.topics.filter(t => t.id !== id) }));
+    if (openTopic === id) setOpenTopic(null);
   };
 
+  const updateTopic = (id: string, updater: (t: Topic) => Topic) => {
+    onUpdate(s => ({ ...s, topics: s.topics.map(t => t.id === id ? updater(t) : t) }));
+  };
+
+  const opened = openTopic ? subject.topics.find(t => t.id === openTopic) : null;
+
+  if (opened) {
+    return <TopicPage topic={opened} onBack={() => setOpenTopic(null)} onUpdate={(u) => updateTopic(opened.id, u)} onDelete={() => deleteTopic(opened.id)} />;
+  }
+
   return (
-    <div className="space-y-2">
-      {subject.topics.map(t => (
-        <div key={t.id} className="flex items-center gap-2.5 group px-1 py-1.5">
-          <button onClick={() => toggleTopic(t.id)}
-            className={cn("w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
-              t.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
-            )}>
-            {t.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
-          </button>
-          <span className={cn("text-sm font-mono flex-1", t.done ? "line-through text-muted-foreground/40" : "text-foreground")}>
-            {t.text}
-          </span>
-          <button onClick={() => deleteTopic(t.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all">
-            <Trash2 className="w-3 h-3" />
-          </button>
-        </div>
-      ))}
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-[10px] font-mono text-muted-foreground/40 uppercase">
+          {subject.topics.filter(t => t.done).length}/{subject.topics.length} concluídos
+        </span>
+        <HelpTip text="Clique no nome de um tópico para abri-lo como uma página. Dentro, adicione anotações, subtarefas e conteúdo detalhado." />
+      </div>
+
+      {subject.topics.map(t => {
+        const hasContent = t.content || t.notes.length > 0 || t.tasks.length > 0;
+        return (
+          <div key={t.id} className="flex items-center gap-2 group rounded-lg hover:bg-muted/20 px-2 py-2 transition-all">
+            <button onClick={(e) => { e.stopPropagation(); toggleTopic(t.id); }}
+              className={cn("w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                t.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
+              )}>
+              {t.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+            </button>
+            <button onClick={() => setOpenTopic(t.id)} className="flex-1 text-left min-w-0 flex items-center gap-1.5">
+              <span className={cn("text-sm font-mono truncate", t.done ? "line-through text-muted-foreground/40" : "text-foreground hover:text-primary transition-colors")}>
+                {t.text}
+              </span>
+              {hasContent && <FileText className="w-3 h-3 text-muted-foreground/30 shrink-0" />}
+            </button>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              <button onClick={() => setOpenTopic(t.id)} className="text-muted-foreground/40 hover:text-primary transition-colors" title="Abrir página">
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => deleteTopic(t.id)} className="text-muted-foreground/40 hover:text-destructive transition-colors">
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
       <div className="flex gap-2 pt-1">
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && addTopic()}
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addTopic()}
           placeholder="Novo tópico..."
-          className="flex-1 bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30"
-        />
+          className="flex-1 bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-primary/30" />
         <button onClick={addTopic} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-3 hover:bg-primary/20 transition-all">
           <Plus className="w-4 h-4" />
         </button>
@@ -402,7 +402,149 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
   );
 };
 
-// ── Flashcards View ────────────────────────────────────────────
+// ── Topic Page (Notion-like detail) ────────────────────────────
+
+interface TopicPageProps {
+  topic: Topic;
+  onBack: () => void;
+  onUpdate: (updater: (t: Topic) => Topic) => void;
+  onDelete: () => void;
+}
+
+const TopicPage = ({ topic, onBack, onUpdate, onDelete }: TopicPageProps) => {
+  const [newTask, setNewTask] = useState("");
+  const [newNote, setNewNote] = useState("");
+
+  const addTask = () => {
+    if (!newTask.trim()) return;
+    onUpdate(t => ({ ...t, tasks: [...t.tasks, { id: uid(), text: newTask.trim(), done: false }] }));
+    setNewTask("");
+  };
+
+  const toggleTask = (id: string) => {
+    onUpdate(t => ({ ...t, tasks: t.tasks.map(tk => tk.id === id ? { ...tk, done: !tk.done } : tk) }));
+  };
+
+  const deleteTask = (id: string) => {
+    onUpdate(t => ({ ...t, tasks: t.tasks.filter(tk => tk.id !== id) }));
+  };
+
+  const addNote = () => {
+    if (!newNote.trim()) return;
+    onUpdate(t => ({ ...t, notes: [...t.notes, { id: uid(), text: newNote.trim() }] }));
+    setNewNote("");
+  };
+
+  const deleteNote = (id: string) => {
+    onUpdate(t => ({ ...t, notes: t.notes.filter(n => n.id !== id) }));
+  };
+
+  const tasksDone = topic.tasks.filter(t => t.done).length;
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-2 pb-2 border-b border-border/20">
+        <button onClick={onBack} className="text-muted-foreground/50 hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-display font-bold text-foreground truncate">{topic.text}</h3>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded border",
+              topic.done ? "bg-success/10 border-success/20 text-success" : "bg-muted/20 border-border/20 text-muted-foreground/50"
+            )}>
+              {topic.done ? "✓ concluído" : "pendente"}
+            </span>
+            {topic.tasks.length > 0 && (
+              <span className="text-[10px] font-mono text-muted-foreground/40">
+                {tasksDone}/{topic.tasks.length} subtarefas
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={onDelete} className="text-destructive/40 hover:text-destructive transition-colors">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Content / Description */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-mono text-muted-foreground/40 uppercase flex items-center gap-1">
+          <FileText className="w-3 h-3" /> conteúdo
+        </label>
+        <textarea
+          value={topic.content}
+          onChange={e => onUpdate(t => ({ ...t, content: e.target.value }))}
+          placeholder="Escreva anotações, resumos, fórmulas... Como uma página do Notion."
+          rows={4}
+          className="w-full bg-muted/10 border border-border/20 rounded-xl px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/20 resize-none"
+        />
+      </div>
+
+      {/* Subtasks */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-mono text-muted-foreground/40 uppercase flex items-center gap-1">
+          <ListChecks className="w-3 h-3" /> subtarefas ({topic.tasks.length})
+          <HelpTip text="Quebre o tópico em partes menores. Marque como feito ao completar cada uma." />
+        </label>
+
+        {topic.tasks.map(tk => (
+          <div key={tk.id} className="flex items-center gap-2 group px-1 py-1">
+            <button onClick={() => toggleTask(tk.id)}
+              className={cn("w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-all",
+                tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
+              )}>
+              {tk.done && <Check className="w-2 h-2 text-success-foreground" />}
+            </button>
+            <span className={cn("text-xs font-mono flex-1", tk.done ? "line-through text-muted-foreground/40" : "text-foreground")}>
+              {tk.text}
+            </span>
+            <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all">
+              <Trash2 className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        ))}
+
+        <div className="flex gap-2">
+          <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
+            placeholder="Nova subtarefa..."
+            className="flex-1 bg-muted/10 border border-border/20 rounded-lg px-3 py-1.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/20" />
+          <button onClick={addTask} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-2.5 hover:bg-primary/20 transition-all">
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-mono text-muted-foreground/40 uppercase flex items-center gap-1">
+          📌 notas rápidas ({topic.notes.length})
+        </label>
+
+        {topic.notes.map(n => (
+          <div key={n.id} className="flex items-start gap-2 bg-muted/10 rounded-lg px-3 py-2 group">
+            <p className="text-xs font-mono text-foreground/80 flex-1 whitespace-pre-wrap">{n.text}</p>
+            <button onClick={() => deleteNote(n.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all shrink-0">
+              <Trash2 className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        ))}
+
+        <div className="flex gap-2">
+          <input value={newNote} onChange={e => setNewNote(e.target.value)} onKeyDown={e => e.key === "Enter" && addNote()}
+            placeholder="Adicionar nota..."
+            className="flex-1 bg-muted/10 border border-border/20 rounded-lg px-3 py-1.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/20" />
+          <button onClick={addNote} className="bg-primary/10 text-primary border border-primary/20 rounded-lg px-2.5 hover:bg-primary/20 transition-all">
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Flashcards View (Enhanced) ─────────────────────────────────
 
 const FlashcardsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s: Subject) => Subject) => void }) => {
   const [creating, setCreating] = useState(false);
@@ -411,10 +553,13 @@ const FlashcardsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u:
   const [flipped, setFlipped] = useState<string | null>(null);
   const [studyMode, setStudyMode] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [shuffled, setShuffled] = useState<Flashcard[]>([]);
+  const [score, setScore] = useState({ correct: 0, incorrect: 0 });
+  const [showResult, setShowResult] = useState(false);
 
   const addCard = () => {
     if (!front.trim() || !back.trim()) return;
-    onUpdate(s => ({ ...s, flashcards: [...s.flashcards, { id: uid(), front: front.trim(), back: back.trim() }] }));
+    onUpdate(s => ({ ...s, flashcards: [...s.flashcards, { id: uid(), front: front.trim(), back: back.trim(), correct: 0, incorrect: 0 }] }));
     setFront(""); setBack(""); setCreating(false);
   };
 
@@ -422,72 +567,169 @@ const FlashcardsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u:
     onUpdate(s => ({ ...s, flashcards: s.flashcards.filter(c => c.id !== id) }));
   };
 
-  if (studyMode && subject.flashcards.length > 0) {
-    const card = subject.flashcards[currentIdx % subject.flashcards.length];
+  const startStudy = (shuffle: boolean) => {
+    const cards = shuffle ? [...subject.flashcards].sort(() => Math.random() - 0.5) : [...subject.flashcards];
+    setShuffled(cards);
+    setCurrentIdx(0);
+    setFlipped(null);
+    setScore({ correct: 0, incorrect: 0 });
+    setShowResult(false);
+    setStudyMode(true);
+  };
+
+  const markAnswer = (correct: boolean) => {
+    const card = shuffled[currentIdx];
+    // Update score in subject
+    onUpdate(s => ({
+      ...s,
+      flashcards: s.flashcards.map(c =>
+        c.id === card.id
+          ? { ...c, correct: c.correct + (correct ? 1 : 0), incorrect: c.incorrect + (correct ? 0 : 1) }
+          : c
+      )
+    }));
+    setScore(p => ({ correct: p.correct + (correct ? 1 : 0), incorrect: p.incorrect + (correct ? 0 : 1) }));
+
+    // Next card or show results
+    if (currentIdx + 1 >= shuffled.length) {
+      setShowResult(true);
+    } else {
+      setCurrentIdx(p => p + 1);
+      setFlipped(null);
+    }
+  };
+
+  if (studyMode && shuffled.length > 0) {
+    if (showResult) {
+      const total = score.correct + score.incorrect;
+      const pct = total > 0 ? Math.round((score.correct / total) * 100) : 0;
+      return (
+        <div className="flex flex-col items-center gap-5 py-6 animate-fade-in">
+          <span className="text-4xl">{pct >= 80 ? "🎉" : pct >= 50 ? "👍" : "📖"}</span>
+          <h3 className="text-lg font-display font-bold text-foreground">Sessão concluída!</h3>
+          <div className="flex items-center gap-6 text-sm font-mono">
+            <div className="text-center">
+              <span className="text-2xl font-bold text-success">{score.correct}</span>
+              <p className="text-[10px] text-muted-foreground/50">acertos</p>
+            </div>
+            <div className="text-center">
+              <span className="text-2xl font-bold text-destructive/70">{score.incorrect}</span>
+              <p className="text-[10px] text-muted-foreground/50">erros</p>
+            </div>
+            <div className="text-center">
+              <span className="text-2xl font-bold text-primary">{pct}%</span>
+              <p className="text-[10px] text-muted-foreground/50">aproveit.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={() => startStudy(true)} className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-4 py-2 hover:bg-primary/20 transition-all">
+              Estudar novamente
+            </button>
+            <button onClick={() => setStudyMode(false)} className="text-xs font-mono text-muted-foreground/50 border border-border/20 rounded-lg px-4 py-2 hover:bg-muted/20 transition-all">
+              Voltar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const card = shuffled[currentIdx];
     const isFlipped = flipped === card.id;
     return (
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className="flex items-center gap-3 w-full">
+      <div className="flex flex-col items-center gap-4 py-4 animate-fade-in">
+        <div className="flex items-center justify-between w-full">
           <button onClick={() => { setStudyMode(false); setFlipped(null); }} className="text-xs font-mono text-muted-foreground/50 hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <span className="text-[11px] font-mono text-muted-foreground/50">
-            {(currentIdx % subject.flashcards.length) + 1} / {subject.flashcards.length}
+            {currentIdx + 1} / {shuffled.length}
           </span>
+          <div className="flex items-center gap-2 text-[10px] font-mono">
+            <span className="text-success">{score.correct}✓</span>
+            <span className="text-destructive/60">{score.incorrect}✗</span>
+          </div>
         </div>
-        <button
-          onClick={() => setFlipped(isFlipped ? null : card.id)}
-          className="w-full min-h-[180px] bg-muted/20 border border-border/30 rounded-xl p-6 flex items-center justify-center transition-all hover:border-primary/20"
-        >
+
+        {/* Progress bar */}
+        <div className="w-full h-1 bg-muted/20 rounded-full">
+          <div className="h-full bg-primary/50 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / shuffled.length) * 100}%` }} />
+        </div>
+
+        <button onClick={() => setFlipped(isFlipped ? null : card.id)}
+          className={cn(
+            "w-full min-h-[180px] border rounded-xl p-6 flex items-center justify-center transition-all",
+            isFlipped ? "bg-primary/5 border-primary/20" : "bg-muted/20 border-border/30 hover:border-primary/20"
+          )}>
           <div className="text-center">
             <span className="text-[9px] font-mono text-muted-foreground/40 uppercase mb-2 block">
-              {isFlipped ? "resposta" : "pergunta"}
+              {isFlipped ? "resposta" : "pergunta"} · clique para virar
             </span>
             <p className="text-base font-mono text-foreground">{isFlipped ? card.back : card.front}</p>
           </div>
         </button>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setCurrentIdx(p => p - 1 < 0 ? subject.flashcards.length - 1 : p - 1); setFlipped(null); }}
-            className="text-xs font-mono text-muted-foreground/50 hover:text-foreground bg-muted/20 border border-border/20 rounded-lg px-4 py-2 transition-all"
-          >
-            ← anterior
-          </button>
-          <button
-            onClick={() => { setCurrentIdx(p => p + 1); setFlipped(null); }}
-            className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-4 py-2 hover:bg-primary/20 transition-all"
-          >
-            próximo →
-          </button>
-        </div>
+
+        {isFlipped ? (
+          <div className="flex items-center gap-3 w-full">
+            <button onClick={() => markAnswer(false)}
+              className="flex-1 flex items-center justify-center gap-2 text-xs font-mono py-2.5 rounded-lg border border-destructive/20 text-destructive/70 bg-destructive/5 hover:bg-destructive/10 transition-all">
+              <ThumbsDown className="w-3.5 h-3.5" /> Errei
+            </button>
+            <button onClick={() => markAnswer(true)}
+              className="flex-1 flex items-center justify-center gap-2 text-xs font-mono py-2.5 rounded-lg border border-success/20 text-success bg-success/5 hover:bg-success/10 transition-all">
+              <ThumbsUp className="w-3.5 h-3.5" /> Acertei
+            </button>
+          </div>
+        ) : (
+          <p className="text-[10px] font-mono text-muted-foreground/30">Toque no card para revelar a resposta</p>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-[10px] font-mono text-muted-foreground/40 uppercase">{subject.flashcards.length} cards</span>
+        <HelpTip text="Crie flashcards com pergunta e resposta. No modo estudo, vire os cards e marque se acertou ou errou. O sistema rastreia seu desempenho." />
+      </div>
+
       {subject.flashcards.length > 0 && (
-        <button
-          onClick={() => { setStudyMode(true); setCurrentIdx(0); setFlipped(null); }}
-          className="w-full flex items-center justify-center gap-2 text-xs font-mono text-primary bg-primary/5 border border-primary/10 rounded-lg py-2.5 hover:bg-primary/10 transition-all mb-2"
-        >
-          <Layers className="w-3.5 h-3.5" /> Estudar ({subject.flashcards.length} cards)
-        </button>
+        <div className="flex gap-2 mb-2">
+          <button onClick={() => startStudy(false)}
+            className="flex-1 flex items-center justify-center gap-2 text-xs font-mono text-primary bg-primary/5 border border-primary/10 rounded-lg py-2.5 hover:bg-primary/10 transition-all">
+            <Layers className="w-3.5 h-3.5" /> Estudar
+          </button>
+          <button onClick={() => startStudy(true)}
+            className="flex items-center justify-center gap-2 text-xs font-mono text-accent bg-accent/5 border border-accent/10 rounded-lg py-2.5 px-4 hover:bg-accent/10 transition-all">
+            <Shuffle className="w-3.5 h-3.5" /> Aleatório
+          </button>
+        </div>
       )}
 
-      {subject.flashcards.map(c => (
-        <div key={c.id} className="bg-muted/10 border border-border/20 rounded-lg px-3 py-2.5 group">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-mono text-foreground truncate">{c.front}</p>
-              <p className="text-[11px] font-mono text-muted-foreground/50 truncate mt-0.5">{c.back}</p>
+      {subject.flashcards.map(c => {
+        const total = c.correct + c.incorrect;
+        const pct = total > 0 ? Math.round((c.correct / total) * 100) : null;
+        return (
+          <div key={c.id} className="bg-muted/10 border border-border/20 rounded-lg px-3 py-2.5 group">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-mono text-foreground truncate">{c.front}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-[11px] font-mono text-muted-foreground/50 truncate">{c.back}</p>
+                  {pct !== null && (
+                    <span className={cn("text-[9px] font-mono shrink-0", pct >= 80 ? "text-success/60" : pct >= 50 ? "text-accent/60" : "text-destructive/50")}>
+                      {pct}% ({total}x)
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => deleteCard(c.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all shrink-0 mt-0.5">
+                <Trash2 className="w-3 h-3" />
+              </button>
             </div>
-            <button onClick={() => deleteCard(c.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all shrink-0 mt-0.5">
-              <Trash2 className="w-3 h-3" />
-            </button>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {creating ? (
         <div className="bg-muted/20 border border-border/30 rounded-xl p-3 space-y-2 animate-fade-in">
@@ -499,9 +741,7 @@ const FlashcardsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u:
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={() => setCreating(false)} className="text-xs font-mono text-muted-foreground/50 px-2">cancelar</button>
             <button onClick={addCard} disabled={!front.trim() || !back.trim()}
-              className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-1 disabled:opacity-30">
-              salvar
-            </button>
+              className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-1 disabled:opacity-30">salvar</button>
           </div>
         </div>
       ) : (
@@ -523,10 +763,7 @@ const LinksView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s: 
 
   const addLink = () => {
     if (!url.trim()) return;
-    onUpdate(s => ({
-      ...s,
-      links: [...s.links, { id: uid(), title: title.trim() || url.trim(), url: url.trim() }]
-    }));
+    onUpdate(s => ({ ...s, links: [...s.links, { id: uid(), title: title.trim() || url.trim(), url: url.trim() }] }));
     setTitle(""); setUrl(""); setAdding(false);
   };
 
@@ -536,6 +773,11 @@ const LinksView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s: 
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-[10px] font-mono text-muted-foreground/40 uppercase">{subject.links.length} links</span>
+        <HelpTip text="Salve links de materiais de estudo, vídeos, artigos e documentações para consulta rápida." />
+      </div>
+
       {subject.links.map(l => (
         <div key={l.id} className="flex items-center gap-2.5 bg-muted/10 border border-border/20 rounded-lg px-3 py-2.5 group">
           <Link2 className="w-3.5 h-3.5 text-primary/50 shrink-0" />
@@ -563,9 +805,7 @@ const LinksView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s: 
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={() => setAdding(false)} className="text-xs font-mono text-muted-foreground/50 px-2">cancelar</button>
             <button onClick={addLink} disabled={!url.trim()}
-              className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-1 disabled:opacity-30">
-              salvar
-            </button>
+              className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-1 disabled:opacity-30">salvar</button>
           </div>
         </div>
       ) : (
@@ -607,45 +847,34 @@ const StudyTimerView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u:
     }
   };
 
-  const handleReset = () => {
-    setRunning(false);
-    setElapsed(0);
-  };
+  const handleReset = () => { setRunning(false); setElapsed(0); };
 
   return (
     <div className="flex flex-col items-center gap-6 py-6">
-      {/* Timer display */}
+      <div className="flex items-center gap-1.5 self-end">
+        <HelpTip text="Cronômetro dedicado para esta matéria. O tempo é salvo automaticamente ao parar. Veja seu histórico de sessões abaixo." />
+      </div>
+
       <div className="relative">
         <div className="w-40 h-40 rounded-full border-2 border-border/30 flex items-center justify-center relative">
-          {running && (
-            <div className="absolute inset-0 rounded-full border-2 border-primary/40 animate-pulse" />
-          )}
-          <span className="text-3xl font-mono font-bold text-foreground tracking-wider">
-            {formatTime(elapsed)}
-          </span>
+          {running && <div className="absolute inset-0 rounded-full border-2 border-primary/40 animate-pulse" />}
+          <span className="text-3xl font-mono font-bold text-foreground tracking-wider">{formatTime(elapsed)}</span>
         </div>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center gap-3">
         <button onClick={handleReset} className="w-10 h-10 rounded-full border border-border/30 flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all">
           <RotateCcw className="w-4 h-4" />
         </button>
-        <button
-          onClick={() => running ? handleStop() : setRunning(true)}
-          className={cn(
-            "w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg",
-            running
-              ? "bg-destructive/80 hover:bg-destructive text-destructive-foreground"
-              : "bg-primary hover:bg-primary/90 text-primary-foreground"
-          )}
-        >
+        <button onClick={() => running ? handleStop() : setRunning(true)}
+          className={cn("w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg",
+            running ? "bg-destructive/80 hover:bg-destructive text-destructive-foreground" : "bg-primary hover:bg-primary/90 text-primary-foreground"
+          )}>
           {running ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
         </button>
-        <div className="w-10 h-10" /> {/* spacer */}
+        <div className="w-10 h-10" />
       </div>
 
-      {/* Stats */}
       <div className="w-full space-y-2 pt-4 border-t border-border/20">
         <div className="flex justify-between text-xs font-mono">
           <span className="text-muted-foreground/50">Total estudado</span>
