@@ -23,87 +23,110 @@ const MOODS = [
   { id: "excited", emoji: "🔥", label: "Animado" },
 ];
 
-const TreeSVG = ({ leafCount }: { leafCount: number }) => {
-  // Max 20 leaves displayed
-  const count = Math.min(leafCount, 20);
-  
-  // Pre-defined leaf spots on/near branches (x, y relative to viewBox 0 0 120 180)
-  const spots = [
-    // Top of trunk
-    { x: 60, y: 42 },
-    { x: 55, y: 48 },
-    { x: 65, y: 48 },
-    // Upper left branch
-    { x: 38, y: 52 },
-    { x: 32, y: 48 },
-    { x: 28, y: 55 },
-    // Upper right branch  
-    { x: 82, y: 52 },
-    { x: 88, y: 48 },
-    { x: 92, y: 55 },
-    // Middle left branch
-    { x: 25, y: 72 },
-    { x: 20, y: 68 },
-    { x: 18, y: 76 },
-    // Middle right branch
-    { x: 95, y: 72 },
-    { x: 100, y: 68 },
-    { x: 102, y: 76 },
-    // Lower left branch
-    { x: 35, y: 88 },
-    { x: 30, y: 92 },
-    // Lower right branch
-    { x: 85, y: 88 },
-    { x: 90, y: 92 },
-    // Extra center
-    { x: 60, y: 55 },
-  ];
+// Pixel art tree - same style as the pixel cat
+const TRUNK = "#6b4c2a";
+const TRUNK_DARK = "#5a3d1e";
+const TRUNK_LIGHT = "#7d5c38";
+const BRANCH = "#6b4c2a";
+const BRANCH_DARK = "#5a3d1e";
 
-  const colors = [
-    "#4ade80", "#22c55e", "#16a34a", "#86efac", 
-    "#34d399", "#10b981", "#a7f3d0", "#6ee7b7",
+const LEAF_SHADES = ["#2d8a4e", "#34a853", "#3cc25f", "#4ade80", "#22c55e", "#16a34a", "#28a745", "#45c76b"];
+const LEAF_HIGHLIGHT = "#6ee7b7";
+const LEAF_DARK_COLOR = "#1a7a3a";
+
+// Each leaf cluster is a small 3x3 pixel group placed at branch ends
+const leafCluster = (x: number, y: number, shade: number) => {
+  const c1 = LEAF_SHADES[shade % LEAF_SHADES.length];
+  const c2 = LEAF_SHADES[(shade + 1) % LEAF_SHADES.length];
+  const c3 = LEAF_SHADES[(shade + 2) % LEAF_SHADES.length];
+  return [
+    { x: x, y: y, c: LEAF_DARK_COLOR },
+    { x: x + 1, y: y, c: c1 },
+    { x: x + 2, y: y, c: c2 },
+    { x: x, y: y + 1, c: c2 },
+    { x: x + 1, y: y + 1, c: LEAF_HIGHLIGHT },
+    { x: x + 2, y: y + 1, c: c1 },
+    { x: x, y: y + 2, c: c3 },
+    { x: x + 1, y: y + 2, c: c1 },
+    { x: x + 2, y: y + 2, c: LEAF_DARK_COLOR },
   ];
+};
+
+// Pre-defined positions for leaf clusters at branch tips
+const CLUSTER_POSITIONS = [
+  // Top crown
+  { x: 14, y: 3 },
+  // Upper branches (near x=8..9 left, x=22..23 right at y=8..9)
+  { x: 7, y: 7 }, { x: 10, y: 5 },
+  { x: 21, y: 7 }, { x: 18, y: 5 },
+  // Fill canopy center
+  { x: 13, y: 6 }, { x: 16, y: 6 },
+  { x: 11, y: 9 }, { x: 17, y: 9 },
+  // Middle branches (near x=8..9 left, x=22..23 right at y=14..15)
+  { x: 7, y: 13 }, { x: 10, y: 11 },
+  { x: 21, y: 13 }, { x: 18, y: 11 },
+  // Lower branches (near x=10..11 left, x=20..21 right at y=21..22)
+  { x: 9, y: 19 }, { x: 11, y: 17 },
+  { x: 19, y: 19 }, { x: 17, y: 17 },
+  // Extra canopy fill
+  { x: 14, y: 10 }, { x: 13, y: 14 },
+];
+
+const TreeSVG = ({ leafCount }: { leafCount: number }) => {
+  const count = Math.min(leafCount, CLUSTER_POSITIONS.length);
+  const leafPixels = CLUSTER_POSITIONS.slice(0, count).flatMap((pos, i) =>
+    leafCluster(pos.x, pos.y, i)
+  );
 
   return (
     <div className="w-full h-full flex items-end justify-center pb-2">
-      <svg viewBox="0 0 120 180" className="w-full h-full max-h-[220px]" preserveAspectRatio="xMidYMax meet">
+      <svg viewBox="0 0 32 44" className="w-full h-full max-h-[220px]" preserveAspectRatio="xMidYMax meet" style={{ imageRendering: "pixelated" }}>
         {/* Trunk */}
-        <line x1="60" y1="165" x2="60" y2="60" stroke="hsl(30, 30%, 35%)" strokeWidth="5" strokeLinecap="round" />
-        
-        {/* Main branches */}
-        {/* Upper V */}
-        <line x1="60" y1="60" x2="35" y2="45" stroke="hsl(30, 30%, 38%)" strokeWidth="3" strokeLinecap="round" />
-        <line x1="60" y1="60" x2="85" y2="45" stroke="hsl(30, 30%, 38%)" strokeWidth="3" strokeLinecap="round" />
-        
-        {/* Middle branches */}
-        <line x1="60" y1="80" x2="25" y2="65" stroke="hsl(30, 30%, 36%)" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="60" y1="80" x2="95" y2="65" stroke="hsl(30, 30%, 36%)" strokeWidth="2.5" strokeLinecap="round" />
-        
-        {/* Lower branches */}
-        <line x1="60" y1="100" x2="35" y2="85" stroke="hsl(30, 30%, 34%)" strokeWidth="2" strokeLinecap="round" />
-        <line x1="60" y1="100" x2="85" y2="85" stroke="hsl(30, 30%, 34%)" strokeWidth="2" strokeLinecap="round" />
+        <rect x="15" y="14" width="1" height="26" fill={TRUNK} />
+        <rect x="16" y="14" width="1" height="26" fill={TRUNK_DARK} />
+        <rect x="15" y="16" width="1" height="1" fill={TRUNK_LIGHT} />
+        <rect x="15" y="22" width="1" height="1" fill={TRUNK_LIGHT} />
+        <rect x="15" y="28" width="1" height="1" fill={TRUNK_LIGHT} />
 
-        {/* Small sub-branches */}
-        <line x1="35" y1="45" x2="28" y2="50" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="85" y1="45" x2="92" y2="50" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="25" y1="65" x2="18" y2="70" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="95" y1="65" x2="102" y2="70" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
+        {/* Upper left branch */}
+        {[[14,14],[13,13],[12,12],[11,11],[10,10],[9,9],[8,8]].map(([bx,by],i) => (
+          <rect key={`ul${i}`} x={bx} y={by} width="1" height="1" fill={i%2===0 ? BRANCH : BRANCH_DARK} />
+        ))}
+        {/* Upper right branch */}
+        {[[17,14],[18,13],[19,12],[20,11],[21,10],[22,9],[23,8]].map(([bx,by],i) => (
+          <rect key={`ur${i}`} x={bx} y={by} width="1" height="1" fill={i%2===0 ? BRANCH : BRANCH_DARK} />
+        ))}
+        {/* Middle left branch */}
+        {[[14,20],[13,19],[12,18],[11,17],[10,16],[9,15],[8,14]].map(([bx,by],i) => (
+          <rect key={`ml${i}`} x={bx} y={by} width="1" height="1" fill={i%2===0 ? BRANCH : BRANCH_DARK} />
+        ))}
+        {/* Middle right branch */}
+        {[[17,20],[18,19],[19,18],[20,17],[21,16],[22,15],[23,14]].map(([bx,by],i) => (
+          <rect key={`mr${i}`} x={bx} y={by} width="1" height="1" fill={i%2===0 ? BRANCH : BRANCH_DARK} />
+        ))}
+        {/* Lower left branch */}
+        {[[14,25],[13,24],[12,23],[11,22],[10,21]].map(([bx,by],i) => (
+          <rect key={`ll${i}`} x={bx} y={by} width="1" height="1" fill={i%2===0 ? BRANCH : BRANCH_DARK} />
+        ))}
+        {/* Lower right branch */}
+        {[[17,25],[18,24],[19,23],[20,22],[21,21]].map(([bx,by],i) => (
+          <rect key={`lr${i}`} x={bx} y={by} width="1" height="1" fill={i%2===0 ? BRANCH : BRANCH_DARK} />
+        ))}
 
-        {/* Ground line */}
-        <ellipse cx="60" cy="168" rx="30" ry="3" fill="hsl(30, 20%, 25%)" opacity="0.3" />
+        {/* Roots */}
+        <rect x="13" y="40" width="1" height="1" fill={TRUNK_DARK} />
+        <rect x="14" y="40" width="1" height="1" fill={TRUNK} />
+        <rect x="17" y="40" width="1" height="1" fill={TRUNK} />
+        <rect x="18" y="40" width="1" height="1" fill={TRUNK_DARK} />
+        <rect x="12" y="41" width="1" height="1" fill={TRUNK_DARK} />
+        <rect x="19" y="41" width="1" height="1" fill={TRUNK_DARK} />
 
-        {/* Leaves - simple circles at branch tips */}
-        {spots.slice(0, count).map((spot, i) => (
-          <circle
-            key={i}
-            cx={spot.x}
-            cy={spot.y}
-            r="5"
-            fill={colors[i % colors.length]}
-            opacity="0.85"
-          >
-            <animate attributeName="opacity" from="0" to="0.85" dur="0.4s" begin={`${i * 0.08}s`} fill="freeze" />
-          </circle>
+        {/* Ground shadow */}
+        <rect x="10" y="42" width="12" height="1" fill="hsl(30, 20%, 20%)" opacity="0.2" />
+
+        {/* Leaves (pixel clusters) */}
+        {leafPixels.map((px, i) => (
+          <rect key={i} x={px.x} y={px.y} width="1" height="1" fill={px.c} />
         ))}
       </svg>
     </div>
