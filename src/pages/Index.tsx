@@ -20,6 +20,7 @@ import { format, isToday, isTomorrow, isPast, parseISO, addDays, subDays, startO
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import deskBanner from "@/assets/desk-banner.jpg";
 
 const getGreeting = () => {
@@ -450,27 +451,28 @@ const Index = () => {
                       <label className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60 mb-1.5">
                         <Globe className="w-3 h-3" /> Fuso horário
                       </label>
-                      <select
-                        value={profileData.timezone}
-                        onChange={(e) => handleTimezoneChange(e.target.value)}
-                        className="w-full bg-muted/30 border border-border/30 rounded-md px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
-                      >
-                        <option value="America/Sao_Paulo">São Paulo (BRT)</option>
-                        <option value="America/Manaus">Manaus (AMT)</option>
-                        <option value="America/Bahia">Bahia (BRT)</option>
-                        <option value="America/Noronha">Fernando de Noronha (FNT)</option>
-                        <option value="America/Rio_Branco">Rio Branco (ACT)</option>
-                        <option value="America/New_York">New York (EST)</option>
-                        <option value="America/Chicago">Chicago (CST)</option>
-                        <option value="America/Los_Angeles">Los Angeles (PST)</option>
-                        <option value="Europe/London">London (GMT)</option>
-                        <option value="Europe/Paris">Paris (CET)</option>
-                        <option value="Europe/Berlin">Berlin (CET)</option>
-                        <option value="Asia/Tokyo">Tokyo (JST)</option>
-                        <option value="Asia/Shanghai">Shanghai (CST)</option>
-                        <option value="Australia/Sydney">Sydney (AEST)</option>
-                        <option value="Pacific/Auckland">Auckland (NZST)</option>
-                      </select>
+                      <Select value={profileData.timezone} onValueChange={handleTimezoneChange}>
+                        <SelectTrigger className="w-full bg-card border border-border/30 rounded-md text-xs font-mono h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border border-border/50 z-[200]">
+                          <SelectItem value="America/Sao_Paulo">São Paulo (BRT)</SelectItem>
+                          <SelectItem value="America/Manaus">Manaus (AMT)</SelectItem>
+                          <SelectItem value="America/Bahia">Bahia (BRT)</SelectItem>
+                          <SelectItem value="America/Noronha">Fernando de Noronha (FNT)</SelectItem>
+                          <SelectItem value="America/Rio_Branco">Rio Branco (ACT)</SelectItem>
+                          <SelectItem value="America/New_York">New York (EST)</SelectItem>
+                          <SelectItem value="America/Chicago">Chicago (CST)</SelectItem>
+                          <SelectItem value="America/Los_Angeles">Los Angeles (PST)</SelectItem>
+                          <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                          <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                          <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
+                          <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                          <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                          <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
+                          <SelectItem value="Pacific/Auckland">Auckland (NZST)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <button onClick={async () => {
