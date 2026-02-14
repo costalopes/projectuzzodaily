@@ -234,7 +234,8 @@ const Index = () => {
     await supabase.from("tasks").delete().eq("id", id);
   };
 
-  const filteredTasks = tasks.filter((t) => t.status === filter);
+  const IMPORTANCE_ORDER: Record<string, number> = { alta: 0, média: 1, baixa: 2 };
+  const filteredTasks = tasks.filter((t) => t.status === filter).sort((a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]);
   const todoCount = tasks.filter(t => t.status === "todo").length;
   const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
 
