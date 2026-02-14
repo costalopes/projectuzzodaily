@@ -425,9 +425,9 @@ const Index = () => {
           </div>
         )}
 
-        {/* Scrollable main area */}
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
-          <div className="max-w-7xl mx-auto px-6 pt-2 pb-4 relative z-10 flex flex-col gap-3">
+        {/* Main area — fits viewport, no page scroll */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 pt-2 pb-4 relative z-10 flex flex-col gap-3 h-full">
 
             {/* Top bar — Notion-style */}
             <div className="flex items-center justify-between h-10 animate-fade-in shrink-0">
@@ -587,7 +587,7 @@ const Index = () => {
             </div>
 
             {/* Main grid: Tasks + Side panel — fills remaining space */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 flex-1 min-h-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 flex-1 min-h-0 overflow-hidden animate-fade-in" style={{ animationDelay: "80ms" }}>
 
               {/* Tasks — scrollable inside */}
               <div className="min-h-0">
@@ -838,8 +838,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Footer quote — compact */}
-            <div className="shrink-0 py-1">
+            {/* Footer quote — compact, hidden when space is tight */}
+            <div className="shrink-0 py-1 hidden xl:block">
               <CodeQuote />
             </div>
           </div>
