@@ -416,12 +416,15 @@ const Index = () => {
           </div>
         </div>
 
-        {/* BG Picker */}
+        {/* BG Picker Modal */}
         {showBgPicker && (
-          <div className="max-w-6xl mx-auto px-4 -mt-2 relative z-30">
-            <BackgroundPicker currentGradient={bgGradient} customBg={customBg}
-              onGradientChange={setBgGradient} onCustomBg={setCustomBg}
-              isOpen={showBgPicker} onClose={() => setShowBgPicker(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowBgPicker(false)}>
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+            <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
+              <BackgroundPicker currentGradient={bgGradient} customBg={customBg}
+                onGradientChange={setBgGradient} onCustomBg={setCustomBg}
+                isOpen={showBgPicker} onClose={() => setShowBgPicker(false)} />
+            </div>
           </div>
         )}
 
