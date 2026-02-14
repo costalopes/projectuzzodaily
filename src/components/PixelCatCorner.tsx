@@ -832,33 +832,6 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                 </div>
               </div>
 
-              {/* Full stats in settings */}
-              <div className="border-t border-border/20 pt-3 space-y-2">
-                <label className="text-[9px] font-mono text-muted-foreground/60 block">status completo</label>
-                {[
-                  { icon: Heart, label: "felicidade", val: happiness, cls: "text-destructive/70", bgCls: "bg-destructive/10" },
-                  { icon: Zap, label: "energia", val: energy, cls: "text-warning/70", bgCls: "bg-warning/10" },
-                  { icon: Cookie, label: "saciedade", val: hunger, cls: "text-accent/70", bgCls: "bg-accent/10" },
-                  { icon: Heart, label: "afeto", val: affection, cls: "text-pink-400/70", bgCls: "bg-pink-400/10" },
-                ].map(({ icon: Icon, label, val, cls, bgCls }) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <div className={cn("w-5 h-5 rounded-lg flex items-center justify-center", bgCls)}>
-                      <Icon className={cn("w-3 h-3", cls)} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[8px] font-mono text-muted-foreground/50">{label}</span>
-                        <span className="text-[9px] font-mono text-foreground/80 font-semibold">{Math.round(val)}%</span>
-                      </div>
-                      <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                        <motion.div className={cn("h-full rounded-full", statColor(val))}
-                          initial={false} animate={{ width: `${val}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
               {/* Level display */}
               <div className="border-t border-border/20 pt-3">
                 <div className="flex items-center justify-between mb-1">
