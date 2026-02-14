@@ -311,15 +311,25 @@ const Index = () => {
             )}
           </div>
         </div>
-        <span className={cn(
-          "hidden sm:flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
-          isDone ? "bg-success/10 border-success/20 text-success" :
-          isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
-          "bg-accent/10 border-accent/20 text-accent"
-        )}>
-          {isInProgress && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
-        </span>
+        <div className="hidden sm:flex items-center gap-1.5">
+          <span className={cn(
+            "flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
+            isDone ? "bg-success/10 border-success/20 text-success" :
+            isInProgress ? "bg-primary/10 border-primary/20 text-primary" :
+            "bg-accent/10 border-accent/20 text-accent"
+          )}>
+            {isInProgress && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {isDone ? "Concluída" : isInProgress ? "Em progresso" : "A fazer"}
+          </span>
+          <span className={cn(
+            "flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border",
+            task.importance === "alta" ? "bg-urgent/10 border-urgent/20 text-urgent" :
+            task.importance === "média" ? "bg-accent/10 border-accent/20 text-accent" :
+            "bg-success/10 border-success/20 text-success"
+          )}>
+            {task.importance === "alta" ? "🔴 Alta" : task.importance === "média" ? "🟡 Média" : "🟢 Baixa"}
+          </span>
+        </div>
         <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
           className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
           <Trash2 className="w-3.5 h-3.5" />
