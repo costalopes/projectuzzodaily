@@ -61,14 +61,8 @@ const Index = () => {
   const today = new Date();
   const dateStr = today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", text: "Revisar PR do frontend", status: "done", importance: "alta", description: "", notes: [], createdAt: "hoje", dueDate: new Date().toISOString() },
-    { id: "2", text: "Setup CI/CD pipeline", status: "todo", importance: "alta", description: "Configurar GitHub Actions para deploy automático", notes: [], createdAt: "hoje", dueDate: new Date(Date.now() + 86400000).toISOString() },
-    { id: "3", text: "Design system — tokens de cor", status: "done", importance: "média", description: "", notes: [], createdAt: "ontem" },
-    { id: "4", text: "Documentar API endpoints", status: "in_progress", importance: "média", description: "Swagger + exemplos de request/response", notes: ["[14:30] Iniciando pela rota de auth"], createdAt: "hoje", dueDate: new Date().toISOString() },
-    { id: "5", text: "Call com cliente às 15h", status: "todo", importance: "baixa", description: "", notes: [], createdAt: "hoje" },
-    { id: "6", text: "Refatorar hook useAuth", status: "in_progress", importance: "média", description: "", notes: [], createdAt: "ontem", dueDate: new Date(Date.now() + 172800000).toISOString() },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
 
   const [newTask, setNewTask] = useState("");
   const [showInput, setShowInput] = useState(false);
@@ -96,6 +90,29 @@ const Index = () => {
       if (data) setProfileData({ username: data.username, avatar_url: data.avatar_url, timezone: data.timezone ?? "America/Sao_Paulo" });
     };
     loadProfile();
+  }, []);
+
+  // Load tasks from database
+  useEffect(() => {
+    const loadTasks = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("tasks").select("*").eq("user_id", user.id).order("created_at", { ascending: true });
+      if (data) {
+        setTasks(data.map((t: any) => ({
+          id: t.id,
+          text: t.text,
+          status: t.status as TaskStatus,
+          importance: t.importance as Task["importance"],
+          description: t.description || "",
+          notes: t.notes || [],
+          createdAt: format(new Date(t.created_at), "dd/MM", { locale: ptBR }),
+          dueDate: t.due_date || undefined,
+        })));
+      }
+      setTasksLoaded(true);
+    };
+    loadTasks();
   }, []);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,40 +169,70 @@ const Index = () => {
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
   const streak = doneCount; // streak baseado em tarefas concluídas
 
-  const toggleTask = (id: string) => {
-    setTasks((p) => p.map((t) => {
-      if (t.id === id) {
-        const newStatus: TaskStatus = t.status === "done" ? "todo" : "done";
-        if (newStatus === "done") {
-          setTaskCompleted(true);
-          setTimeout(() => setTaskCompleted(false), 100);
-          emitCatEvent("task_complete");
-        }
-        return { ...t, status: newStatus };
-      }
-      return t;
-    }));
+  const toggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const newStatus: TaskStatus = task.status === "done" ? "todo" : "done";
+    if (newStatus === "done") {
+      setTaskCompleted(true);
+      setTimeout(() => setTaskCompleted(false), 100);
+      emitCatEvent("task_complete");
+    }
+    setTasks((p) => p.map((t) => t.id === id ? { ...t, status: newStatus } : t));
+    await supabase.from("tasks").update({ status: newStatus }).eq("id", id);
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTask.trim()) return;
-    const draft: Task = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, text: newTask.trim(), status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
-    setTasks((p) => [...p, draft]);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase.from("tasks").insert({
+      user_id: user.id,
+      text: newTask.trim(),
+      status: "todo",
+      importance: "média",
+      description: "",
+      notes: [],
+    }).select().single();
+    if (data && !error) {
+      setTasks((p) => [...p, {
+        id: data.id, text: data.text, status: data.status as TaskStatus,
+        importance: data.importance as Task["importance"], description: data.description || "",
+        notes: data.notes || [], createdAt: "agora", dueDate: data.due_date || undefined,
+      }]);
+    }
     setNewTask("");
     setShowInput(false);
   };
 
-  const startNewTask = () => {
-    const draft: Task = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, text: "", status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
-    setCreatingTask(draft);
+  const startNewTask = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase.from("tasks").insert({
+      user_id: user.id, text: "Nova tarefa", status: "todo", importance: "média", description: "", notes: [],
+    }).select().single();
+    if (data && !error) {
+      const draft: Task = {
+        id: data.id, text: "", status: "todo", importance: "média",
+        description: "", notes: [], createdAt: "agora",
+      };
+      setCreatingTask(draft);
+    }
   };
 
-  const updateTask = (updated: Task) => {
+  const updateTask = async (updated: Task) => {
     setTasks((p) => p.map((t) => t.id === updated.id ? updated : t));
     setSelectedTask(updated);
+    await supabase.from("tasks").update({
+      text: updated.text, status: updated.status, importance: updated.importance,
+      description: updated.description, notes: updated.notes, due_date: updated.dueDate || null,
+    }).eq("id", updated.id);
   };
 
-  const deleteTask = (id: string) => setTasks((p) => p.filter((t) => t.id !== id));
+  const deleteTask = async (id: string) => {
+    setTasks((p) => p.filter((t) => t.id !== id));
+    await supabase.from("tasks").delete().eq("id", id);
+  };
 
   const filteredTasks = tasks.filter((t) => t.status === filter);
   const todoCount = tasks.filter(t => t.status === "todo").length;
@@ -774,9 +821,9 @@ const Index = () => {
           onClose={() => { setSelectedTask(null); setCreatingTask(null); }}
           onUpdate={(t) => {
             if (creatingTask) {
-              // Adding new task
               if (t.text.trim()) {
-                setTasks((p) => [...p, t]);
+                updateTask({ ...t, text: t.text.trim() });
+                setTasks((p) => [...p, { ...t, text: t.text.trim() }]);
               }
               setCreatingTask(null);
             } else {
