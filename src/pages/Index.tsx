@@ -169,14 +169,14 @@ const Index = () => {
 
   const addTask = () => {
     if (!newTask.trim()) return;
-    const draft: Task = { id: Date.now().toString(), text: newTask.trim(), status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
+    const draft: Task = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, text: newTask.trim(), status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
     setTasks((p) => [...p, draft]);
     setNewTask("");
     setShowInput(false);
   };
 
   const startNewTask = () => {
-    const draft: Task = { id: Date.now().toString(), text: "", status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
+    const draft: Task = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, text: "", status: "todo", importance: "média", description: "", notes: [], createdAt: "agora" };
     setCreatingTask(draft);
   };
 
