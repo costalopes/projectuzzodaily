@@ -962,10 +962,16 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
                     </div>
 
                     {/* Add task */}
-                    <div className="pt-2">
-                      <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === "Enter" && addTask()}
+                    <div className="pt-2 flex gap-2">
+                      <input value={newTask} onChange={e => setNewTask(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTask(); } }}
                         placeholder="+ Adicionar subtarefa..."
-                        className="w-full bg-muted/5 border border-border/10 rounded-xl text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none focus:border-primary/20 px-4 py-2.5 transition-colors" />
+                        className="flex-1 bg-muted/5 border border-border/10 rounded-xl text-sm font-mono text-foreground placeholder:text-muted-foreground/20 focus:outline-none focus:border-primary/20 px-4 py-2.5 transition-colors" />
+                      {newTask.trim() && (
+                        <button onClick={addTask} className="px-3 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[11px] font-mono hover:bg-primary/20 transition-all shrink-0">
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
 
                     {filteredTasks.length === 0 && (
