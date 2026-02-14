@@ -218,7 +218,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
       if (i < msg.length) {
         setTypedMessage(msg.slice(0, i + 1));
         i++;
-        typingRef.current = setTimeout(typeChar, 25 + Math.random() * 35);
+        typingRef.current = setTimeout(typeChar, 65 + Math.random() * 75);
       } else {
         setIsTyping(false);
         typingRef.current = setTimeout(() => {
@@ -735,17 +735,17 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
             exit={{ opacity: 0, y: -8, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 500, damping: 25 }}
             className={cn(
-              "absolute -top-16 right-0 backdrop-blur-xl border rounded-2xl px-3.5 py-2.5 shadow-2xl max-w-[240px] z-20",
+              "absolute -top-20 right-0 backdrop-blur-xl border rounded-2xl px-4 py-3 shadow-2xl max-w-[300px] z-20",
               isAlert ? "bg-destructive/10 border-destructive/30 shadow-destructive/10" :
               mood === "love" ? "bg-destructive/5 border-destructive/20 shadow-destructive/10" :
               mood === "excited" ? "bg-accent/5 border-accent/20 shadow-accent/10" :
               "bg-card/95 border-border/40"
             )}
           >
-            <div className="flex items-start gap-1.5">
-              <span className="text-[10px] shrink-0 mt-0.5">{moodEmoji[mood] || "💬"}</span>
+            <div className="flex items-start gap-2">
+              <span className="text-sm shrink-0 mt-0.5">{moodEmoji[mood] || "💬"}</span>
               <div className="min-w-0">
-                <p className={cn("text-[10px] font-mono leading-relaxed break-words", isAlert ? "text-destructive" : "text-foreground/90")}>
+                <p className={cn("text-xs font-mono leading-relaxed break-words", isAlert ? "text-destructive" : "text-foreground/90")}>
                   {typedMessage}
                   {isTyping && <span className="animate-pulse text-primary ml-0.5">▍</span>}
                 </p>
@@ -882,7 +882,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
       </AnimatePresence>
 
       {/* Main cat card */}
-      <div className="bg-card/80 backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl overflow-hidden w-[168px]">
+      <div className="bg-card/80 backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl overflow-hidden w-[260px]">
         {/* Cat viewport */}
         <div className="relative px-2 pt-2">
           {hearts.map((id, i) => (
@@ -982,7 +982,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
             )}
             onAnimationEnd={(e) => { if (e.currentTarget === e.target) handleAnimationEnd(); }}
           >
-            <svg width="100" height="90" viewBox="0 0 44 40"
+            <svg width="160" height="145" viewBox="0 0 44 40"
               className="image-rendering-pixelated cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95"
               onClick={handlePet} onContextMenu={(e) => handleFeed(e)}
               role="button" aria-label={`Acariciar ${catName}`}>
@@ -1200,44 +1200,45 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
         </div>
 
         {/* Info bar */}
-        <div className="px-3 pb-2.5 pt-0.5">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[10px] font-mono font-semibold text-foreground/90 truncate">{catName}</span>
-              <span className="text-[9px]">{moodEmoji[mood] || "·"}</span>
+        <div className="px-4 pb-3 pt-1">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-mono font-semibold text-foreground/90 truncate">{catName}</span>
+              <span className="text-sm">{moodEmoji[mood] || "·"}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[7px] font-mono text-primary/50 bg-primary/10 rounded px-1">Lv.{level}</span>
-              <span className="text-[8px] font-mono text-muted-foreground/40 shrink-0">{moodLabel[mood] || mood}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono text-primary/60 bg-primary/10 rounded-md px-1.5 py-0.5">Lv.{level}</span>
+              <span className="text-[11px] font-mono text-muted-foreground/50 shrink-0">{moodLabel[mood] || mood}</span>
             </div>
           </div>
 
           {/* XP bar */}
-          <div className="h-[3px] bg-muted/20 rounded-full overflow-hidden mb-1.5">
+          <div className="h-1.5 bg-muted/20 rounded-full overflow-hidden mb-2.5">
             <motion.div className="h-full rounded-full bg-primary/60" initial={false}
               animate={{ width: `${xpPercent}%` }} transition={{ duration: 0.5 }} />
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-1 mb-2">
+          <div className="grid grid-cols-4 gap-2 mb-3">
             {[
-              { icon: "♡", val: happiness, color: statColor(happiness) },
-              { icon: "⚡", val: energy, color: statColor(energy) },
-              { icon: "🍖", val: hunger, color: statColor(hunger) },
-              { icon: "💕", val: affection, color: statColor(affection) },
-            ].map(({ icon, val, color }, i) => (
-              <div key={i} className="flex flex-col items-center gap-0.5">
-                <span className="text-[8px]">{icon}</span>
-                <div className="w-full h-[4px] bg-muted/30 rounded-full overflow-hidden">
+              { icon: "♡", val: happiness, color: statColor(happiness), label: "Humor" },
+              { icon: "⚡", val: energy, color: statColor(energy), label: "Energia" },
+              { icon: "🍖", val: hunger, color: statColor(hunger), label: "Fome" },
+              { icon: "💕", val: affection, color: statColor(affection), label: "Afeto" },
+            ].map(({ icon, val, color, label }, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className="text-sm">{icon}</span>
+                <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
                   <motion.div className={cn("h-full rounded-full", color)} initial={false}
                     animate={{ width: `${val}%` }} transition={{ duration: 0.6 }} />
                 </div>
+                <span className="text-[9px] font-mono text-muted-foreground/40">{Math.round(val)}%</span>
               </div>
             ))}
           </div>
 
           {/* Action buttons with cooldown indicators */}
-          <div className="grid grid-cols-4 gap-1 mb-1.5">
+          <div className="grid grid-cols-4 gap-1.5 mb-2">
             {[
               { action: "pet", icon: Hand, handler: handlePet, label: "Carinho", hoverBg: "hover:bg-primary/10", hoverText: "hover:text-primary", hoverBorder: "hover:border-primary/30" },
               { action: "feed", icon: Utensils, handler: () => handleFeed(), label: "Alimentar", hoverBg: "hover:bg-accent/10", hoverText: "hover:text-accent", hoverBorder: "hover:border-accent/30" },
@@ -1249,16 +1250,16 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
               return (
                 <button key={action} onClick={handler} title={cd ? `${label} (${remaining}s)` : label}
                   className={cn(
-                    "relative flex items-center justify-center h-6 rounded-lg border transition-all",
+                    "relative flex flex-col items-center justify-center gap-0.5 h-10 rounded-xl border transition-all",
                     cd
                       ? "border-border/10 text-muted-foreground/20 cursor-not-allowed"
                       : `border-border/20 text-muted-foreground/50 ${hoverBg} ${hoverText} ${hoverBorder}`
                   )}>
-                  <Icon className="w-3 h-3" />
-                  {cd && (
-                    <span className="absolute -top-1.5 -right-1 text-[7px] font-mono text-muted-foreground/40 bg-card border border-border/20 rounded-full px-1 leading-none py-0.5">
-                      {remaining}
-                    </span>
+                  <Icon className="w-4 h-4" />
+                  {cd ? (
+                    <span className="text-[10px] font-mono font-bold">{remaining}s</span>
+                  ) : (
+                    <span className="text-[9px] font-mono">{label}</span>
                   )}
                 </button>
               );
@@ -1266,14 +1267,16 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
           </div>
 
           {/* Bottom row: nap + settings */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-1 border-t border-border/10">
             <button onClick={handleNap} title="Dormir"
-              className="text-muted-foreground/25 hover:text-muted-foreground/60 transition-colors p-0.5">
-              <Moon className="w-3 h-3" />
+              className="flex items-center gap-1.5 text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors p-1">
+              <Moon className="w-4 h-4" />
+              <span className="text-[10px] font-mono">Dormir</span>
             </button>
             <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-              className="text-muted-foreground/25 hover:text-muted-foreground/60 transition-colors p-0.5">
-              <Settings2 className="w-3 h-3" />
+              className="flex items-center gap-1.5 text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors p-1">
+              <span className="text-[10px] font-mono">Config</span>
+              <Settings2 className="w-4 h-4" />
             </button>
           </div>
         </div>
