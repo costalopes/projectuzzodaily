@@ -23,86 +23,87 @@ const MOODS = [
   { id: "excited", emoji: "🔥", label: "Animado" },
 ];
 
-// Generate leaf positions dynamically around tree branches
-const generateLeafPositions = () => [
-  // Upper canopy center - tightly around trunk
-  { cx: 100, cy: 75, rotate: 0 },
-  { cx: 103, cy: 80, rotate: 15 },
-  { cx: 97, cy: 80, rotate: -15 },
-  
-  // Upper-middle
-  { cx: 108, cy: 92, rotate: 25 },
-  { cx: 92, cy: 92, rotate: -25 },
-  { cx: 100, cy: 88, rotate: 5 },
-  
-  // Middle canopy
-  { cx: 113, cy: 108, rotate: 35 },
-  { cx: 87, cy: 108, rotate: -35 },
-  { cx: 100, cy: 104, rotate: 0 },
-  { cx: 107, cy: 113, rotate: 20 },
-  { cx: 93, cy: 113, rotate: -20 },
-  
-  // Lower middle
-  { cx: 115, cy: 128, rotate: 40 },
-  { cx: 85, cy: 128, rotate: -40 },
-  { cx: 100, cy: 132, rotate: -10 },
-  { cx: 100, cy: 132, rotate: 10 },
-  
-  // Bottom edges
-  { cx: 120, cy: 145, rotate: 45 },
-  { cx: 80, cy: 145, rotate: -45 },
-];
-
-const LEAF_COLORS = [
-  "hsl(140, 50%, 45%)",
-  "hsl(120, 40%, 50%)",
-  "hsl(155, 45%, 40%)",
-  "hsl(100, 35%, 55%)",
-  "hsl(130, 55%, 35%)",
-  "hsl(145, 40%, 48%)",
-];
-
 const TreeSVG = ({ leafCount }: { leafCount: number }) => {
-  const leafPositions = generateLeafPositions();
-  const visibleLeaves = leafPositions.slice(0, Math.min(leafCount, leafPositions.length));
+  // Max 20 leaves displayed
+  const count = Math.min(leafCount, 20);
+  
+  // Pre-defined leaf spots on/near branches (x, y relative to viewBox 0 0 120 180)
+  const spots = [
+    // Top of trunk
+    { x: 60, y: 42 },
+    { x: 55, y: 48 },
+    { x: 65, y: 48 },
+    // Upper left branch
+    { x: 38, y: 52 },
+    { x: 32, y: 48 },
+    { x: 28, y: 55 },
+    // Upper right branch  
+    { x: 82, y: 52 },
+    { x: 88, y: 48 },
+    { x: 92, y: 55 },
+    // Middle left branch
+    { x: 25, y: 72 },
+    { x: 20, y: 68 },
+    { x: 18, y: 76 },
+    // Middle right branch
+    { x: 95, y: 72 },
+    { x: 100, y: 68 },
+    { x: 102, y: 76 },
+    // Lower left branch
+    { x: 35, y: 88 },
+    { x: 30, y: 92 },
+    // Lower right branch
+    { x: 85, y: 88 },
+    { x: 90, y: 92 },
+    // Extra center
+    { x: 60, y: 55 },
+  ];
+
+  const colors = [
+    "#4ade80", "#22c55e", "#16a34a", "#86efac", 
+    "#34d399", "#10b981", "#a7f3d0", "#6ee7b7",
+  ];
 
   return (
-    <div className="w-full h-full flex items-end justify-center">
-      <svg viewBox="0 0 200 310" className="w-full h-full" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.2))" }}>
-        {/* Main trunk */}
-        <path d="M95 300 Q93 250 90 220 Q88 200 92 180 Q95 165 98 150 Q100 140 100 130" 
-          stroke="hsl(30, 25%, 30%)" strokeWidth="8" fill="none" strokeLinecap="round" />
-        <path d="M105 300 Q107 250 110 220 Q112 200 108 180 Q105 165 102 150 Q100 140 100 130" 
-          stroke="hsl(30, 25%, 28%)" strokeWidth="7" fill="none" strokeLinecap="round" />
+    <div className="w-full h-full flex items-end justify-center pb-2">
+      <svg viewBox="0 0 120 180" className="w-full h-full max-h-[220px]" preserveAspectRatio="xMidYMax meet">
+        {/* Trunk */}
+        <line x1="60" y1="165" x2="60" y2="60" stroke="hsl(30, 30%, 35%)" strokeWidth="5" strokeLinecap="round" />
         
-        {/* Branches */}
-        <path d="M92 180 Q75 165 55 145 Q45 135 40 125" stroke="hsl(30, 25%, 32%)" strokeWidth="4" fill="none" strokeLinecap="round" />
-        <path d="M108 175 Q125 160 145 140 Q155 130 160 120" stroke="hsl(30, 25%, 30%)" strokeWidth="4" fill="none" strokeLinecap="round" />
-        <path d="M90 210 Q70 200 55 195 Q45 192 35 188" stroke="hsl(30, 25%, 33%)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-        <path d="M110 205 Q130 195 150 188 Q158 185 165 183" stroke="hsl(30, 25%, 31%)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-        <path d="M98 145 Q85 125 70 110" stroke="hsl(30, 25%, 34%)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        <path d="M102 140 Q115 118 130 105" stroke="hsl(30, 25%, 32%)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        <path d="M100 130 Q98 115 95 100" stroke="hsl(30, 25%, 35%)" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <path d="M55 145 Q48 138 42 132" stroke="hsl(30, 25%, 36%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        <path d="M145 140 Q152 133 158 127" stroke="hsl(30, 25%, 36%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        <path d="M70 110 Q62 104 58 98" stroke="hsl(30, 25%, 37%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        <path d="M130 105 Q138 99 142 93" stroke="hsl(30, 25%, 37%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        {/* Main branches */}
+        {/* Upper V */}
+        <line x1="60" y1="60" x2="35" y2="45" stroke="hsl(30, 30%, 38%)" strokeWidth="3" strokeLinecap="round" />
+        <line x1="60" y1="60" x2="85" y2="45" stroke="hsl(30, 30%, 38%)" strokeWidth="3" strokeLinecap="round" />
+        
+        {/* Middle branches */}
+        <line x1="60" y1="80" x2="25" y2="65" stroke="hsl(30, 30%, 36%)" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="60" y1="80" x2="95" y2="65" stroke="hsl(30, 30%, 36%)" strokeWidth="2.5" strokeLinecap="round" />
+        
+        {/* Lower branches */}
+        <line x1="60" y1="100" x2="35" y2="85" stroke="hsl(30, 30%, 34%)" strokeWidth="2" strokeLinecap="round" />
+        <line x1="60" y1="100" x2="85" y2="85" stroke="hsl(30, 30%, 34%)" strokeWidth="2" strokeLinecap="round" />
 
-        {/* Ground */}
-        <ellipse cx="100" cy="305" rx="80" ry="5" fill="hsl(30, 20%, 22%)" opacity="0.3" />
+        {/* Small sub-branches */}
+        <line x1="35" y1="45" x2="28" y2="50" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="85" y1="45" x2="92" y2="50" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="25" y1="65" x2="18" y2="70" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="95" y1="65" x2="102" y2="70" stroke="hsl(30, 30%, 40%)" strokeWidth="1.5" strokeLinecap="round" />
 
-        {/* Leaves rendered inside SVG */}
-        {visibleLeaves.map((pos, i) => (
-          <g key={`leaf-${i}`} transform={`translate(${pos.cx}, ${pos.cy})`}>
-            <ellipse cx="0" cy="0" rx="7" ry="4.5"
-              fill={LEAF_COLORS[i % LEAF_COLORS.length]}
-              opacity="0.9"
-              transform={`rotate(${pos.rotate})`}
-            >
-              <animate attributeName="opacity" values="0;0.9" dur="0.5s" begin={`${i * 0.1}s`} fill="freeze" />
-            </ellipse>
-            <line x1="-5" y1="0" x2="5" y2="0" stroke="hsl(120, 30%, 30%)" strokeWidth="0.5" opacity="0.5" transform={`rotate(${pos.rotate})`} />
-          </g>
+        {/* Ground line */}
+        <ellipse cx="60" cy="168" rx="30" ry="3" fill="hsl(30, 20%, 25%)" opacity="0.3" />
+
+        {/* Leaves - simple circles at branch tips */}
+        {spots.slice(0, count).map((spot, i) => (
+          <circle
+            key={i}
+            cx={spot.x}
+            cy={spot.y}
+            r="5"
+            fill={colors[i % colors.length]}
+            opacity="0.85"
+          >
+            <animate attributeName="opacity" from="0" to="0.85" dur="0.4s" begin={`${i * 0.08}s`} fill="freeze" />
+          </circle>
         ))}
       </svg>
     </div>
