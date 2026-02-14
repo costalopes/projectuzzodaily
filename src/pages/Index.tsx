@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -307,82 +307,90 @@ const Index = () => {
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
           <div className="max-w-7xl mx-auto px-6 pt-2 pb-4 relative z-10 flex flex-col gap-3">
 
-            {/* Header card */}
-            <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl animate-fade-in overflow-hidden shrink-0">
-              <div className="px-6 py-5 md:py-6">
-                <div className="flex items-center justify-between gap-6">
-                  {/* Left: greeting */}
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60 font-mono flex items-center gap-2 mb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                      {dateStr}
-                    </p>
-                    <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-foreground leading-tight">
-                      {greeting.text}, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pedro</span> {greeting.emoji}
-                    </h1>
-                    <div className="flex items-center gap-3 mt-2">
-                      <p className="text-muted-foreground/70 text-sm font-mono">
-                        <span className="text-primary/50">{">"}</span> {greeting.sub}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/40 border border-border/30 rounded-lg px-2 py-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent/70" />
-                          <span className="text-foreground font-semibold">{todoCount}</span>
-                          <span className="text-muted-foreground/50">a fazer</span>
-                        </span>
-                        {inProgressCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5">
-                            <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />
-                            <span className="text-primary font-semibold">{inProgressCount}</span>
-                            <span className="text-primary/50">em progresso</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+            {/* Top bar — Notion-style mini profile */}
+            <div className="flex items-center justify-between gap-3 animate-fade-in shrink-0">
+              {/* Left: greeting + stats */}
+              <div className="flex items-center gap-3 min-w-0">
+                <h1 className="text-lg md:text-xl font-display font-bold tracking-tight text-foreground leading-tight whitespace-nowrap">
+                  {greeting.text}, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pedro</span> {greeting.emoji}
+                </h1>
+                <span className="hidden md:inline text-muted-foreground/40 text-xs font-mono">—</span>
+                <p className="hidden md:block text-muted-foreground/50 text-xs font-mono truncate">{greeting.sub}</p>
+                <div className="hidden md:flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-muted/40 border border-border/30 rounded-lg px-2 py-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent/70" />
+                    <span className="text-foreground font-semibold">{todoCount}</span>
+                    <span className="text-muted-foreground/50">a fazer</span>
+                  </span>
+                  {inProgressCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5">
+                      <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />
+                      <span className="text-primary font-semibold">{inProgressCount}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
 
-                  {/* Right: stats + clock + logout */}
-                  <div className="shrink-0 flex items-center gap-3">
+              {/* Right: mini profile bar */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Stats pills */}
+                <div className="hidden md:flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 bg-muted/20 border border-border/20 rounded-lg px-2.5 py-1.5">
+                    <span className="text-xs font-display font-bold">{doneCount}<span className="text-muted-foreground/30 text-[10px] font-normal">/{tasks.length}</span></span>
+                    <span className="text-[8px] text-muted-foreground/40 font-mono uppercase">feitas</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-muted/20 border border-border/20 rounded-lg px-2.5 py-1.5">
+                    <span className="text-xs font-display font-bold">{streak}</span>
+                    <Flame className="w-3 h-3 text-accent" />
+                    <span className="text-[8px] text-muted-foreground/40 font-mono uppercase">streak</span>
+                  </div>
+                  <div className="bg-muted/20 border border-border/20 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span className="text-[8px] text-muted-foreground/40 font-mono uppercase">prog</span>
+                    <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-primary/70 to-accent/70 rounded-full transition-all duration-700"
+                        style={{ width: `${progress}%` }} />
+                    </div>
+                    <span className="text-[10px] font-bold text-primary font-mono">{progress}%</span>
+                  </div>
+                </div>
+
+                {/* Separator */}
+                <div className="hidden md:block w-px h-6 bg-border/30" />
+
+                {/* Dashboard button */}
+                <button onClick={() => navigate("/webhooks")}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/20 border border-border/20 rounded-lg hover:bg-muted/30 transition-all text-[11px] text-muted-foreground hover:text-foreground font-mono">
+                  <Webhook className="w-3 h-3" />
+                  <span className="hidden md:inline">dashboard</span>
+                </button>
+
+                {/* Mini profile + logout */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/20 border border-border/20 rounded-lg hover:bg-muted/30 transition-all group">
+                      <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/20 flex items-center justify-center">
+                        <User className="w-3 h-3 text-primary" />
+                      </div>
+                      <span className="hidden md:block text-xs font-mono text-foreground/80 group-hover:text-foreground transition-colors">Pedro</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-56 p-2 bg-card/95 backdrop-blur-xl border-border/50">
+                    <div className="px-3 py-2 border-b border-border/30 mb-1">
+                      <p className="text-sm font-display font-semibold">Pedro</p>
+                      <p className="text-[10px] font-mono text-muted-foreground/50">online · {dateStr}</p>
+                    </div>
                     <button onClick={async () => {
                       await supabase.auth.signOut();
                       navigate("/auth");
                     }}
-                      className="hidden md:flex items-center gap-1.5 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg hover:bg-destructive/20 transition-all text-xs text-destructive font-mono group">
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 transition-all text-xs font-mono text-destructive/80 hover:text-destructive">
                       <LogOut className="w-3.5 h-3.5" />
-                      <span>logout</span>
+                      auth.signOut()
                     </button>
-                    <div className="hidden md:flex items-center gap-2 h-16">
-                      {/* Progress */}
-                      <div className="bg-muted/20 border border-border/20 rounded-xl px-4 py-3 h-full flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[8px] text-muted-foreground/50 font-mono uppercase tracking-widest">progresso</span>
-                          <span className="text-xs font-bold text-primary font-mono">{progress}%</span>
-                        </div>
-                        <div className="h-1 bg-muted/50 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-primary/70 via-primary to-accent/70 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_hsl(var(--primary)/0.25)]"
-                            style={{ width: `${progress}%` }} />
-                        </div>
-                      </div>
+                  </PopoverContent>
+                </Popover>
 
-                      {/* Done + Streak */}
-                      <div className="flex gap-1.5 h-full">
-                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center flex flex-col justify-center h-full">
-                          <p className="text-xl font-display font-bold leading-none tracking-tight">
-                            {doneCount}<span className="text-muted-foreground/30 text-xs font-normal">/{tasks.length}</span>
-                          </p>
-                          <p className="text-[7px] text-muted-foreground/40 font-mono uppercase tracking-widest mt-1">feitas</p>
-                        </div>
-                        <div className="bg-muted/20 border border-border/20 rounded-xl px-3 py-2.5 text-center flex flex-col justify-center h-full">
-                          <p className="text-xl font-display font-bold leading-none tracking-tight flex items-center justify-center gap-0.5">
-                            {streak}<Flame className="w-4 h-4 text-accent" />
-                          </p>
-                          <p className="text-[7px] text-muted-foreground/40 font-mono uppercase tracking-widest mt-1">streak</p>
-                        </div>
-                      </div>
-                    </div>
-                    <PixelClock />
-                  </div>
-                </div>
+                <PixelClock />
               </div>
             </div>
 
