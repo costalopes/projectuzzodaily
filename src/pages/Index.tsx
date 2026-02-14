@@ -104,7 +104,7 @@ const Index = () => {
 
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
-  const streak = 7;
+  const streak = doneCount; // streak baseado em tarefas concluídas
 
   const toggleTask = (id: string) => {
     setTasks((p) => p.map((t) => {
@@ -332,15 +332,28 @@ const Index = () => {
                       <span className="text-primary/70">{inProgressCount}</span>
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1.5 text-xs font-mono bg-muted/30 border border-border/20 rounded-lg px-2.5 h-8">
+                  <button
+                    onClick={() => setFilter("done")}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs font-mono border rounded-lg px-2.5 h-8 transition-all cursor-pointer hover:bg-muted/50",
+                      filter === "done" ? "bg-primary/10 border-primary/30 shadow-sm" : "bg-muted/30 border-border/20"
+                    )}
+                  >
                     <span className="text-foreground/80">{doneCount}</span>
                     <span className="text-muted-foreground/30 text-[11px]">/{tasks.length}</span>
                     <Check className="w-3 h-3 text-success/50" />
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-mono bg-muted/30 border border-border/20 rounded-lg px-2.5 h-8">
+                  </button>
+                  <button
+                    onClick={() => setFilter("todo")}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs font-mono border rounded-lg px-2.5 h-8 transition-all cursor-pointer hover:bg-muted/50",
+                      "bg-muted/30 border-border/20"
+                    )}
+                    title={`${streak} tarefas concluídas`}
+                  >
                     <Flame className="w-3 h-3 text-accent/60" />
                     <span className="text-foreground/80">{streak}</span>
-                  </span>
+                  </button>
                   <span className="inline-flex items-center gap-2 text-xs font-mono bg-muted/30 border border-border/20 rounded-lg px-2.5 h-8">
                     <div className="w-14 h-1.5 bg-muted/50 rounded-full overflow-hidden">
                       <div className="h-full bg-primary/50 rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
