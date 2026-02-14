@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { Settings2, Heart, Zap, X, Utensils, Hand, Moon, Gamepad2, Sparkles, Star, Cookie } from "lucide-react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { Settings2, Heart, Zap, X, Utensils, Hand, Moon, Gamepad2, Sparkles, Star, Cookie, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -37,6 +37,19 @@ const CAT_COLORS = [
 ];
 
 const DREAM_ITEMS = ["🐟", "🧶", "🦋", "🐁", "☀️", "🍣", "🥛", "💤", "🌙", "✨"];
+
+// Cooldown durations in ms
+const COOLDOWNS = {
+  pet: 2000,      // 2s between pets
+  feed: 30000,    // 30s between feeds
+  play: 20000,    // 20s between plays  
+  treat: 45000,   // 45s between treats
+  nap: 60000,     // 60s between forced naps
+};
+
+// Overfeeding/overpetting thresholds
+const OVERFEED_THRESHOLD = 95;
+const OVERPET_THRESHOLD = 90; // affection cap before cat gets annoyed
 
 const clamp = (v: number, min = 0, max = 100) => Math.max(min, Math.min(max, v));
 const loadStat = (key: string, def: number) => {
@@ -138,7 +151,49 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   });
   const [dreamItem, setDreamItem] = useState("🐟");
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
-  const [showActionsPanel, setShowActionsPanel] = useState(false);
+   const [showActionsPanel, setShowActionsPanel] = useState(false);
+
+  // === COOLDOWN SYSTEM ===
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
+  const [typedMessage, setTypedMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const typingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [feedCount, setFeedCount] = useState(0); // tracks consecutive feeds
+  const [petCount, setPetCount] = useState(0); // tracks rapid pets
+  const petCountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isOnCooldown = useCallback((action: string) => {
+    const cd = cooldowns[action];
+    if (!cd) return false;
+    return Date.now() < cd;
+  }, [cooldowns]);
+
+  const setCooldown = useCallback((action: string) => {
+    const duration = COOLDOWNS[action as keyof typeof COOLDOWNS] || 5000;
+    setCooldowns(prev => ({ ...prev, [action]: Date.now() + duration }));
+  }, []);
+
+  const getCooldownRemaining = useCallback((action: string) => {
+    const cd = cooldowns[action];
+    if (!cd) return 0;
+    return Math.max(0, Math.ceil((cd - Date.now()) / 1000));
+  }, [cooldowns]);
+
+  // Update cooldown display
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const hasActive = Object.values(cooldowns).some(cd => Date.now() < cd);
+    if (!hasActive) return;
+    const interval = setInterval(() => forceUpdate(n => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, [cooldowns]);
+
+  // Feed count decay (resets after 60s of no feeding)
+  useEffect(() => {
+    if (feedCount === 0) return;
+    const t = setTimeout(() => setFeedCount(0), 60000);
+    return () => clearTimeout(t);
+  }, [feedCount]);
 
   // Persist
   useEffect(() => { saveStat("happiness", happiness); }, [happiness]);
@@ -151,9 +206,28 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); };
   const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); };
 
-  const showMsg = useCallback((msg: string, duration = 3000) => {
+  const showMsg = useCallback((msg: string, duration = 3500) => {
+    // Typing effect for speech bubble
+    if (typingRef.current) clearTimeout(typingRef.current);
     setMessage(msg);
-    setTimeout(() => setMessage(""), duration);
+    setIsTyping(true);
+    setTypedMessage("");
+    
+    let i = 0;
+    const typeChar = () => {
+      if (i < msg.length) {
+        setTypedMessage(msg.slice(0, i + 1));
+        i++;
+        typingRef.current = setTimeout(typeChar, 25 + Math.random() * 35);
+      } else {
+        setIsTyping(false);
+        typingRef.current = setTimeout(() => {
+          setMessage("");
+          setTypedMessage("");
+        }, duration);
+      }
+    };
+    typeChar();
   }, []);
 
   const addSparkle = useCallback(() => {
@@ -445,10 +519,36 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
     return () => clearInterval(interval);
   }, [mood, catName, pickMsg, showMsg, timeOfDay, energy, affection, gainXp]);
 
-  // === PET COMBO SYSTEM ===
+  // === PET COMBO SYSTEM (with cooldown + overpet) ===
   const handlePet = useCallback(() => {
     if (showSettings) return;
     recordInteraction();
+
+    // Track rapid pets for overpetting
+    const newPetCount = petCount + 1;
+    setPetCount(newPetCount);
+    if (petCountTimer.current) clearTimeout(petCountTimer.current);
+    petCountTimer.current = setTimeout(() => setPetCount(0), 5000);
+
+    // Overpetting: cat gets annoyed after too many rapid pets
+    if (newPetCount > 12) {
+      setMood("scratching");
+      showMsg("para! tá demais! 😾");
+      setAffection(a => clamp(a - 5));
+      setHappiness(h => clamp(h - 3));
+      setPetCount(0);
+      setCooldown("pet");
+      return;
+    }
+
+    // Cat is saturated with affection
+    if (affection >= OVERPET_THRESHOLD && Math.random() < 0.4) {
+      showMsg("tá bom já... 😒");
+      setMood("idle");
+      setCooldown("pet");
+      return;
+    }
+
     const now = Date.now();
     const isDoubleClick = now - lastClickTime.current < 350;
     lastClickTime.current = now;
@@ -474,7 +574,6 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
       gainXp(1 + Math.floor(newCombo / 3));
 
       if (newCombo >= 10) {
-        // Mega combo!
         setMood("love"); showMsg(`COMBO x${newCombo}! 💕💕💕`);
         addSparkle(); addSparkle();
         setHappiness(h => clamp(h + 20));
@@ -492,43 +591,93 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
       setHearts(h => [...h, heartId]);
       setTimeout(() => setHearts(h => h.filter(id => id !== heartId)), 2000);
     }, 360);
-  }, [pets, petCombo, showSettings, pickMsg, showMsg, addSparkle, gainXp, recordInteraction]);
+  }, [pets, petCombo, petCount, affection, showSettings, pickMsg, showMsg, addSparkle, gainXp, recordInteraction, setCooldown]);
 
-  // === FEED ===
+  // === FEED (with cooldown + overfeeding) ===
   const handleFeed = useCallback((e?: React.MouseEvent) => {
     e?.preventDefault();
     if (showSettings) return;
+    if (isOnCooldown("feed")) {
+      showMsg(`espera ${getCooldownRemaining("feed")}s... 🍽️`);
+      return;
+    }
     recordInteraction();
+    setCooldown("feed");
+
+    const newFeedCount = feedCount + 1;
+    setFeedCount(newFeedCount);
+
+    // Overfeeding consequences
+    if (hunger >= OVERFEED_THRESHOLD) {
+      setMood("idle");
+      showMsg("barriga cheia... 🤢 não quero mais");
+      setHappiness(h => clamp(h - 3));
+      setEnergy(e => clamp(e - 5));
+      return;
+    }
+
+    if (newFeedCount > 4) {
+      showMsg("calma, vou explodir! 😵");
+      setHunger(h => clamp(h + 10));
+      setHappiness(h => clamp(h - 2));
+      return;
+    }
+
     setMood("eating");
     setHappiness(h => clamp(h + 8));
     setEnergy(e => clamp(e + 5));
-    setHunger(h => clamp(h + 30));
+    setHunger(h => clamp(h + 25));
     showMsg(pickMsg("eating"));
     addSparkle(); gainXp(4);
-  }, [showSettings, pickMsg, showMsg, addSparkle, gainXp, recordInteraction]);
+  }, [showSettings, pickMsg, showMsg, addSparkle, gainXp, recordInteraction, isOnCooldown, setCooldown, getCooldownRemaining, hunger, feedCount]);
 
-  // === PLAY ===
+  // === PLAY (with cooldown + energy check) ===
   const handlePlay = useCallback(() => {
+    if (isOnCooldown("play")) {
+      showMsg(`ainda descansando... ${getCooldownRemaining("play")}s ⏳`);
+      return;
+    }
     recordInteraction();
-    if (energy < 10) { showMsg("tô cansado demais..."); return; }
-    setMood("playing"); setHappiness(h => clamp(h + 10)); setEnergy(e => clamp(e - 8));
+    if (energy < 10) { showMsg("tô cansado demais... preciso dormir 😩"); return; }
+    if (hunger < 15) { showMsg("com fome demais pra brincar... 🥺"); return; }
+    setCooldown("play");
+    setMood("playing"); setHappiness(h => clamp(h + 10)); setEnergy(e => clamp(e - 12));
+    setHunger(h => clamp(h - 5)); // playing makes hungry
     showMsg(pickMsg("playing")); addSparkle(); gainXp(5);
-  }, [showMsg, pickMsg, addSparkle, gainXp, recordInteraction, energy]);
+  }, [showMsg, pickMsg, addSparkle, gainXp, recordInteraction, energy, hunger, isOnCooldown, setCooldown, getCooldownRemaining]);
 
-  // === NAP ===
+  // === NAP (with cooldown) ===
   const handleNap = useCallback(() => {
+    if (isOnCooldown("nap")) {
+      showMsg(`não tô com sono ainda... ${getCooldownRemaining("nap")}s`);
+      return;
+    }
+    if (energy > 85) {
+      showMsg("não tô com sono! tô cheio de energia! ⚡");
+      return;
+    }
     recordInteraction();
+    setCooldown("nap");
     setMood("sleeping"); showMsg("boa noite... 😴");
-  }, [showMsg, recordInteraction]);
+  }, [showMsg, recordInteraction, energy, isOnCooldown, setCooldown, getCooldownRemaining]);
 
-  // === TREAT ===
+  // === TREAT (with cooldown + limits) ===
   const handleTreat = useCallback(() => {
+    if (isOnCooldown("treat")) {
+      showMsg(`petisco em cooldown... ${getCooldownRemaining("treat")}s 🍪`);
+      return;
+    }
+    if (hunger >= OVERFEED_THRESHOLD) {
+      showMsg("não quero petisco... barriga cheia 😖");
+      return;
+    }
     recordInteraction();
+    setCooldown("treat");
     setMood("excited"); setHappiness(h => clamp(h + 15)); setHunger(h => clamp(h + 15));
     setAffection(a => clamp(a + 5));
     showMsg("PETISCO!! 🎉"); addSparkle(); gainXp(6);
     setTimeout(() => setMood("coding"), 4000);
-  }, [showMsg, addSparkle, gainXp, recordInteraction]);
+  }, [showMsg, addSparkle, gainXp, recordInteraction, hunger, isOnCooldown, setCooldown, getCooldownRemaining]);
 
   // === RENDER HELPERS ===
   const c = CAT_COLORS[colorIdx];
@@ -577,20 +726,39 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
 
   return (
     <div ref={catRef} className="fixed bottom-4 right-4 z-50 select-none">
-      {/* Speech bubble */}
+      {/* Speech bubble - improved with typing effect */}
       <AnimatePresence>
         {message && !showSettings && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.9 }}
+            initial={{ opacity: 0, y: 8, scale: 0.85 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.95 }}
+            exit={{ opacity: 0, y: -8, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 500, damping: 25 }}
             className={cn(
-              "absolute -top-14 right-0 backdrop-blur-xl border rounded-xl px-3 py-2 shadow-lg whitespace-nowrap max-w-[220px] z-20",
-              isAlert ? "bg-destructive/10 border-destructive/30" : "bg-card/95 border-border/40"
+              "absolute -top-16 right-0 backdrop-blur-xl border rounded-2xl px-3.5 py-2.5 shadow-2xl max-w-[240px] z-20",
+              isAlert ? "bg-destructive/10 border-destructive/30 shadow-destructive/10" :
+              mood === "love" ? "bg-destructive/5 border-destructive/20 shadow-destructive/10" :
+              mood === "excited" ? "bg-accent/5 border-accent/20 shadow-accent/10" :
+              "bg-card/95 border-border/40"
             )}
           >
-            <p className={cn("text-[10px] font-mono truncate", isAlert ? "text-destructive" : "text-foreground")}>{message}</p>
-            <div className={cn("absolute -bottom-1 right-8 w-2 h-2 border-r border-b rotate-45", isAlert ? "bg-destructive/10 border-destructive/30" : "bg-card/95 border-border/40")} />
+            <div className="flex items-start gap-1.5">
+              <span className="text-[10px] shrink-0 mt-0.5">{moodEmoji[mood] || "💬"}</span>
+              <div className="min-w-0">
+                <p className={cn("text-[10px] font-mono leading-relaxed break-words", isAlert ? "text-destructive" : "text-foreground/90")}>
+                  {typedMessage}
+                  {isTyping && <span className="animate-pulse text-primary ml-0.5">▍</span>}
+                </p>
+              </div>
+            </div>
+            {/* Tail pointer with 3 dots leading to cat */}
+            <div className="absolute -bottom-1 right-10 w-2.5 h-2.5 border-r border-b rotate-45"
+              style={{ background: isAlert ? "hsl(var(--destructive) / 0.1)" : "hsl(var(--card) / 0.95)",
+                borderColor: isAlert ? "hsl(var(--destructive) / 0.3)" : "hsl(var(--border) / 0.4)" }} />
+            <div className="absolute -bottom-3 right-8 flex gap-0.5">
+              <div className="w-1 h-1 rounded-full bg-border/30" />
+              <div className="w-0.5 h-0.5 rounded-full bg-border/20 mt-0.5" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1068,24 +1236,33 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
             ))}
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons with cooldown indicators */}
           <div className="grid grid-cols-4 gap-1 mb-1.5">
-            <button onClick={handlePet} title="Carinho"
-              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all">
-              <Hand className="w-3 h-3" />
-            </button>
-            <button onClick={() => handleFeed()} title="Alimentar"
-              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-accent/10 hover:text-accent hover:border-accent/30 transition-all">
-              <Utensils className="w-3 h-3" />
-            </button>
-            <button onClick={handlePlay} title="Brincar"
-              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-success/10 hover:text-success hover:border-success/30 transition-all">
-              <Gamepad2 className="w-3 h-3" />
-            </button>
-            <button onClick={handleTreat} title="Petisco"
-              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-warning/10 hover:text-warning hover:border-warning/30 transition-all">
-              <Cookie className="w-3 h-3" />
-            </button>
+            {[
+              { action: "pet", icon: Hand, handler: handlePet, label: "Carinho", hoverBg: "hover:bg-primary/10", hoverText: "hover:text-primary", hoverBorder: "hover:border-primary/30" },
+              { action: "feed", icon: Utensils, handler: () => handleFeed(), label: "Alimentar", hoverBg: "hover:bg-accent/10", hoverText: "hover:text-accent", hoverBorder: "hover:border-accent/30" },
+              { action: "play", icon: Gamepad2, handler: handlePlay, label: "Brincar", hoverBg: "hover:bg-success/10", hoverText: "hover:text-success", hoverBorder: "hover:border-success/30" },
+              { action: "treat", icon: Cookie, handler: handleTreat, label: "Petisco", hoverBg: "hover:bg-warning/10", hoverText: "hover:text-warning", hoverBorder: "hover:border-warning/30" },
+            ].map(({ action, icon: Icon, handler, label, hoverBg, hoverText, hoverBorder }) => {
+              const cd = isOnCooldown(action);
+              const remaining = getCooldownRemaining(action);
+              return (
+                <button key={action} onClick={handler} title={cd ? `${label} (${remaining}s)` : label}
+                  className={cn(
+                    "relative flex items-center justify-center h-6 rounded-lg border transition-all",
+                    cd
+                      ? "border-border/10 text-muted-foreground/20 cursor-not-allowed"
+                      : `border-border/20 text-muted-foreground/50 ${hoverBg} ${hoverText} ${hoverBorder}`
+                  )}>
+                  <Icon className="w-3 h-3" />
+                  {cd && (
+                    <span className="absolute -top-1.5 -right-1 text-[7px] font-mono text-muted-foreground/40 bg-card border border-border/20 rounded-full px-1 leading-none py-0.5">
+                      {remaining}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Bottom row: nap + settings */}
