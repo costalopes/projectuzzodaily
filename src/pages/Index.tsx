@@ -818,14 +818,28 @@ const Index = () => {
           task={(selectedTask || creatingTask)!}
           isOpen={true}
           isNew={!!creatingTask}
-          onClose={() => { setSelectedTask(null); setCreatingTask(null); }}
+          onClose={() => {
+            if (creatingTask) {
+              // On close, persist the creating task to the list if it has text
+              const current = creatingTask;
+              setCreatingTask(null);
+              // Task already exists in DB from startNewTask, just update text if needed
+              if (current.text?.trim()) {
+                updateTask(current);
+                setTasks((p) => {
+                  if (p.find(t => t.id === current.id)) return p;
+                  return [...p, current];
+                });
+              }
+            }
+            setSelectedTask(null);
+            setCreatingTask(null);
+          }}
           onUpdate={(t) => {
             if (creatingTask) {
-              if (t.text.trim()) {
-                updateTask({ ...t, text: t.text.trim() });
-                setTasks((p) => [...p, { ...t, text: t.text.trim() }]);
-              }
-              setCreatingTask(null);
+              // Keep dialog open, just update the creating task reference
+              setCreatingTask(t);
+              updateTask(t);
             } else {
               updateTask(t);
             }
