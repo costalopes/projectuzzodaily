@@ -1,11 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Settings2, Heart, Zap, X, Utensils, Hand } from "lucide-react";
+import { Settings2, Heart, Zap, X, Utensils, Hand, Moon, Gamepad2, Sparkles, Star, Cookie } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+// ═══════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════
+
 type CatMood = "idle" | "happy" | "purring" | "sleeping" | "coding" | "excited" | "belly" | "scratching" | "stretching"
   | "listening" | "thirsty" | "hydrated" | "caffeinated" | "focused" | "alert"
-  | "eating" | "playing" | "lonely" | "tired";
+  | "eating" | "playing" | "lonely" | "tired"
+  | "grooming" | "curious" | "zoomies" | "dreaming" | "scared" | "love" | "begging" | "hunting";
 
 export interface CatEvent {
   type: "task_complete" | "music_play" | "music_stop" | "water_low" | "water_full" | "water_add" | "coffee_add" | "coffee_excess"
@@ -18,7 +23,11 @@ interface CatProps {
   lastEvent?: CatEvent | null;
 }
 
-const CAT_COLORS: { name: string; fur1: string; fur2: string; fur3: string; stripe: string; belly: string; eye: string }[] = [
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+
+const CAT_COLORS = [
   { name: "Laranja", fur1: "#e8a050", fur2: "#d08838", fur3: "#f0c080", stripe: "#c07028", belly: "#f8e0c0", eye: "#2a6040" },
   { name: "Cinza", fur1: "#8a8a9a", fur2: "#6a6a7a", fur3: "#a8a8b8", stripe: "#5a5a6a", belly: "#c8c8d8", eye: "#c89020" },
   { name: "Preto", fur1: "#3a3a4a", fur2: "#2a2a3a", fur3: "#5a5a6a", stripe: "#1a1a2a", belly: "#6a6a7a", eye: "#e0c040" },
@@ -27,17 +36,68 @@ const CAT_COLORS: { name: string; fur1: string; fur2: string; fur3: string; stri
   { name: "Siamês", fur1: "#f0e0d0", fur2: "#d8c8b8", fur3: "#f8f0e8", stripe: "#8a6a50", belly: "#faf0e8", eye: "#4070b0" },
 ];
 
-// Stat helpers
-const clamp = (v: number, min = 0, max = 100) => Math.max(min, Math.min(max, v));
+const DREAM_ITEMS = ["🐟", "🧶", "🦋", "🐁", "☀️", "🍣", "🥛", "💤", "🌙", "✨"];
 
+const clamp = (v: number, min = 0, max = 100) => Math.max(min, Math.min(max, v));
 const loadStat = (key: string, def: number) => {
   const saved = localStorage.getItem(`cat-${key}`);
   return saved ? parseFloat(saved) : def;
 };
+const saveStat = (key: string, val: number) => localStorage.setItem(`cat-${key}`, String(val));
 
-const saveStat = (key: string, val: number) => {
-  localStorage.setItem(`cat-${key}`, String(val));
+const getTimeOfDay = () => {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "morning";
+  if (h >= 12 && h < 18) return "afternoon";
+  if (h >= 18 && h < 22) return "evening";
+  return "night";
 };
+
+// XP required per level
+const xpForLevel = (lvl: number) => Math.floor(50 * Math.pow(1.4, lvl - 1));
+
+// ═══════════════════════════════════════════════════
+// MESSAGES
+// ═══════════════════════════════════════════════════
+
+const buildMessages = (catName: string): Record<string, string[]> => ({
+  idle: ["miau~", "...", "*estica*", "*boceja*", "meow?", "*olha pela janela*", "hmm...", "*rola no chão*", "*limpa a patinha*", "preguiça...", "tô de boa", "*derruba o copo*", "cadê o laser?"],
+  happy: ["nyaa~", "purrrr!", "*ronrona*", "mrrp!", "mais carinho!", "isso mesmo!", "*fecha os olhos*", "tão bom...", "*esfrega no braço*", "continua!", "adoro!", "*faz biscuit*"],
+  purring: ["purrrrrr...", "*amassa pãozinho*", "tão quentinho...", "*ronrona alto*", "não para...", "vida boa...", "*derrete*"],
+  sleeping: ["zzz...", "*sonha com peixe*", "mrrrm...", "*mexe a patinha*", "...atum...", "zzZzz...", "*ronca*"],
+  dreaming: ["*sonha com peixe*", "...atumm...", "*cauda treme*", "mrrrm... yarn...", "*patinha treme*"],
+  coding: [
+    "git push", "npm run dev", "// TODO: dormir", "console.log('miau')", "bug?", "LGTM!", "refactor time",
+    "café + código", "deploy friday?", "tá compilando...", "testes passando!", "clean code", "feature pronta!",
+    "funciona na minha máquina", "TypeScript!", "ship it! 🚀", "200 OK ✓", "dark mode > light mode",
+    `${catName} approved ✓`, `sudo ${catName}`, "zero warnings!", "bora pra produção?",
+  ],
+  excited: ["MIAU!!", "WOOO!", "*pula*", "incrível!!", "mandou bem!", "boa!!", "*faz dancinha*", "isso aí!!", "perfeito!", "que orgulho!!", "SHIP IT!! 🚀"],
+  belly: ["*mostra a barriga*", "coça aqui!", "confia...", "*rola pro lado*", "barriguinha!", "*ronrona de barriga*"],
+  scratching: ["*coça o nariz*", "*coça atrás da orelha*", "*esfrega o focinho*", "tava coçando!"],
+  stretching: ["*esticaaaa*", "*alongamento máximo*", "*estica as patinhas*", "ahhhh que bom"],
+  listening: ["♪ boa música!", "♫ *balança a cabeça*", "♪ gosto disso!", "~vibing~", "♫ nice beat", "*mexe a orelha*", "lofi mood ♪"],
+  thirsty: ["tô com sede!", "beba água, humano!", "💧 cadê a água?", "*olha pro copo vazio*", "hidratação é vida!", "miau... sede..."],
+  hydrated: ["boa! hidratado! 💧", "meta da água! 🎉", "*aprovação*", "isso aí! água é vida!"],
+  caffeinated: ["café! ☕", "*cheira o café*", "hmm café...", "mais café!", "☕ bom demais"],
+  focused: ["foco total! 🍅", "*concentrado*", "bora produzir!", "modo foco ON", "shh... focando"],
+  alert: ["⚠️ tarefa urgente!", "ei! tarefa atrasada!", "não esquece!", "humano, olha isso!", "URGENTE!! 🚨", "*pula preocupado*"],
+  eating: ["nom nom nom!", "*mastiga*", "delícia!", "atum!! 🐟", "*lambe os bigodes*", "que saboroso!", "mais!"],
+  playing: ["*persegue o laser*", "peguei!! ...não 😿", "*salta*", "mais rápido!", "*ataca o brinquedo*", "wheee!", "*rola com a bolinha*"],
+  lonely: ["cadê você?", "tô sozinho...", "*olha triste*", "volta logo...", "saudades...", "*deita no teclado*"],
+  tired: ["*boceja grande*", "tô cansado...", "soneca?", "*fecha os olhos devagar*", "5 min...", "*quase dormindo*"],
+  grooming: ["*lambe a patinha*", "*limpa o pelo*", "*faz a higiene*", "*limpa atrás da orelha*", "preciso ficar bonito", "*banho de gato*", "pronto, limpinho!"],
+  curious: ["o que é isso?? 👀", "*orelhas em pé*", "hmm interessante...", "*cheira tudo*", "o que tá acontecendo?", "*olha fixamente*", "hmmm... 🤔", "*investiga*"],
+  zoomies: ["MIAU MIAU MIAU!!", "*corre loucamente*", "ZUUUUUM!!", "NÃO ME PEGA!", "*salta no teto*", "ENERGIA!!!", "*derruba tudo*", "WHEEEEE!!"],
+  scared: ["!! 😱", "*pula assustado*", "o que foi isso?!", "*pelo arrepiado*", "*esconde debaixo*", "glp!"],
+  love: ["te amo, humano 💕", "*ronrona intenso*", "você é o melhor!", "nunca me abandona", "*esfrega a cabeça*", "meu humano favorito!", "❤️ mrrrrp"],
+  begging: ["fomeeee! 🥺", "*olha pro pote vazio*", "cadê a comida?", "*mia alto*", "por favor...", "*esfrega na perna*", "alimenta eu!!", "miau miau miau!"],
+  hunting: ["*agacha devagar*", "*olhar de predador*", "*cauda balança*", "*patinha pronta*", "...", "*ATAQUE!*", "*modo caça ativado*"],
+});
+
+// ═══════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════
 
 export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   const [blink, setBlink] = useState(false);
@@ -56,15 +116,37 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   });
   const lastEventRef = useRef<number>(0);
   const lastClickTime = useRef<number>(0);
-
-  // Stats system
-  const [happiness, setHappiness] = useState(() => loadStat("happiness", 70));
-  const [energy, setEnergy] = useState(() => loadStat("energy", 80));
   const [sparkles, setSparkles] = useState<number[]>([]);
 
-  // Persist stats
+  // === STATS ===
+  const [happiness, setHappiness] = useState(() => loadStat("happiness", 70));
+  const [energy, setEnergy] = useState(() => loadStat("energy", 80));
+  const [hunger, setHunger] = useState(() => loadStat("hunger", 60));
+  const [affection, setAffection] = useState(() => loadStat("affection", 50));
+
+  // === XP / LEVEL ===
+  const [xp, setXp] = useState(() => loadStat("xp", 0));
+  const [level, setLevel] = useState(() => loadStat("level", 1));
+  const [showLevelUp, setShowLevelUp] = useState(false);
+
+  // === ADVANCED SYSTEMS ===
+  const [petCombo, setPetCombo] = useState(0);
+  const petComboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [lastInteraction, setLastInteraction] = useState(() => {
+    const saved = localStorage.getItem("cat-last-interaction");
+    return saved ? parseInt(saved) : Date.now();
+  });
+  const [dreamItem, setDreamItem] = useState("🐟");
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
+  const [showActionsPanel, setShowActionsPanel] = useState(false);
+
+  // Persist
   useEffect(() => { saveStat("happiness", happiness); }, [happiness]);
   useEffect(() => { saveStat("energy", energy); }, [energy]);
+  useEffect(() => { saveStat("hunger", hunger); }, [hunger]);
+  useEffect(() => { saveStat("affection", affection); }, [affection]);
+  useEffect(() => { saveStat("xp", xp); }, [xp]);
+  useEffect(() => { saveStat("level", level); }, [level]);
 
   const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); };
   const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); };
@@ -80,68 +162,95 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
     setTimeout(() => setSparkles(s => s.filter(x => x !== id)), 1500);
   }, []);
 
-  const allMessages: Record<string, string[]> = {
-    idle: ["miau~", "...", "*estica*", "*boceja*", "meow?", "*olha pela janela*", "hmm...", "*rola no chão*", "*limpa a patinha*", "preguiça...", "tô de boa", "*derruba o copo*", "cadê o laser?"],
-    happy: ["nyaa~", "purrrr!", "*ronrona*", "mrrp!", "mais carinho!", "isso mesmo!", "*fecha os olhos*", "tão bom...", "*esfrega no braço*", "continua!", "adoro!", "*faz biscuit*"],
-    purring: ["purrrrrr...", "*amassa pãozinho*", "tão quentinho...", "*ronrona alto*", "não para...", "vida boa...", "*derrete*"],
-    sleeping: ["zzz...", "*sonha com peixe*", "mrrrm...", "*mexe a patinha*", "...atum...", "zzZzz...", "*ronca*"],
-    coding: [
-      "git push", "npm run dev", "// TODO: dormir", "console.log('miau')", "bug?", "LGTM!", "refactor time",
-      "café + código", "deploy friday?", "tá compilando...", "testes passando!", "clean code", "feature pronta!",
-      "funciona na minha máquina", "TypeScript!", "ship it! 🚀", "200 OK ✓", "dark mode > light mode",
-      `${catName} approved ✓`, `sudo ${catName}`, "zero warnings!", "bora pra produção?",
-    ],
-    excited: ["MIAU!!", "WOOO!", "*pula*", "incrível!!", "mandou bem!", "boa!!", "*faz dancinha*", "isso aí!!", "perfeito!", "que orgulho!!", "SHIP IT!! 🚀"],
-    belly: ["*mostra a barriga*", "coça aqui!", "confia...", "*rola pro lado*", "barriguinha!", "*ronrona de barriga*"],
-    scratching: ["*coça o nariz*", "*coça atrás da orelha*", "*esfrega o focinho*", "tava coçando!"],
-    stretching: ["*esticaaaa*", "*alongamento máximo*", "*estica as patinhas*", "ahhhh que bom"],
-    listening: ["♪ boa música!", "♫ *balança a cabeça*", "♪ gosto disso!", "~vibing~", "♫ nice beat", "*mexe a orelha*", "lofi mood ♪"],
-    thirsty: ["tô com sede!", "beba água, humano!", "💧 cadê a água?", "*olha pro copo vazio*", "hidratação é vida!", "miau... sede..."],
-    hydrated: ["boa! hidratado! 💧", "meta da água! 🎉", "*aprovação*", "isso aí! água é vida!"],
-    caffeinated: ["café! ☕", "*cheira o café*", "hmm café...", "mais café!", "☕ bom demais"],
-    focused: ["foco total! 🍅", "*concentrado*", "bora produzir!", "modo foco ON", "shh... focando"],
-    alert: ["⚠️ tarefa urgente!", "ei! tarefa atrasada!", "não esquece!", "humano, olha isso!", "URGENTE!! 🚨", "*pula preocupado*"],
-    eating: ["nom nom nom!", "*mastiga*", "delícia!", "atum!! 🐟", "*lambe os bigodes*", "que saboroso!", "mais!"],
-    playing: ["*persegue o laser*", "peguei!! ...não 😿", "*salta*", "mais rápido!", "*ataca o brinquedo*", "wheee!", "*rola com a bolinha*"],
-    lonely: ["cadê você?", "tô sozinho...", "*olha triste*", "volta logo...", "saudades...", "*deita no teclado*"],
-    tired: ["*boceja grande*", "tô cansado...", "soneca?", "*fecha os olhos devagar*", "5 min...", "*quase dormindo*"],
-  };
+  const gainXp = useCallback((amount: number) => {
+    setXp(prev => {
+      const next = prev + amount;
+      const needed = xpForLevel(level);
+      if (next >= needed) {
+        setLevel(l => l + 1);
+        setShowLevelUp(true);
+        setTimeout(() => setShowLevelUp(false), 3000);
+        return next - needed;
+      }
+      return next;
+    });
+  }, [level]);
 
+  const recordInteraction = useCallback(() => {
+    const now = Date.now();
+    setLastInteraction(now);
+    localStorage.setItem("cat-last-interaction", String(now));
+  }, []);
+
+  const allMessages = buildMessages(catName);
   const pickMsg = useCallback((category: string) => {
     const msgs = allMessages[category] || allMessages.coding;
     return msgs[Math.floor(Math.random() * msgs.length)];
   }, [catName]);
 
-  // Stat decay over time
+  // === TIME OF DAY ===
+  useEffect(() => {
+    const interval = setInterval(() => setTimeOfDay(getTimeOfDay()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // === STAT DECAY ===
   useEffect(() => {
     const interval = setInterval(() => {
-      setHappiness(h => clamp(h - 0.3));
-      setEnergy(e => clamp(e - 0.2));
+      setHappiness(h => clamp(h - 0.25));
+      setEnergy(e => clamp(e - 0.15));
+      setHunger(h => clamp(h - 0.4));
+      setAffection(a => clamp(a - 0.2));
     }, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Mood based on stats
+  // === INACTIVITY DETECTION ===
   useEffect(() => {
-    if (mood === "sleeping" || mood === "focused" || mood === "alert" || mood === "excited" ||
-        mood === "eating" || mood === "playing" || mood === "listening") return;
-    if (energy < 15) {
-      setMood("tired");
-      showMsg(pickMsg("tired"));
-    } else if (happiness < 20) {
-      setMood("lonely");
-      showMsg(pickMsg("lonely"));
+    const interval = setInterval(() => {
+      const minutesInactive = (Date.now() - lastInteraction) / 60000;
+      if (minutesInactive > 10 && mood === "coding") {
+        if (Math.random() < 0.3) {
+          setMood("lonely");
+          showMsg(pickMsg("lonely"));
+          setHappiness(h => clamp(h - 3));
+        }
+      }
+      if (minutesInactive > 20 && mood !== "sleeping") {
+        if (Math.random() < 0.2) {
+          setMood("idle");
+          showMsg("*olha entediado*");
+        }
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [lastInteraction, mood, showMsg, pickMsg]);
+
+  // === HUNGER-BASED BEHAVIOR ===
+  useEffect(() => {
+    if (hunger < 15 && mood === "coding" && Math.random() < 0.5) {
+      setMood("begging");
+      showMsg(pickMsg("begging"), 4000);
     }
+  }, [hunger]);
+
+  // === MOOD FROM STATS ===
+  useEffect(() => {
+    const locked = ["sleeping", "focused", "alert", "excited", "eating", "playing", "listening",
+      "grooming", "curious", "zoomies", "dreaming", "scared", "love", "begging", "hunting"];
+    if (locked.includes(mood)) return;
+    if (energy < 15) { setMood("tired"); showMsg(pickMsg("tired")); }
+    else if (happiness < 20) { setMood("lonely"); showMsg(pickMsg("lonely")); }
   }, [happiness, energy]);
 
-  // Handle events from other components
+  // === EVENTS FROM OTHER COMPONENTS ===
   useEffect(() => {
     if (!lastEvent || lastEvent.timestamp === lastEventRef.current) return;
     lastEventRef.current = lastEvent.timestamp;
     switch (lastEvent.type) {
       case "music_play":
         setMood("listening"); setHappiness(h => clamp(h + 8)); showMsg(pickMsg("listening"));
-        setTimeout(() => setMood("coding"), 5000); break;
+        gainXp(3); setTimeout(() => setMood("coding"), 5000); break;
       case "music_stop":
         showMsg("♪ acabou a música..."); break;
       case "water_low":
@@ -149,12 +258,12 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
         setTimeout(() => setMood("coding"), 5000); break;
       case "water_full":
         setMood("excited"); setHappiness(h => clamp(h + 10)); showMsg(pickMsg("hydrated"));
-        setTimeout(() => setMood("coding"), 4000); break;
+        gainXp(5); setTimeout(() => setMood("coding"), 4000); break;
       case "water_add":
-        showMsg("💧 +250ml!"); setHappiness(h => clamp(h + 3)); break;
+        showMsg("💧 +250ml!"); setHappiness(h => clamp(h + 3)); gainXp(2); break;
       case "coffee_add":
         setMood("happy"); setEnergy(e => clamp(e + 15)); setHappiness(h => clamp(h + 5));
-        showMsg(pickMsg("caffeinated")); setTimeout(() => setMood("coding"), 3000); break;
+        showMsg(pickMsg("caffeinated")); gainXp(3); setTimeout(() => setMood("coding"), 3000); break;
       case "coffee_excess":
         setEnergy(e => clamp(e + 5)); showMsg("calma no café! 😰"); break;
       case "pomodoro_start":
@@ -162,25 +271,27 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
         setTimeout(() => setMood("coding"), 4000); break;
       case "pomodoro_end":
         setMood("excited"); setHappiness(h => clamp(h + 12)); setEnergy(e => clamp(e + 10));
-        showMsg("🍅 timer acabou!"); addSparkle(); setTimeout(() => setMood("coding"), 4000); break;
+        showMsg("🍅 timer acabou!"); addSparkle(); gainXp(10);
+        setTimeout(() => setMood("coding"), 4000); break;
       case "task_complete":
         setMood("excited"); setHappiness(h => clamp(h + 15)); setEnergy(e => clamp(e + 5));
-        showMsg(pickMsg("excited")); addSparkle(); setTimeout(() => setMood("coding"), 4000); break;
+        showMsg(pickMsg("excited")); addSparkle(); gainXp(8);
+        setTimeout(() => setMood("coding"), 4000); break;
       case "urgent_overdue":
         setMood("alert"); setHappiness(h => clamp(h - 5)); showMsg(pickMsg("alert"), 5000);
         setTimeout(() => setMood("coding"), 6000); break;
     }
-  }, [lastEvent, pickMsg, showMsg, addSparkle]);
+  }, [lastEvent, pickMsg, showMsg, addSparkle, gainXp]);
 
-  // Legacy onTaskComplete support
+  // Legacy
   useEffect(() => {
     if (onTaskComplete) {
       setMood("excited"); setHappiness(h => clamp(h + 15)); showMsg(pickMsg("excited"));
-      addSparkle(); setTimeout(() => setMood("coding"), 4000);
+      addSparkle(); gainXp(8); setTimeout(() => setMood("coding"), 4000);
     }
-  }, [onTaskComplete, pickMsg, showMsg, addSparkle]);
+  }, [onTaskComplete, pickMsg, showMsg, addSparkle, gainXp]);
 
-  // Eye tracking
+  // === EYE TRACKING ===
   useEffect(() => {
     const handleMouse = (e: MouseEvent) => {
       if (!catRef.current) return;
@@ -193,109 +304,233 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
         x: Math.round(Math.max(-maxOffset, Math.min(maxOffset, (dx / Math.max(dist, 1)) * maxOffset))),
         y: Math.round(Math.max(-1, Math.min(1, (dy / Math.max(dist, 1)) * maxOffset * 0.5))),
       });
+
+      // Cursor proximity reaction — cat gets curious when cursor is near
+      if (dist < 200 && dist > 80 && mood === "coding" && Math.random() < 0.002) {
+        setMood("curious");
+        showMsg(pickMsg("curious"));
+        setTimeout(() => setMood("coding"), 3000);
+      }
     };
     window.addEventListener("mousemove", handleMouse);
     return () => window.removeEventListener("mousemove", handleMouse);
-  }, []);
+  }, [mood, showMsg, pickMsg]);
 
-  // Blink
+  // === BLINK ===
   useEffect(() => {
-    if (mood === "sleeping") return;
+    if (mood === "sleeping" || mood === "dreaming") return;
     const interval = setInterval(() => {
       setBlink(true); setTimeout(() => setBlink(false), 150);
     }, 2000 + Math.random() * 2500);
     return () => clearInterval(interval);
   }, [mood]);
 
-  // Idle → sleeping
+  // === IDLE → SLEEPING ===
   useEffect(() => {
     if (mood === "idle" || mood === "tired") {
-      const timeout = setTimeout(() => { setMood("sleeping"); setEnergy(e => clamp(e + 20)); },
-        mood === "tired" ? 10000 : 25000);
+      const timeout = setTimeout(() => {
+        setMood("sleeping"); setEnergy(e => clamp(e + 20));
+      }, mood === "tired" ? 10000 : 25000);
       return () => clearTimeout(timeout);
     }
   }, [mood]);
 
-  // Sleeping recovers energy
+  // === SLEEPING → DREAMING ===
   useEffect(() => {
     if (mood !== "sleeping") return;
-    const interval = setInterval(() => {
+    const dreamInterval = setInterval(() => {
+      if (Math.random() < 0.4) {
+        setDreamItem(DREAM_ITEMS[Math.floor(Math.random() * DREAM_ITEMS.length)]);
+        setMood("dreaming");
+        showMsg(pickMsg("dreaming"));
+        setTimeout(() => setMood("sleeping"), 4000);
+      }
+    }, 8000);
+    const recoveryInterval = setInterval(() => {
       setEnergy(e => {
         const next = clamp(e + 2);
         if (next >= 90) { setMood("coding"); showMsg("*acorda descansado!* 😸"); }
         return next;
       });
     }, 3000);
-    return () => clearInterval(interval);
-  }, [mood, showMsg]);
+    return () => { clearInterval(dreamInterval); clearInterval(recoveryInterval); };
+  }, [mood, showMsg, pickMsg]);
 
-  // Purring / happy timeouts
+  // === MOOD TIMEOUTS ===
   useEffect(() => {
     if (mood === "purring") {
       setIsKneading(true);
-      const timeout = setTimeout(() => { setMood("coding"); setIsKneading(false); }, 6000);
-      return () => { clearTimeout(timeout); setIsKneading(false); };
+      const t = setTimeout(() => { setMood("coding"); setIsKneading(false); }, 6000);
+      return () => { clearTimeout(t); setIsKneading(false); };
     }
-    if (mood === "happy") {
-      const timeout = setTimeout(() => setMood("coding"), 4000);
-      return () => clearTimeout(timeout);
+    if (mood === "happy" || mood === "love") {
+      const t = setTimeout(() => setMood("coding"), 4000);
+      return () => clearTimeout(t);
     }
-    if (mood === "eating" || mood === "playing") {
-      const timeout = setTimeout(() => setMood("coding"), 5000);
-      return () => clearTimeout(timeout);
+    if (mood === "eating" || mood === "playing" || mood === "hunting") {
+      const t = setTimeout(() => setMood("coding"), 5000);
+      return () => clearTimeout(t);
     }
-  }, [mood]);
+    if (mood === "grooming") {
+      const t = setTimeout(() => { setMood("coding"); showMsg("pronto, limpinho! ✨"); }, 6000);
+      return () => clearTimeout(t);
+    }
+    if (mood === "curious") {
+      const t = setTimeout(() => setMood("coding"), 4000);
+      return () => clearTimeout(t);
+    }
+    if (mood === "zoomies") {
+      const t = setTimeout(() => {
+        setMood("tired"); setEnergy(e => clamp(e - 20));
+        showMsg("*ofegante* ufa...");
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+    if (mood === "scared") {
+      const t = setTimeout(() => { setMood("coding"); showMsg("ah... era nada 😮‍💨"); }, 3000);
+      return () => clearTimeout(t);
+    }
+    if (mood === "begging") {
+      const t = setTimeout(() => setMood("coding"), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [mood, showMsg]);
 
   const handleAnimationEnd = useCallback(() => {
     if (mood === "belly" || mood === "scratching" || mood === "stretching") setMood("coding");
   }, [mood]);
 
-  // Random spontaneous actions during coding
+  // === SPONTANEOUS ACTIONS (enriched) ===
   useEffect(() => {
     if (mood !== "coding") return;
     const doRandomAction = () => {
       const rand = Math.random();
-      if (rand < 0.1) { setMood("belly"); showMsg(pickMsg("belly")); }
-      else if (rand < 0.2) { setMood("scratching"); showMsg(pickMsg("scratching")); }
-      else if (rand < 0.3) { setMood("stretching"); showMsg(pickMsg("stretching")); }
-      else if (rand < 0.38) { setMood("playing"); setHappiness(h => clamp(h + 5)); setEnergy(e => clamp(e - 3)); showMsg(pickMsg("playing")); }
+      const isNight = timeOfDay === "night";
+      const isMorning = timeOfDay === "morning";
+
+      // Night = sleepier
+      if (isNight && rand < 0.15 && energy < 60) {
+        setMood("tired"); showMsg("*boceja*... tá tarde"); return;
+      }
+      // Morning = more energetic
+      if (isMorning && rand < 0.08) {
+        setMood("stretching"); showMsg("bom dia! *estica*"); return;
+      }
+
+      if (rand < 0.06) { setMood("belly"); showMsg(pickMsg("belly")); }
+      else if (rand < 0.10) { setMood("scratching"); showMsg(pickMsg("scratching")); }
+      else if (rand < 0.14) { setMood("stretching"); showMsg(pickMsg("stretching")); }
+      else if (rand < 0.18) { setMood("grooming"); showMsg(pickMsg("grooming")); gainXp(1); }
+      else if (rand < 0.22) { setMood("curious"); showMsg(pickMsg("curious")); }
+      else if (rand < 0.24 && energy > 70) {
+        setMood("zoomies"); showMsg(pickMsg("zoomies")); setHappiness(h => clamp(h + 8)); gainXp(2);
+      }
+      else if (rand < 0.26 && energy > 50) {
+        setMood("hunting"); showMsg(pickMsg("hunting")); setHappiness(h => clamp(h + 3)); gainXp(2);
+      }
+      else if (rand < 0.28) {
+        // Random scare
+        setMood("scared"); showMsg(pickMsg("scared"));
+      }
+      else if (rand < 0.30 && affection > 70) {
+        setMood("love"); showMsg(pickMsg("love")); gainXp(2);
+      }
+      else if (rand < 0.33) {
+        setMood("playing"); setHappiness(h => clamp(h + 5)); setEnergy(e => clamp(e - 3));
+        showMsg(pickMsg("playing")); gainXp(2);
+      }
       else { showMsg(pickMsg("coding"), 4000); }
     };
-    const interval = setInterval(doRandomAction, 8000 + Math.random() * 6000);
+    const interval = setInterval(doRandomAction, 7000 + Math.random() * 5000);
     return () => clearInterval(interval);
-  }, [mood, catName, pickMsg, showMsg]);
+  }, [mood, catName, pickMsg, showMsg, timeOfDay, energy, affection, gainXp]);
 
-  // Single click = pet, double click = belly rub / play
+  // === PET COMBO SYSTEM ===
   const handlePet = useCallback(() => {
     if (showSettings) return;
+    recordInteraction();
     const now = Date.now();
     const isDoubleClick = now - lastClickTime.current < 350;
     lastClickTime.current = now;
+
     if (isDoubleClick) {
       const action = Math.random() > 0.5 ? "playing" : "belly";
       setMood(action as CatMood); setHappiness(h => clamp(h + 12)); setEnergy(e => clamp(e - 5));
-      showMsg(pickMsg(action)); addSparkle(); return;
+      showMsg(pickMsg(action)); addSparkle(); gainXp(5); return;
     }
+
     setTimeout(() => {
       if (Date.now() - lastClickTime.current < 350) return;
+
+      // Combo system
+      const newCombo = petCombo + 1;
+      setPetCombo(newCombo);
+      if (petComboTimer.current) clearTimeout(petComboTimer.current);
+      petComboTimer.current = setTimeout(() => setPetCombo(0), 3000);
+
       const newPets = pets + 1; setPets(newPets);
-      setHappiness(h => clamp(h + 5));
-      const newMood = newPets % 5 === 0 ? "purring" : "happy";
-      setMood(newMood); showMsg(pickMsg(newMood));
+      setHappiness(h => clamp(h + 3 + newCombo));
+      setAffection(a => clamp(a + 2 + newCombo));
+      gainXp(1 + Math.floor(newCombo / 3));
+
+      if (newCombo >= 10) {
+        // Mega combo!
+        setMood("love"); showMsg(`COMBO x${newCombo}! 💕💕💕`);
+        addSparkle(); addSparkle();
+        setHappiness(h => clamp(h + 20));
+      } else if (newCombo >= 5) {
+        setMood("purring"); showMsg(`combo x${newCombo}! purrrr~`);
+        setIsKneading(true);
+        addSparkle();
+      } else if (newPets % 5 === 0) {
+        setMood("purring"); showMsg(pickMsg("purring"));
+      } else {
+        setMood("happy"); showMsg(pickMsg("happy"));
+      }
+
       const heartId = Date.now();
-      setHearts((h) => [...h, heartId]);
-      setTimeout(() => setHearts((h) => h.filter((id) => id !== heartId)), 2000);
+      setHearts(h => [...h, heartId]);
+      setTimeout(() => setHearts(h => h.filter(id => id !== heartId)), 2000);
     }, 360);
-  }, [pets, showSettings, pickMsg, showMsg, addSparkle]);
+  }, [pets, petCombo, showSettings, pickMsg, showMsg, addSparkle, gainXp, recordInteraction]);
 
-  // Feed the cat
-  const handleFeed = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  // === FEED ===
+  const handleFeed = useCallback((e?: React.MouseEvent) => {
+    e?.preventDefault();
     if (showSettings) return;
-    setMood("eating"); setHappiness(h => clamp(h + 10)); setEnergy(e => clamp(e + 8));
-    showMsg(pickMsg("eating")); addSparkle();
-  }, [showSettings, pickMsg, showMsg, addSparkle]);
+    recordInteraction();
+    setMood("eating");
+    setHappiness(h => clamp(h + 8));
+    setEnergy(e => clamp(e + 5));
+    setHunger(h => clamp(h + 30));
+    showMsg(pickMsg("eating"));
+    addSparkle(); gainXp(4);
+  }, [showSettings, pickMsg, showMsg, addSparkle, gainXp, recordInteraction]);
 
+  // === PLAY ===
+  const handlePlay = useCallback(() => {
+    recordInteraction();
+    if (energy < 10) { showMsg("tô cansado demais..."); return; }
+    setMood("playing"); setHappiness(h => clamp(h + 10)); setEnergy(e => clamp(e - 8));
+    showMsg(pickMsg("playing")); addSparkle(); gainXp(5);
+  }, [showMsg, pickMsg, addSparkle, gainXp, recordInteraction, energy]);
+
+  // === NAP ===
+  const handleNap = useCallback(() => {
+    recordInteraction();
+    setMood("sleeping"); showMsg("boa noite... 😴");
+  }, [showMsg, recordInteraction]);
+
+  // === TREAT ===
+  const handleTreat = useCallback(() => {
+    recordInteraction();
+    setMood("excited"); setHappiness(h => clamp(h + 15)); setHunger(h => clamp(h + 15));
+    setAffection(a => clamp(a + 5));
+    showMsg("PETISCO!! 🎉"); addSparkle(); gainXp(6);
+    setTimeout(() => setMood("coding"), 4000);
+  }, [showMsg, addSparkle, gainXp, recordInteraction]);
+
+  // === RENDER HELPERS ===
   const c = CAT_COLORS[colorIdx];
   const earInner = "#f0a0a0";
   const nose = "#e07080";
@@ -304,23 +539,25 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   const bell = "hsl(var(--accent))";
   const eyeColor = c.eye;
 
-  const showEyes = mood !== "sleeping" && !blink;
-  const isHappy = mood === "happy" || mood === "purring" || mood === "excited" || mood === "belly" || mood === "listening" || mood === "hydrated" || mood === "eating" || mood === "playing";
+  const showEyes = mood !== "sleeping" && mood !== "dreaming" && !blink;
+  const isHappy = ["happy", "purring", "excited", "belly", "listening", "hydrated", "eating", "playing", "love"].includes(mood);
   const isBelly = mood === "belly";
   const isScratching = mood === "scratching";
   const isStretching = mood === "stretching";
   const isAlert = mood === "alert" || mood === "thirsty";
   const isTired = mood === "tired" || mood === "lonely";
+  const isCurious = mood === "curious" || mood === "hunting";
 
-  const statColor = (val: number) =>
-    val > 60 ? "bg-success" : val > 30 ? "bg-warning" : "bg-destructive";
+  const statColor = (val: number) => val > 60 ? "bg-success" : val > 30 ? "bg-warning" : "bg-destructive";
 
   const moodEmoji: Record<string, string> = {
     coding: "⌨️", sleeping: "💤", happy: "♡", purring: "~", idle: "·",
     excited: "✨", belly: "🐾", scratching: "👃", stretching: "🧘",
     listening: "♪", thirsty: "💧", hydrated: "✓", caffeinated: "☕",
     focused: "🍅", alert: "⚠️", eating: "🐟", playing: "🧶",
-    lonely: "😿", tired: "😴",
+    lonely: "😿", tired: "😴", grooming: "🧼", curious: "👀",
+    zoomies: "⚡", dreaming: "💭", scared: "😱", love: "💕",
+    begging: "🥺", hunting: "🎯",
   };
 
   const moodLabel: Record<string, string> = {
@@ -329,8 +566,14 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
     stretching: "esticando", listening: "ouvindo ♪", thirsty: "com sede",
     hydrated: "hidratado", caffeinated: "cafeinado", focused: "focado",
     alert: "alerta!", eating: "comendo", playing: "brincando",
-    lonely: "solitário", tired: "cansado",
+    lonely: "solitário", tired: "cansado", grooming: "se limpando",
+    curious: "curioso!", zoomies: "ZOOMIES!", dreaming: "sonhando",
+    scared: "assustado!", love: "apaixonado", begging: "faminto!",
+    hunting: "caçando",
   };
+
+  const xpNeeded = xpForLevel(level);
+  const xpPercent = Math.min((xp / xpNeeded) * 100, 100);
 
   return (
     <div ref={catRef} className="fixed bottom-4 right-4 z-50 select-none">
@@ -352,6 +595,36 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
         )}
       </AnimatePresence>
 
+      {/* Level up celebration */}
+      <AnimatePresence>
+        {showLevelUp && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: -20, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.5 }}
+            className="absolute -top-24 right-0 bg-primary/20 border border-primary/40 rounded-xl px-4 py-2 shadow-xl z-30"
+          >
+            <p className="text-xs font-mono font-bold text-primary flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5" /> Level {level}!
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pet combo indicator */}
+      <AnimatePresence>
+        {petCombo >= 3 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            className="absolute -top-5 left-0 bg-primary/20 border border-primary/30 rounded-full px-2 py-0.5 z-20"
+          >
+            <span className="text-[9px] font-mono font-bold text-primary">x{petCombo}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Settings panel */}
       <AnimatePresence>
         {showSettings && (
@@ -369,15 +642,12 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
               </button>
             </div>
             <div className="space-y-4">
-              {/* Name */}
               <div>
                 <label className="text-[9px] font-mono text-muted-foreground/60 block mb-1.5">nome</label>
                 <input value={catName} onChange={(e) => saveName(e.target.value)}
                   className="w-full bg-muted/30 border border-border/40 rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" maxLength={12}
                   placeholder="Nome do gato" />
               </div>
-
-              {/* Color */}
               <div>
                 <label className="text-[9px] font-mono text-muted-foreground/60 block mb-2">pelagem</label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -385,9 +655,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                     <button key={i} onClick={() => saveColor(i)}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[9px] font-mono transition-all border",
-                        colorIdx === i
-                          ? "border-primary/60 bg-primary/10 text-primary shadow-sm"
-                          : "border-border/30 text-muted-foreground/60 hover:bg-muted/30 hover:border-border/50"
+                        colorIdx === i ? "border-primary/60 bg-primary/10 text-primary shadow-sm" : "border-border/30 text-muted-foreground/60 hover:bg-muted/30 hover:border-border/50"
                       )}>
                       <div className="w-3.5 h-3.5 rounded-full shadow-inner" style={{ backgroundColor: color.fur1, border: `1px solid ${color.fur2}` }} />
                       {color.name}
@@ -396,60 +664,49 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                 </div>
               </div>
 
-              {/* Stats detail */}
-              <div className="border-t border-border/20 pt-3 space-y-2.5">
-                <label className="text-[9px] font-mono text-muted-foreground/60 block">status</label>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-5 h-5 rounded-lg bg-destructive/10 flex items-center justify-center">
-                      <Heart className="w-3 h-3 text-destructive/70" />
+              {/* Full stats in settings */}
+              <div className="border-t border-border/20 pt-3 space-y-2">
+                <label className="text-[9px] font-mono text-muted-foreground/60 block">status completo</label>
+                {[
+                  { icon: Heart, label: "felicidade", val: happiness, cls: "text-destructive/70", bgCls: "bg-destructive/10" },
+                  { icon: Zap, label: "energia", val: energy, cls: "text-warning/70", bgCls: "bg-warning/10" },
+                  { icon: Cookie, label: "saciedade", val: hunger, cls: "text-accent/70", bgCls: "bg-accent/10" },
+                  { icon: Heart, label: "afeto", val: affection, cls: "text-pink-400/70", bgCls: "bg-pink-400/10" },
+                ].map(({ icon: Icon, label, val, cls, bgCls }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className={cn("w-5 h-5 rounded-lg flex items-center justify-center", bgCls)}>
+                      <Icon className={cn("w-3 h-3", cls)} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[8px] font-mono text-muted-foreground/50">felicidade</span>
-                        <span className="text-[9px] font-mono text-foreground/80 font-semibold">{Math.round(happiness)}%</span>
+                        <span className="text-[8px] font-mono text-muted-foreground/50">{label}</span>
+                        <span className="text-[9px] font-mono text-foreground/80 font-semibold">{Math.round(val)}%</span>
                       </div>
                       <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                        <motion.div className={cn("h-full rounded-full", statColor(happiness))}
-                          initial={false} animate={{ width: `${happiness}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
+                        <motion.div className={cn("h-full rounded-full", statColor(val))}
+                          initial={false} animate={{ width: `${val}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-5 h-5 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <Zap className="w-3 h-3 text-warning/70" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[8px] font-mono text-muted-foreground/50">energia</span>
-                        <span className="text-[9px] font-mono text-foreground/80 font-semibold">{Math.round(energy)}%</span>
-                      </div>
-                      <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                        <motion.div className={cn("h-full rounded-full", statColor(energy))}
-                          initial={false} animate={{ width: `${energy}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
 
-              {/* Actions */}
+              {/* Level display */}
               <div className="border-t border-border/20 pt-3">
-                <label className="text-[9px] font-mono text-muted-foreground/60 block mb-2">ações</label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button onClick={(e) => { e.stopPropagation(); setShowSettings(false); handlePet(); }}
-                    className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[9px] font-mono border border-border/30 text-muted-foreground/70 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all">
-                    <Hand className="w-3 h-3" /> carinho
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowSettings(false); handleFeed(e as any); }}
-                    className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[9px] font-mono border border-border/30 text-muted-foreground/70 hover:bg-accent/10 hover:border-accent/30 hover:text-accent-foreground transition-all">
-                    <Utensils className="w-3 h-3" /> alimentar
-                  </button>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-1">
+                    <Star className="w-3 h-3 text-primary/60" /> nível {level}
+                  </span>
+                  <span className="text-[8px] font-mono text-muted-foreground/40">{Math.round(xp)}/{xpNeeded} xp</span>
+                </div>
+                <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                  <motion.div className="h-full rounded-full bg-primary" initial={false}
+                    animate={{ width: `${xpPercent}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
                 </div>
               </div>
 
               <p className="text-[7px] font-mono text-muted-foreground/25 leading-relaxed text-center">
-                clique = carinho · 2x clique = brincar
+                clique = carinho · 2x clique = brincar · combos = bônus
               </p>
             </div>
           </motion.div>
@@ -457,25 +714,22 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
       </AnimatePresence>
 
       {/* Main cat card */}
-      <div className="bg-card/80 backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl overflow-hidden w-[160px]">
+      <div className="bg-card/80 backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl overflow-hidden w-[168px]">
         {/* Cat viewport */}
         <div className="relative px-2 pt-2">
-          {/* Hearts */}
           {hearts.map((id, i) => (
             <span key={id} className="absolute text-sm animate-heart-float pointer-events-none z-10"
               style={{ left: `${20 + (i % 5) * 16}px`, top: "0px" }}>
               {["♡", "✦", "♡", "⋆", "♡"][i % 5]}
             </span>
           ))}
-
-          {/* Sparkles */}
           {sparkles.map((id, i) => (
             <span key={id} className="absolute animate-heart-float pointer-events-none text-primary z-10"
               style={{ left: `${30 + (i % 3) * 25}px`, top: "-4px", fontSize: "14px" }}>✦</span>
           ))}
 
           {/* Sleeping Zs */}
-          {mood === "sleeping" && (
+          {(mood === "sleeping" || mood === "dreaming") && (
             <div className="absolute -top-1 right-3 flex gap-1 z-10">
               {[0, 0.4, 0.8].map((d, i) => (
                 <span key={i} className="animate-float font-mono text-muted-foreground/40"
@@ -484,22 +738,35 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
             </div>
           )}
 
-          {/* Alert indicator */}
+          {/* Dream bubble */}
+          {mood === "dreaming" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="absolute -top-3 left-2 z-10 bg-card/80 border border-border/30 rounded-full w-7 h-7 flex items-center justify-center"
+            >
+              <span className="text-sm">{dreamItem}</span>
+            </motion.div>
+          )}
+
+          {/* Alert */}
           {isAlert && (
             <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-destructive/80 animate-pulse flex items-center justify-center z-10">
               <span className="text-[8px] text-white font-bold">!</span>
             </div>
           )}
-
-          {/* Low stat indicators */}
-          {happiness < 30 && !isAlert && mood !== "sleeping" && (
+          {/* Hunger warning */}
+          {hunger < 20 && !isAlert && mood !== "sleeping" && mood !== "dreaming" && (
+            <div className="absolute top-1 left-1 animate-pulse z-10"><Cookie className="w-3 h-3 text-accent/60" /></div>
+          )}
+          {happiness < 30 && !isAlert && hunger >= 20 && mood !== "sleeping" && mood !== "dreaming" && (
             <div className="absolute top-1 left-1 animate-pulse z-10"><Heart className="w-3 h-3 text-destructive/60" /></div>
           )}
-          {energy < 25 && mood !== "sleeping" && (
+          {energy < 25 && mood !== "sleeping" && mood !== "dreaming" && (
             <div className="absolute top-1 left-5 animate-pulse z-10"><Zap className="w-3 h-3 text-warning/60" /></div>
           )}
 
-          {/* Food particles */}
           {mood === "eating" && (
             <div className="absolute top-4 left-10 z-10">
               {[0, 1, 2].map(i => (
@@ -508,35 +775,54 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
               ))}
             </div>
           )}
-
-          {/* Play toy */}
           {mood === "playing" && (
             <div className="absolute top-2 left-6 animate-bounce z-10"><span className="text-sm">🧶</span></div>
+          )}
+          {mood === "hunting" && (
+            <div className="absolute top-3 left-4 z-10">
+              <motion.span animate={{ x: [0, 30, 15, 40, 10], y: [0, -5, 5, -3, 0] }}
+                transition={{ duration: 2, repeat: Infinity }} className="text-[10px] absolute">🐁</motion.span>
+            </div>
+          )}
+          {mood === "zoomies" && (
+            <div className="absolute inset-0 z-10 pointer-events-none">
+              {[0, 1, 2, 3].map(i => (
+                <motion.span key={i} className="absolute text-[8px] text-primary/40"
+                  animate={{ opacity: [0, 0.6, 0], x: [0, (i % 2 ? 1 : -1) * 20], y: [0, -10] }}
+                  transition={{ duration: 0.4, delay: i * 0.1, repeat: Infinity }}
+                  style={{ left: `${30 + i * 20}px`, top: `${50 + i * 5}px` }}>💨</motion.span>
+              ))}
+            </div>
           )}
 
           <div
             className={cn(
               "flex justify-center transition-transform duration-500 ease-in-out py-1",
-              mood === "sleeping" ? "" : "animate-breathe",
+              mood === "sleeping" || mood === "dreaming" ? "" : "animate-breathe",
               isBelly && "animate-belly-roll",
               isStretching && "animate-cat-stretch",
               isScratching && "animate-cat-scratch",
               isAlert && "animate-[shake_0.5s_ease-in-out_infinite]",
               mood === "listening" && "animate-[bounce_1s_ease-in-out_infinite]",
               mood === "playing" && "animate-[bounce_0.6s_ease-in-out_infinite]",
+              mood === "zoomies" && "animate-[shake_0.15s_ease-in-out_infinite]",
+              mood === "scared" && "animate-[shake_0.3s_ease-in-out_infinite]",
+              mood === "grooming" && "animate-cat-scratch",
+              mood === "hunting" && "animate-breathe",
               isTired && "opacity-80",
+              mood === "love" && "animate-[bounce_0.8s_ease-in-out_infinite]",
             )}
             onAnimationEnd={(e) => { if (e.currentTarget === e.target) handleAnimationEnd(); }}
           >
             <svg width="100" height="90" viewBox="0 0 44 40"
               className="image-rendering-pixelated cursor-pointer drop-shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95"
-              onClick={handlePet} onContextMenu={handleFeed}
+              onClick={handlePet} onContextMenu={(e) => handleFeed(e)}
               role="button" aria-label={`Acariciar ${catName}`}>
 
               <ellipse cx="20" cy="38" rx="15" ry="2" fill="hsl(var(--foreground) / 0.04)" />
 
               {/* Tail */}
-              <g className={isHappy ? "animate-tail-fast" : "animate-tail"}>
+              <g className={isHappy || mood === "zoomies" ? "animate-tail-fast" : "animate-tail"}>
                 <rect x="30" y="24" width="1" height="1" fill={c.fur2} />
                 <rect x="31" y="23" width="1" height="1" fill={c.fur1} />
                 <rect x="32" y="22" width="1" height="1" fill={c.fur1} />
@@ -561,7 +847,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
               <rect x="18" y="20" width="3" height="2" fill={bell} />
               <rect x="19" y="20" width="1" height="1" fill="white" opacity="0.4" />
 
-              {/* Left ear */}
+              {/* Ears */}
               <g className="animate-ear-twitch">
                 <rect x="6" y="1" width="1" height="1" fill={c.fur2} />
                 <rect x="7" y="0" width="4" height="1" fill={c.fur2} />
@@ -570,7 +856,6 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                 <rect x="7" y="1" width="3" height="2" fill={c.fur1} />
                 <rect x="7" y="2" width="2" height="2" fill={earInner} />
               </g>
-              {/* Right ear */}
               <rect x="27" y="1" width="1" height="1" fill={c.fur2} />
               <rect x="28" y="0" width="4" height="1" fill={c.fur2} />
               <rect x="32" y="2" width="1" height="4" fill={c.fur2} />
@@ -595,6 +880,24 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                 <>
                   <rect x="10" y="12" width="6" height="1" fill={eyeColor} />
                   <rect x="22" y="12" width="6" height="1" fill={eyeColor} />
+                </>
+              ) : isCurious ? (
+                /* Big dilated pupils for curious/hunting */
+                <>
+                  <rect x="9" y="9" width="8" height="6" fill={eyeColor} />
+                  <rect x="10" y="9" width="4" height="2" fill="white" />
+                  <rect x="16" y="10" width="1" height="1" fill="white" opacity="0.5" />
+                  <rect x="21" y="9" width="8" height="6" fill={eyeColor} />
+                  <rect x="22" y="9" width="4" height="2" fill="white" />
+                  <rect x="28" y="10" width="1" height="1" fill="white" opacity="0.5" />
+                </>
+              ) : mood === "scared" ? (
+                /* Wide scared eyes */
+                <>
+                  <rect x="9" y="9" width="7" height="6" fill="white" />
+                  <rect x="11" y="10" width="4" height="4" fill={eyeColor} />
+                  <rect x="21" y="9" width="7" height="6" fill="white" />
+                  <rect x="23" y="10" width="4" height="4" fill={eyeColor} />
                 </>
               ) : isTired ? (
                 <>
@@ -635,6 +938,8 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                   <rect x="20" y="18" width="1" height="1" fill={c.fur2} opacity="0.4" />
                 </>
               )}
+              {/* Begging mouth */}
+              {mood === "begging" && <rect x="17" y="17" width="4" height="2" fill={nose} opacity="0.6" />}
 
               {/* Whiskers */}
               <rect x="1" y="13" width="8" height="1" fill={c.fur3} opacity="0.5" />
@@ -644,8 +949,8 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
               <rect x="31" y="15" width="8" height="1" fill={c.fur3} opacity="0.5" />
               <rect x="30" y="17" width="7" height="1" fill={c.fur3} opacity="0.4" />
 
-              {/* Front paws */}
-              {isScratching ? (
+              {/* Paws */}
+              {isScratching || mood === "grooming" ? (
                 <>
                   <g className="animate-scratch-paw">
                     <rect x="12" y="18" width="3" height="3" fill={c.fur1} />
@@ -689,7 +994,7 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                 </>
               )}
 
-              {/* Coding laptop */}
+              {/* Laptop */}
               {(mood === "coding" || mood === "focused") && (
                 <>
                   <rect x="14" y="30" width="11" height="2" fill="#444" />
@@ -703,21 +1008,23 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
                 </>
               )}
 
-              {/* Music notes */}
               {mood === "listening" && (
                 <>
                   <rect x="2" y="3" width="2" height="2" fill="hsl(var(--primary))" opacity="0.6" className="animate-float" />
                   <rect x="36" y="5" width="2" height="2" fill="hsl(var(--accent))" opacity="0.5" className="animate-float" style={{ animationDelay: "0.3s" }} />
-                  <rect x="5" y="7" width="1" height="1" fill="hsl(var(--primary))" opacity="0.4" className="animate-float" style={{ animationDelay: "0.6s" }} />
                 </>
               )}
-
               {mood === "excited" && (
                 <>
                   <rect x="2" y="5" width="2" height="2" fill="hsl(var(--accent))" opacity="0.8" />
                   <rect x="36" y="3" width="2" height="2" fill="hsl(var(--accent))" opacity="0.6" />
-                  <rect x="5" y="0" width="1" height="1" fill="hsl(var(--primary))" opacity="0.7" />
-                  <rect x="34" y="7" width="1" height="1" fill="hsl(var(--primary))" opacity="0.5" />
+                </>
+              )}
+              {mood === "love" && (
+                <>
+                  <rect x="3" y="4" width="2" height="2" fill="#f06080" opacity="0.7" className="animate-float" />
+                  <rect x="35" y="2" width="2" height="2" fill="#f06080" opacity="0.5" className="animate-float" style={{ animationDelay: "0.4s" }} />
+                  <rect x="8" y="1" width="1" height="1" fill="#f06080" opacity="0.4" className="animate-float" style={{ animationDelay: "0.8s" }} />
                 </>
               )}
             </svg>
@@ -726,39 +1033,69 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
 
         {/* Info bar */}
         <div className="px-3 pb-2.5 pt-0.5">
-          {/* Name + mood */}
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[10px] font-mono font-semibold text-foreground/90 truncate">{catName}</span>
               <span className="text-[9px]">{moodEmoji[mood] || "·"}</span>
             </div>
-            <span className="text-[8px] font-mono text-muted-foreground/40 shrink-0">{moodLabel[mood] || mood}</span>
-          </div>
-
-          {/* Always-visible mini stats */}
-          <div className="space-y-1.5 mb-2">
-            <div className="flex items-center gap-1.5">
-              <Heart className="w-2.5 h-2.5 text-destructive/50 shrink-0" />
-              <div className="flex-1 h-[5px] bg-muted/30 rounded-full overflow-hidden">
-                <motion.div className={cn("h-full rounded-full", statColor(happiness))}
-                  initial={false} animate={{ width: `${happiness}%` }} transition={{ duration: 0.6, ease: "easeOut" }} />
-              </div>
-              <span className="text-[7px] font-mono text-muted-foreground/40 w-5 text-right">{Math.round(happiness)}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Zap className="w-2.5 h-2.5 text-warning/50 shrink-0" />
-              <div className="flex-1 h-[5px] bg-muted/30 rounded-full overflow-hidden">
-                <motion.div className={cn("h-full rounded-full", statColor(energy))}
-                  initial={false} animate={{ width: `${energy}%` }} transition={{ duration: 0.6, ease: "easeOut" }} />
-              </div>
-              <span className="text-[7px] font-mono text-muted-foreground/40 w-5 text-right">{Math.round(energy)}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[7px] font-mono text-primary/50 bg-primary/10 rounded px-1">Lv.{level}</span>
+              <span className="text-[8px] font-mono text-muted-foreground/40 shrink-0">{moodLabel[mood] || mood}</span>
             </div>
           </div>
 
-          {/* Settings button */}
-          <div className="flex justify-end">
+          {/* XP bar */}
+          <div className="h-[3px] bg-muted/20 rounded-full overflow-hidden mb-1.5">
+            <motion.div className="h-full rounded-full bg-primary/60" initial={false}
+              animate={{ width: `${xpPercent}%` }} transition={{ duration: 0.5 }} />
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-4 gap-1 mb-2">
+            {[
+              { icon: "♡", val: happiness, color: statColor(happiness) },
+              { icon: "⚡", val: energy, color: statColor(energy) },
+              { icon: "🍖", val: hunger, color: statColor(hunger) },
+              { icon: "💕", val: affection, color: statColor(affection) },
+            ].map(({ icon, val, color }, i) => (
+              <div key={i} className="flex flex-col items-center gap-0.5">
+                <span className="text-[8px]">{icon}</span>
+                <div className="w-full h-[4px] bg-muted/30 rounded-full overflow-hidden">
+                  <motion.div className={cn("h-full rounded-full", color)} initial={false}
+                    animate={{ width: `${val}%` }} transition={{ duration: 0.6 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          <div className="grid grid-cols-4 gap-1 mb-1.5">
+            <button onClick={handlePet} title="Carinho"
+              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all">
+              <Hand className="w-3 h-3" />
+            </button>
+            <button onClick={() => handleFeed()} title="Alimentar"
+              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-accent/10 hover:text-accent hover:border-accent/30 transition-all">
+              <Utensils className="w-3 h-3" />
+            </button>
+            <button onClick={handlePlay} title="Brincar"
+              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-success/10 hover:text-success hover:border-success/30 transition-all">
+              <Gamepad2 className="w-3 h-3" />
+            </button>
+            <button onClick={handleTreat} title="Petisco"
+              className="flex items-center justify-center h-6 rounded-lg border border-border/20 text-muted-foreground/50 hover:bg-warning/10 hover:text-warning hover:border-warning/30 transition-all">
+              <Cookie className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Bottom row: nap + settings */}
+          <div className="flex items-center justify-between">
+            <button onClick={handleNap} title="Dormir"
+              className="text-muted-foreground/25 hover:text-muted-foreground/60 transition-colors p-0.5">
+              <Moon className="w-3 h-3" />
+            </button>
             <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-              className="text-muted-foreground/30 hover:text-muted-foreground/70 transition-colors p-0.5">
+              className="text-muted-foreground/25 hover:text-muted-foreground/60 transition-colors p-0.5">
               <Settings2 className="w-3 h-3" />
             </button>
           </div>
