@@ -328,10 +328,17 @@ const SubjectDetail = ({ subject, view, onViewChange, onBack, onUpdate, onDelete
       <div className="flex gap-1 mb-3 shrink-0">
         {VIEW_TABS.map(t => (
           <button key={t.id} onClick={() => onViewChange(t.id)}
-            className={cn("flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border transition-all",
+            className={cn("relative flex items-center gap-1.5 text-[11px] font-mono px-3 py-1.5 rounded-lg border transition-all",
               view === t.id ? "bg-primary/10 border-primary/20 text-primary" : "border-border/20 text-muted-foreground/50 hover:bg-muted/20"
             )}>
             <t.icon className="w-3.5 h-3.5" />{t.label}
+            {view === t.id && (
+              <motion.div
+                layoutId="study-view-tab"
+                className="absolute inset-0 bg-primary/10 border border-primary/20 rounded-lg -z-10"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
           </button>
         ))}
         <button onClick={onDelete} className="ml-auto text-[11px] font-mono text-destructive/50 hover:text-destructive transition-colors px-2">
@@ -340,10 +347,20 @@ const SubjectDetail = ({ subject, view, onViewChange, onBack, onUpdate, onDelete
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
-        {view === "topics" && <TopicsView subject={subject} onUpdate={onUpdate} />}
-        {view === "flashcards" && <FlashcardsView subject={subject} onUpdate={onUpdate} />}
-        {view === "links" && <LinksView subject={subject} onUpdate={onUpdate} />}
-        {view === "timer" && <StudyTimerView subject={subject} onUpdate={onUpdate} />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={view}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {view === "topics" && <TopicsView subject={subject} onUpdate={onUpdate} />}
+            {view === "flashcards" && <FlashcardsView subject={subject} onUpdate={onUpdate} />}
+            {view === "links" && <LinksView subject={subject} onUpdate={onUpdate} />}
+            {view === "timer" && <StudyTimerView subject={subject} onUpdate={onUpdate} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -389,7 +406,14 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
         {subject.topics.map(t => {
           const hasContent = t.content || t.notes.length > 0 || t.tasks.length > 0;
           return (
-            <div key={t.id} className="flex items-center gap-2 group rounded-lg hover:bg-muted/20 px-2 py-2 transition-all">
+            <motion.div
+              key={t.id}
+              layout
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: 0.03 * subject.topics.indexOf(t) }}
+              className="flex items-center gap-2 group rounded-lg hover:bg-muted/20 px-2 py-2 transition-all"
+            >
               <button onClick={(e) => { e.stopPropagation(); toggleTopic(t.id); }}
                 className={cn("w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
                   t.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
@@ -410,7 +434,7 @@ const TopicsView = ({ subject, onUpdate }: { subject: Subject; onUpdate: (u: (s:
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
