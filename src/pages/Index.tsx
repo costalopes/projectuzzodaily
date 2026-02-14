@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User, Camera, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -281,7 +282,11 @@ const Index = () => {
     const dueDate = hasDue ? parseISO(task.dueDate!) : null;
     const overdue = dueDate && isPast(dueDate) && !isToday(dueDate) && !isDone;
     return (
-      <div key={task.id}
+      <motion.div key={task.id}
+        layout
+        initial={{ opacity: 0, x: -15 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.2, delay: idx * 0.03 }}
         onClick={() => setSelectedTask(task)}
         className={cn(
           "grid grid-cols-[2rem_auto_1fr_auto_auto] gap-2 items-center px-3 py-3 rounded-xl hover:bg-muted/30 group transition-all cursor-pointer border border-transparent hover:border-border/30",
@@ -293,7 +298,13 @@ const Index = () => {
             "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
             isDone ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary hover:bg-primary/10"
           )}>
-          {isDone && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+          <AnimatePresence>
+            {isDone && (
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                <Check className="w-2.5 h-2.5 text-success-foreground" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </button>
         <div className="min-w-0">
           <span className={cn("text-sm truncate font-mono block", isDone ? "line-through text-muted-foreground" : "text-foreground")}>
@@ -341,7 +352,7 @@ const Index = () => {
           className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all w-7 flex justify-center">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
-      </div>
+      </motion.div>
     );
   };
 
@@ -622,13 +633,22 @@ const Index = () => {
                         <div className="flex gap-1 mb-2">
                           {STATUS_FILTERS.map((f) => (
                             <button key={f.id} onClick={() => setFilter(f.id)}
-                              className={cn("px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
+                              className={cn("relative px-2.5 py-1 rounded-lg text-[9px] font-mono transition-all flex items-center gap-1",
                                 filter === f.id
-                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  ? "text-primary-foreground shadow-sm"
                                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
-                              <f.icon className="w-3 h-3" />
-                              {f.label}
-                              <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
+                              {filter === f.id && (
+                                <motion.div
+                                  layoutId="task-status-filter"
+                                  className="absolute inset-0 bg-primary rounded-lg"
+                                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                />
+                              )}
+                              <span className="relative z-10 flex items-center gap-1">
+                                <f.icon className="w-3 h-3" />
+                                {f.label}
+                                <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
+                              </span>
                             </button>
                           ))}
                           <div className="ml-auto">
@@ -809,9 +829,18 @@ const Index = () => {
                     ))}
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-3" key={activeTab}>
-                    {renderWidget()}
-                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeTab}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden p-3"
+                    >
+                      {renderWidget()}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
