@@ -26,7 +26,7 @@ export const PixelCoffee = ({ className = "" }: { className?: string }) => (
   </div>
 );
 
-export const PixelClock = ({ className = "" }: { className?: string }) => {
+export const PixelClock = ({ className = "", timezone = "America/Sao_Paulo" }: { className?: string; timezone?: string }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -34,10 +34,14 @@ export const PixelClock = ({ className = "" }: { className?: string }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const hours = time.getHours().toString().padStart(2, "0");
-  const minutes = time.getMinutes().toString().padStart(2, "0");
-  const seconds = time.getSeconds();
-  const showColon = seconds % 2 === 0;
+  const formatted = time.toLocaleTimeString("pt-BR", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const [hours, minutes] = formatted.split(":");
+  const showColon = time.getSeconds() % 2 === 0;
 
   return (
     <div className={`inline-flex items-center font-mono text-xs font-bold tracking-wider bg-muted/30 border border-border/20 rounded-lg px-2.5 h-8 ${className}`}>

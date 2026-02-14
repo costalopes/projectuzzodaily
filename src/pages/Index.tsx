@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User, Camera, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,41 @@ const Index = () => {
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("tasks");
   const [catEvent, setCatEvent] = useState<CatEvent | null>(null);
+  const [profileData, setProfileData] = useState<{ username: string; avatar_url: string | null; timezone: string }>({ username: "", avatar_url: null, timezone: "America/Sao_Paulo" });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Load profile data
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("username, avatar_url, timezone").eq("user_id", user.id).maybeSingle();
+      if (data) setProfileData({ username: data.username, avatar_url: data.avatar_url, timezone: data.timezone ?? "America/Sao_Paulo" });
+    };
+    loadProfile();
+  }, []);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const filePath = `${user.id}/avatar.${file.name.split('.').pop()}`;
+      await supabase.storage.from("avatars").upload(filePath, file, { upsert: true });
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", user.id);
+      setProfileData(p => ({ ...p, avatar_url: publicUrl }));
+    } catch (err) { console.error("Avatar upload error:", err); }
+    setUploadingAvatar(false);
+  };
+
+  const handleTimezoneChange = async (tz: string) => {
+    setProfileData(p => ({ ...p, timezone: tz }));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await supabase.from("profiles").update({ timezone: tz }).eq("user_id", user.id);
+  };
 
   const emitCatEvent = useCallback((type: CatEvent["type"]) => {
     setCatEvent({ type, timestamp: Date.now() });
@@ -312,7 +347,7 @@ const Index = () => {
               {/* Left: greeting */}
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-sm font-display font-semibold text-foreground whitespace-nowrap">
-                  {greeting.emoji} {greeting.text}, <span className="text-primary">Pedro</span>
+                  {greeting.emoji} {greeting.text}, <span className="text-primary">{profileData.username || "dev"}</span>
                 </span>
                 <span className="hidden md:inline text-muted-foreground/30 font-mono text-xs">·</span>
                 <span className="hidden md:inline text-muted-foreground/40 text-xs font-mono truncate">{greeting.sub}</span>
@@ -372,23 +407,72 @@ const Index = () => {
                 </button>
 
                 {/* Clock */}
-                <PixelClock className="hidden md:flex" />
+                <PixelClock className="hidden md:flex" timezone={profileData.timezone} />
 
                 {/* Profile */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <button className="inline-flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg px-2.5 h-8 hover:bg-muted/40 transition-all group">
-                      <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/15 flex items-center justify-center">
-                        <User className="w-3 h-3 text-primary/70" />
-                      </div>
-                      <span className="hidden md:block text-xs font-mono text-foreground/60 group-hover:text-foreground transition-colors">Pedro</span>
+                      {profileData.avatar_url ? (
+                        <img src={profileData.avatar_url} alt="avatar" className="w-5 h-5 rounded-md object-cover border border-primary/15" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/15 flex items-center justify-center">
+                          <User className="w-3 h-3 text-primary/70" />
+                        </div>
+                      )}
+                      <span className="hidden md:block text-xs font-mono text-foreground/60 group-hover:text-foreground transition-colors">{profileData.username || "user"}</span>
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-56 p-2 bg-card/95 backdrop-blur-xl border-border/50">
-                    <div className="px-3 py-2 border-b border-border/30 mb-1">
-                      <p className="text-sm font-display font-semibold">Pedro</p>
-                      <p className="text-[10px] font-mono text-muted-foreground/40">online · {dateStr}</p>
+                  <PopoverContent align="end" className="w-64 p-3 bg-card/95 backdrop-blur-xl border-border/50">
+                    {/* Avatar section */}
+                    <div className="flex items-center gap-3 pb-3 border-b border-border/30 mb-2">
+                      <label className="relative cursor-pointer group">
+                        {profileData.avatar_url ? (
+                          <img src={profileData.avatar_url} alt="avatar" className="w-12 h-12 rounded-xl object-cover border-2 border-primary/20" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/15 flex items-center justify-center">
+                            <User className="w-6 h-6 text-primary/50" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          {uploadingAvatar ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
+                        </div>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                      </label>
+                      <div>
+                        <p className="text-sm font-semibold">{profileData.username || "user"}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground/40">online · {dateStr}</p>
+                      </div>
                     </div>
+
+                    {/* Timezone */}
+                    <div className="px-1 py-1.5 mb-2">
+                      <label className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60 mb-1.5">
+                        <Globe className="w-3 h-3" /> Fuso horário
+                      </label>
+                      <select
+                        value={profileData.timezone}
+                        onChange={(e) => handleTimezoneChange(e.target.value)}
+                        className="w-full bg-muted/30 border border-border/30 rounded-md px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      >
+                        <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                        <option value="America/Manaus">Manaus (AMT)</option>
+                        <option value="America/Bahia">Bahia (BRT)</option>
+                        <option value="America/Noronha">Fernando de Noronha (FNT)</option>
+                        <option value="America/Rio_Branco">Rio Branco (ACT)</option>
+                        <option value="America/New_York">New York (EST)</option>
+                        <option value="America/Chicago">Chicago (CST)</option>
+                        <option value="America/Los_Angeles">Los Angeles (PST)</option>
+                        <option value="Europe/London">London (GMT)</option>
+                        <option value="Europe/Paris">Paris (CET)</option>
+                        <option value="Europe/Berlin">Berlin (CET)</option>
+                        <option value="Asia/Tokyo">Tokyo (JST)</option>
+                        <option value="Asia/Shanghai">Shanghai (CST)</option>
+                        <option value="Australia/Sydney">Sydney (AEST)</option>
+                        <option value="Pacific/Auckland">Auckland (NZST)</option>
+                      </select>
+                    </div>
+
                     <button onClick={async () => {
                       await supabase.auth.signOut();
                       navigate("/auth");
