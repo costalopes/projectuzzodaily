@@ -699,68 +699,68 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
                     </div>
 
                     {/* Task list */}
-                    <div className="space-y-1">
-                      {filteredTasks.map(tk => (
-                        <motion.div
-                          key={tk.id}
-                          layout
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 10 }}
-                          className="group rounded-lg hover:bg-muted/10 transition-all px-2 py-2"
-                        >
-                          <div className="flex items-start gap-3">
-                            <button onClick={() => toggleTask(tk.id)}
-                              className={cn("w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
-                                tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/20 hover:border-primary"
-                              )}>
-                              {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
-                            </button>
-                            <span className={cn("text-sm font-mono flex-1 leading-relaxed", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
-                              {tk.text}
-                            </span>
-                            <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all shrink-0 mt-0.5">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                    <div className="space-y-1.5">
+                      {filteredTasks.map(tk => {
+                        const statusCycle: TopicTask["status"][] = ["todo", "in_progress", "done"];
+                        const importanceCycle: TopicTask["importance"][] = ["low", "medium", "high"];
+                        const nextStatus = statusCycle[(statusCycle.indexOf(tk.status) + 1) % statusCycle.length];
+                        const nextImportance = importanceCycle[(importanceCycle.indexOf(tk.importance) + 1) % importanceCycle.length];
+                        const importanceIcons: Record<string, string> = { low: "🟢", medium: "🟡", high: "🔴" };
 
-                          {/* Task meta row */}
-                          <div className="flex items-center gap-2 mt-1.5 ml-7 flex-wrap">
-                            {/* Status selector */}
-                            <select
-                              value={tk.status}
-                              onChange={e => updateTaskStatus(tk.id, e.target.value as TopicTask["status"])}
-                              className={cn("text-[9px] font-mono px-2 py-0.5 rounded-full border appearance-none cursor-pointer bg-transparent", statusColors[tk.status])}
-                            >
-                              <option value="todo">A fazer</option>
-                              <option value="in_progress">Fazendo</option>
-                              <option value="done">Concluída</option>
-                            </select>
-
-                            {/* Priority selector */}
-                            <select
-                              value={tk.importance}
-                              onChange={e => updateTaskImportance(tk.id, e.target.value as TopicTask["importance"])}
-                              className={cn("text-[9px] font-mono px-2 py-0.5 rounded-full border appearance-none cursor-pointer bg-transparent", importanceColors[tk.importance])}
-                            >
-                              <option value="low">🟢 Baixa</option>
-                              <option value="medium">🟡 Média</option>
-                              <option value="high">🔴 Alta</option>
-                            </select>
-
-                            {/* Due date */}
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-muted-foreground/30" />
-                              <input
-                                type="date"
-                                value={tk.dueDate || ""}
-                                onChange={e => updateTaskDueDate(tk.id, e.target.value)}
-                                className="text-[9px] font-mono bg-transparent text-muted-foreground/50 focus:outline-none border-none cursor-pointer"
-                              />
+                        return (
+                          <motion.div
+                            key={tk.id}
+                            layout
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="group bg-muted/5 border border-border/10 rounded-xl px-3 py-2.5 hover:bg-muted/10 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => toggleTask(tk.id)}
+                                className={cn("w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                                  tk.done ? "bg-success/80 border-success/80" : "border-muted-foreground/25 hover:border-primary"
+                                )}>
+                                {tk.done && <Check className="w-2.5 h-2.5 text-success-foreground" />}
+                              </button>
+                              <span className={cn("text-sm font-mono flex-1", tk.done ? "line-through text-muted-foreground/30" : "text-foreground/90")}>
+                                {tk.text}
+                              </span>
+                              <button onClick={() => deleteTask(tk.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground/25 hover:text-destructive transition-all shrink-0">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
-                          </div>
-                        </motion.div>
-                      ))}
+
+                            {/* Meta chips — click to cycle */}
+                            <div className="flex items-center gap-1.5 mt-2 ml-7">
+                              <button
+                                onClick={() => updateTaskStatus(tk.id, nextStatus)}
+                                className={cn("text-[9px] font-mono px-2 py-0.5 rounded-full border transition-all hover:brightness-125", statusColors[tk.status])}
+                                title={`Clique para mudar para "${statusLabels[nextStatus]}"`}
+                              >
+                                {statusLabels[tk.status]}
+                              </button>
+
+                              <button
+                                onClick={() => updateTaskImportance(tk.id, nextImportance)}
+                                className={cn("text-[9px] font-mono px-2 py-0.5 rounded-full border transition-all hover:brightness-125", importanceColors[tk.importance])}
+                                title={`Clique para mudar para "${importanceLabels[nextImportance]}"`}
+                              >
+                                {importanceIcons[tk.importance]} {importanceLabels[tk.importance]}
+                              </button>
+
+                              <div className="flex items-center gap-1 ml-1">
+                                <Calendar className="w-3 h-3 text-muted-foreground/25" />
+                                <input
+                                  type="date"
+                                  value={tk.dueDate || ""}
+                                  onChange={e => updateTaskDueDate(tk.id, e.target.value)}
+                                  className="text-[9px] font-mono bg-transparent text-muted-foreground/40 hover:text-muted-foreground/70 focus:outline-none border-none cursor-pointer transition-colors"
+                                />
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
                     </div>
 
                     {/* Add task */}
