@@ -21,6 +21,7 @@ export type Database = {
           discord_id: string | null
           email: string | null
           id: string
+          timezone: string | null
           updated_at: string
           user_id: string
           username: string
@@ -31,6 +32,7 @@ export type Database = {
           discord_id?: string | null
           email?: string | null
           id?: string
+          timezone?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -41,6 +43,7 @@ export type Database = {
           discord_id?: string | null
           email?: string | null
           id?: string
+          timezone?: string | null
           updated_at?: string
           user_id?: string
           username?: string
