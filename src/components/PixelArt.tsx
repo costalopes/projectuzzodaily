@@ -40,7 +40,7 @@ export const PixelClock = ({ className = "" }: { className?: string }) => {
   const showColon = seconds % 2 === 0;
 
   return (
-    <div className={`font-mono text-2xl md:text-3xl font-bold tracking-wider ${className}`}>
+    <div className={`font-mono text-sm font-bold tracking-wider ${className}`}>
       <span className="text-primary">{hours}</span>
       <span className={`text-primary transition-opacity duration-200 ${showColon ? "opacity-100" : "opacity-20"}`}>:</span>
       <span className="text-primary">{minutes}</span>

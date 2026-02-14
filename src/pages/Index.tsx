@@ -311,7 +311,7 @@ const Index = () => {
             <div className="flex items-center justify-between gap-3 animate-fade-in shrink-0">
               {/* Left: greeting + stats */}
               <div className="flex items-center gap-3 min-w-0">
-                <h1 className="text-lg md:text-xl font-display font-bold tracking-tight text-foreground leading-tight whitespace-nowrap">
+                <h1 className="text-sm md:text-base font-display font-bold tracking-tight text-foreground leading-tight whitespace-nowrap">
                   {greeting.text}, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pedro</span> {greeting.emoji}
                 </h1>
                 <span className="hidden md:inline text-muted-foreground/40 text-xs font-mono">—</span>
