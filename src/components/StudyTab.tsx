@@ -476,7 +476,7 @@ const TopicOverlay = ({ topic, onClose, onUpdate, onDelete }: TopicOverlayProps)
 
       {/* Card — large, leaves space for cat in bottom-right */}
       <div
-        className="relative bg-card border border-border/40 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] flex flex-col animate-enter mr-0 md:mr-32"
+        className="relative bg-card border border-border/40 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] flex flex-col animate-enter"
         style={{ animationDuration: "300ms" }}
         onClick={e => e.stopPropagation()}
       >
