@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { PixelClock } from "@/components/PixelArt";
 import { PixelCatCorner, type CatEvent } from "@/components/PixelCatCorner";
@@ -53,6 +55,7 @@ const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon: typeof LayoutList
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
   const greeting = getGreeting();
   const today = new Date();
   const dateStr = today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
@@ -338,8 +341,16 @@ const Index = () => {
                     </div>
                   </div>
 
-                  {/* Right: stats + clock */}
+                  {/* Right: stats + clock + logout */}
                   <div className="shrink-0 flex items-center gap-3">
+                    <button onClick={async () => {
+                      await supabase.auth.signOut();
+                      navigate("/auth");
+                    }}
+                      className="hidden md:flex items-center gap-1.5 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg hover:bg-destructive/20 transition-all text-xs text-destructive font-mono group">
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>logout</span>
+                    </button>
                     <div className="hidden md:flex items-center gap-2 h-16">
                       {/* Progress */}
                       <div className="bg-muted/20 border border-border/20 rounded-xl px-4 py-3 h-full flex flex-col justify-between">
