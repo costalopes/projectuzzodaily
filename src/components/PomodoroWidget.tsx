@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -166,19 +167,26 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
         <h3 className="text-sm font-semibold tracking-wide text-foreground flex items-center gap-2">
           🍅 <span className="uppercase font-mono text-xs tracking-widest">Pomodoro</span>
         </h3>
-        <div className="flex items-center bg-muted/30 rounded-full p-0.5">
+        <div className="flex items-center bg-muted/30 rounded-full p-0.5 relative">
           {(Object.keys(MODE_LABELS) as TimerMode[]).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
               className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-semibold transition-all",
+                "relative px-3 py-1 rounded-full text-[10px] font-semibold transition-all z-10",
                 mode === m
-                  ? "bg-primary text-primary-foreground shadow-md"
+                  ? "text-primary-foreground"
                   : "text-muted-foreground/60 hover:text-foreground"
               )}
             >
-              {MODE_LABELS[m]}
+              {mode === m && (
+                <motion.div
+                  layoutId="pomodoro-mode"
+                  className="absolute inset-0 bg-primary rounded-full shadow-md"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10">{MODE_LABELS[m]}</span>
             </button>
           ))}
         </div>
@@ -207,21 +215,30 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
         </div>
 
         {/* Transition message */}
-        {transitionMessage && (
-          <div className="animate-fade-in text-center">
-            <span className="text-xs font-mono text-primary animate-pulse">{transitionMessage}</span>
-          </div>
-        )}
+        <AnimatePresence>
+          {transitionMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="text-center"
+            >
+              <span className="text-xs font-mono text-primary animate-pulse">{transitionMessage}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Controls */}
         <div className="flex items-center gap-3">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.85, rotate: -90 }}
             onClick={() => setTimeLeft(DURATIONS[mode])}
             className="bg-muted/30 text-muted-foreground rounded-full w-10 h-10 flex items-center justify-center hover:bg-muted/50 transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             onClick={() => setIsRunning(!isRunning)}
             className={cn(
               "text-primary-foreground rounded-full w-14 h-14 flex items-center justify-center hover:opacity-90 transition-all shadow-lg",
@@ -229,14 +246,25 @@ export const PomodoroWidget = ({ onTimerEnd, onTimerStart }: PomodoroProps) => {
               isRunning && "shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
             )}
           >
-            {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </button>
-          <button
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isRunning ? "pause" : "play"}
+                initial={{ scale: 0, rotate: -90 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 90 }}
+                transition={{ duration: 0.15 }}
+              >
+                {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              </motion.div>
+            </AnimatePresence>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.85 }}
             onClick={skip}
             className="bg-muted/30 text-muted-foreground rounded-full w-10 h-10 flex items-center justify-center hover:bg-muted/50 transition-colors"
           >
             <SkipForward className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
 
         {/* Sessions */}

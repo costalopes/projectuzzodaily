@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Droplets, Plus, Minus, Settings2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface WaterTrackerProps {
   onWaterEvent?: (type: "water_add" | "water_low" | "water_full") => void;
@@ -14,17 +15,22 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
   });
   const [showConfig, setShowConfig] = useState(false);
   const [customGoal, setCustomGoal] = useState("");
+  const [pulse, setPulse] = useState(false);
 
   const goalMl = goal * 1000;
   const add = () => {
     const newMl = Math.min(ml + 250, goalMl);
     setMl(newMl);
+    setPulse(true);
+    setTimeout(() => setPulse(false), 300);
     if (newMl >= goalMl) onWaterEvent?.("water_full");
     else onWaterEvent?.("water_add");
   };
   const remove = () => {
     const newMl = Math.max(ml - 250, 0);
     setMl(newMl);
+    setPulse(true);
+    setTimeout(() => setPulse(false), 300);
     if (newMl === 0) onWaterEvent?.("water_low");
   };
   const pct = Math.min((ml / goalMl) * 100, 100);
@@ -53,30 +59,49 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
           água
         </h3>
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-mono text-primary font-bold">{liters}L/{goal}L</span>
+          <motion.span
+            key={liters}
+            initial={{ scale: 1.3, color: "hsl(var(--primary))" }}
+            animate={{ scale: 1, color: "hsl(var(--primary))" }}
+            className="text-[10px] font-mono text-primary font-bold"
+          >
+            {liters}L/{goal}L
+          </motion.span>
           <button onClick={() => setShowConfig(!showConfig)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
             <Settings2 className="w-3 h-3" />
           </button>
         </div>
       </div>
 
-      {showConfig && (
-        <div className="mb-2 animate-fade-in">
-          <p className="text-[8px] font-mono text-muted-foreground/50 mb-1">// meta diária (litros)</p>
-          <div className="flex gap-1 items-center">
-            <input type="number" step="0.1" min="0.5" max="10"
-              value={customGoal || goal}
-              onChange={(e) => setCustomGoal(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCustomGoal()}
-              onBlur={handleCustomGoal}
-              className="w-full bg-muted/40 border border-border rounded-lg px-2 py-1 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
-              placeholder="ex: 2.5" />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showConfig && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden mb-2"
+          >
+            <p className="text-[8px] font-mono text-muted-foreground/50 mb-1">// meta diária (litros)</p>
+            <div className="flex gap-1 items-center">
+              <input type="number" step="0.1" min="0.5" max="10"
+                value={customGoal || goal}
+                onChange={(e) => setCustomGoal(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCustomGoal()}
+                onBlur={handleCustomGoal}
+                className="w-full bg-muted/40 border border-border rounded-lg px-2 py-1 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                placeholder="ex: 2.5" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Water jug pixel art */}
-      <div className="flex items-center justify-center py-1">
+      <motion.div
+        className="flex items-center justify-center py-1"
+        animate={pulse ? { scale: [1, 1.05, 1] } : {}}
+        transition={{ duration: 0.3 }}
+      >
         <svg width="56" height="64" viewBox="0 0 28 32" className="image-rendering-pixelated">
           <rect x="22" y="8" width="2" height="1" fill="hsl(var(--primary) / 0.3)" />
           <rect x="24" y="9" width="1" height="6" fill="hsl(var(--primary) / 0.3)" />
@@ -110,30 +135,44 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
             </>
           )}
         </svg>
-      </div>
+      </motion.div>
 
       <div className="flex items-center gap-2 mt-1">
-        <button onClick={remove} disabled={ml === 0}
+        <motion.button onClick={remove} disabled={ml === 0}
+          whileTap={{ scale: 0.85 }}
           className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all border text-xs",
             ml === 0 ? "text-muted-foreground/20 border-border/30 cursor-not-allowed" : "text-muted-foreground border-border hover:text-foreground hover:bg-muted")}>
           <Minus className="w-3 h-3" />
-        </button>
+        </motion.button>
         <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
-          <div className="h-full bg-primary/60 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+          <motion.div
+            className="h-full bg-primary/60 rounded-full"
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
         </div>
-        <button onClick={add} disabled={ml >= goalMl}
+        <motion.button onClick={add} disabled={ml >= goalMl}
+          whileTap={{ scale: 0.85 }}
           className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all border text-xs",
             ml >= goalMl ? "text-muted-foreground/20 border-border/30 cursor-not-allowed" : "text-primary border-primary/30 hover:bg-primary/10")}>
           <Plus className="w-3 h-3" />
-        </button>
+        </motion.button>
       </div>
 
-      <p className="text-[8px] text-center text-muted-foreground/40 mt-1 font-mono">
-        {ml === 0 && "beba água!"}
-        {ml > 0 && ml < goalMl / 2 && "+250ml ✦"}
-        {ml >= goalMl / 2 && ml < goalMl && "quase lá! 💧"}
-        {ml >= goalMl && "meta batida! 🎉"}
-      </p>
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={ml === 0 ? "empty" : ml >= goalMl ? "full" : ml >= goalMl / 2 ? "half" : "low"}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -5 }}
+          className="text-[8px] text-center text-muted-foreground/40 mt-1 font-mono"
+        >
+          {ml === 0 && "beba água!"}
+          {ml > 0 && ml < goalMl / 2 && "+250ml ✦"}
+          {ml >= goalMl / 2 && ml < goalMl && "quase lá! 💧"}
+          {ml >= goalMl && "meta batida! 🎉"}
+        </motion.p>
+      </AnimatePresence>
     </div>
   );
 };
