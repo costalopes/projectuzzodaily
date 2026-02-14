@@ -52,23 +52,23 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
   };
 
   return (
-    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-3 flex flex-col">
-      <div className="flex items-center justify-between mb-1.5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-          <Droplets className="w-3.5 h-3.5 text-primary" />
+    <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-4 flex flex-col">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Droplets className="w-4 h-4 text-primary" />
           água
         </h3>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <motion.span
             key={liters}
             initial={{ scale: 1.3, color: "hsl(var(--primary))" }}
             animate={{ scale: 1, color: "hsl(var(--primary))" }}
-            className="text-[10px] font-mono text-primary font-bold"
+            className="text-xs font-mono text-primary font-bold"
           >
             {liters}L/{goal}L
           </motion.span>
           <button onClick={() => setShowConfig(!showConfig)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors">
-            <Settings2 className="w-3 h-3" />
+            <Settings2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -82,14 +82,14 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
             transition={{ duration: 0.2 }}
             className="overflow-hidden mb-2"
           >
-            <p className="text-[8px] font-mono text-muted-foreground/50 mb-1">// meta diária (litros)</p>
+            <p className="text-[10px] font-mono text-muted-foreground/50 mb-1.5">// meta diária (litros)</p>
             <div className="flex gap-1 items-center">
               <input type="number" step="0.1" min="0.5" max="10"
                 value={customGoal || goal}
                 onChange={(e) => setCustomGoal(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCustomGoal()}
                 onBlur={handleCustomGoal}
-                className="w-full bg-muted/40 border border-border rounded-lg px-2 py-1 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                className="w-full bg-muted/40 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
                 placeholder="ex: 2.5" />
             </div>
           </motion.div>
@@ -102,7 +102,7 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
         animate={pulse ? { scale: [1, 1.05, 1] } : {}}
         transition={{ duration: 0.3 }}
       >
-        <svg width="56" height="64" viewBox="0 0 28 32" className="image-rendering-pixelated">
+        <svg width="64" height="72" viewBox="0 0 28 32" className="image-rendering-pixelated">
           <rect x="22" y="8" width="2" height="1" fill="hsl(var(--primary) / 0.3)" />
           <rect x="24" y="9" width="1" height="6" fill="hsl(var(--primary) / 0.3)" />
           <rect x="23" y="15" width="1" height="1" fill="hsl(var(--primary) / 0.3)" />
@@ -137,14 +137,14 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
         </svg>
       </motion.div>
 
-      <div className="flex items-center gap-2 mt-1">
+      <div className="flex items-center gap-2.5 mt-2">
         <motion.button onClick={remove} disabled={ml === 0}
           whileTap={{ scale: 0.85 }}
-          className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all border text-xs",
+          className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all border text-sm",
             ml === 0 ? "text-muted-foreground/20 border-border/30 cursor-not-allowed" : "text-muted-foreground border-border hover:text-foreground hover:bg-muted")}>
-          <Minus className="w-3 h-3" />
+          <Minus className="w-4 h-4" />
         </motion.button>
-        <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-primary/60 rounded-full"
             animate={{ width: `${pct}%` }}
@@ -153,9 +153,9 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
         </div>
         <motion.button onClick={add} disabled={ml >= goalMl}
           whileTap={{ scale: 0.85 }}
-          className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all border text-xs",
+          className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all border text-sm",
             ml >= goalMl ? "text-muted-foreground/20 border-border/30 cursor-not-allowed" : "text-primary border-primary/30 hover:bg-primary/10")}>
-          <Plus className="w-3 h-3" />
+          <Plus className="w-4 h-4" />
         </motion.button>
       </div>
 
@@ -165,7 +165,7 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -5 }}
-          className="text-[8px] text-center text-muted-foreground/40 mt-1 font-mono"
+          className="text-[10px] text-center text-muted-foreground/40 mt-1.5 font-mono"
         >
           {ml === 0 && "beba água!"}
           {ml > 0 && ml < goalMl / 2 && "+250ml ✦"}
