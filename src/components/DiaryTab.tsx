@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, ChevronLeft, ChevronRight, Trash2, Leaf } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isToday, subDays, addDays, startOfDay } from "date-fns";
@@ -23,23 +23,23 @@ const MOODS = [
   { id: "excited", emoji: "🔥", label: "Animado" },
 ];
 
-// Leaf positions on the tree (x, y offsets from tree center-top area)
+// Leaf positions as percentages relative to tree SVG viewBox (200x300)
 const LEAF_POSITIONS = [
-  { x: -45, y: -160, rotate: -20, scale: 0.9 },
-  { x: 30, y: -170, rotate: 15, scale: 1 },
-  { x: -15, y: -185, rotate: -5, scale: 0.85 },
-  { x: -55, y: -130, rotate: -30, scale: 0.95 },
-  { x: 50, y: -140, rotate: 25, scale: 0.8 },
-  { x: 5, y: -195, rotate: 10, scale: 0.9 },
-  { x: -35, y: -105, rotate: -15, scale: 1 },
-  { x: 40, y: -110, rotate: 20, scale: 0.85 },
-  { x: -60, y: -85, rotate: -25, scale: 0.9 },
-  { x: 55, y: -90, rotate: 30, scale: 0.95 },
-  { x: -20, y: -145, rotate: 5, scale: 0.8 },
-  { x: 25, y: -155, rotate: -10, scale: 1 },
-  { x: -50, y: -60, rotate: -35, scale: 0.85 },
-  { x: 45, y: -65, rotate: 28, scale: 0.9 },
-  { x: 0, y: -200, rotate: 0, scale: 0.75 },
+  { cx: 95, cy: 100, rotate: -20 },
+  { cx: 130, cy: 90, rotate: 15 },
+  { cx: 85, cy: 75, rotate: -5 },
+  { cx: 55, cy: 130, rotate: -30 },
+  { cx: 150, cy: 120, rotate: 25 },
+  { cx: 105, cy: 60, rotate: 10 },
+  { cx: 65, cy: 160, rotate: -15 },
+  { cx: 145, cy: 155, rotate: 20 },
+  { cx: 40, cy: 185, rotate: -25 },
+  { cx: 160, cy: 180, rotate: 30 },
+  { cx: 80, cy: 110, rotate: 5 },
+  { cx: 120, cy: 80, rotate: -10 },
+  { cx: 48, cy: 140, rotate: -35 },
+  { cx: 155, cy: 145, rotate: 28 },
+  { cx: 100, cy: 50, rotate: 0 },
 ];
 
 const LEAF_COLORS = [
@@ -55,87 +55,51 @@ const TreeSVG = ({ leafCount }: { leafCount: number }) => {
   const visibleLeaves = LEAF_POSITIONS.slice(0, Math.min(leafCount, LEAF_POSITIONS.length));
 
   return (
-    <div className="relative w-full h-full flex items-end justify-center pb-4">
-      {/* Tree trunk and branches */}
-      <svg viewBox="0 0 200 300" className="w-full h-full max-w-[180px]" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.2))" }}>
+    <div className="w-full h-full flex items-end justify-center">
+      <svg viewBox="0 0 200 310" className="w-full h-full" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.2))" }}>
         {/* Main trunk */}
         <path d="M95 300 Q93 250 90 220 Q88 200 92 180 Q95 165 98 150 Q100 140 100 130" 
           stroke="hsl(30, 25%, 30%)" strokeWidth="8" fill="none" strokeLinecap="round" />
         <path d="M105 300 Q107 250 110 220 Q112 200 108 180 Q105 165 102 150 Q100 140 100 130" 
           stroke="hsl(30, 25%, 28%)" strokeWidth="7" fill="none" strokeLinecap="round" />
         
-        {/* Branch left-up */}
-        <path d="M92 180 Q75 165 55 145 Q45 135 40 125" 
-          stroke="hsl(30, 25%, 32%)" strokeWidth="4" fill="none" strokeLinecap="round" />
-        {/* Branch right-up */}
-        <path d="M108 175 Q125 160 145 140 Q155 130 160 120" 
-          stroke="hsl(30, 25%, 30%)" strokeWidth="4" fill="none" strokeLinecap="round" />
-        {/* Branch left-mid */}
-        <path d="M90 210 Q70 200 55 195 Q45 192 35 188" 
-          stroke="hsl(30, 25%, 33%)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-        {/* Branch right-mid */}
-        <path d="M110 205 Q130 195 150 188 Q158 185 165 183" 
-          stroke="hsl(30, 25%, 31%)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-        {/* Small top branches */}
-        <path d="M98 145 Q85 125 70 110" 
-          stroke="hsl(30, 25%, 34%)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        <path d="M102 140 Q115 118 130 105" 
-          stroke="hsl(30, 25%, 32%)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        <path d="M100 130 Q98 115 95 100" 
-          stroke="hsl(30, 25%, 35%)" strokeWidth="2" fill="none" strokeLinecap="round" />
-        
-        {/* Tiny twigs */}
+        {/* Branches */}
+        <path d="M92 180 Q75 165 55 145 Q45 135 40 125" stroke="hsl(30, 25%, 32%)" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M108 175 Q125 160 145 140 Q155 130 160 120" stroke="hsl(30, 25%, 30%)" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M90 210 Q70 200 55 195 Q45 192 35 188" stroke="hsl(30, 25%, 33%)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        <path d="M110 205 Q130 195 150 188 Q158 185 165 183" stroke="hsl(30, 25%, 31%)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        <path d="M98 145 Q85 125 70 110" stroke="hsl(30, 25%, 34%)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <path d="M102 140 Q115 118 130 105" stroke="hsl(30, 25%, 32%)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <path d="M100 130 Q98 115 95 100" stroke="hsl(30, 25%, 35%)" strokeWidth="2" fill="none" strokeLinecap="round" />
         <path d="M55 145 Q48 138 42 132" stroke="hsl(30, 25%, 36%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         <path d="M145 140 Q152 133 158 127" stroke="hsl(30, 25%, 36%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         <path d="M70 110 Q62 104 58 98" stroke="hsl(30, 25%, 37%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         <path d="M130 105 Q138 99 142 93" stroke="hsl(30, 25%, 37%)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+
+        {/* Ground */}
+        <ellipse cx="100" cy="305" rx="80" ry="5" fill="hsl(30, 20%, 22%)" opacity="0.3" />
+
+        {/* Leaves rendered inside SVG */}
+        {visibleLeaves.map((pos, i) => (
+          <g key={`leaf-${i}`} transform={`translate(${pos.cx}, ${pos.cy}) rotate(${pos.rotate})`}>
+            <animateTransform
+              attributeName="transform"
+              type="translate"
+              values={`${pos.cx} ${pos.cy}; ${pos.cx} ${pos.cy - 2}; ${pos.cx} ${pos.cy}`}
+              dur={`${3 + (i % 3)}s`}
+              repeatCount="indefinite"
+              additive="sum"
+            />
+            <ellipse cx="0" cy="0" rx="7" ry="4.5"
+              fill={LEAF_COLORS[i % LEAF_COLORS.length]}
+              opacity="0.9"
+            >
+              <animate attributeName="opacity" values="0;0.9" dur="0.5s" begin={`${i * 0.1}s`} fill="freeze" />
+            </ellipse>
+            <line x1="-5" y1="0" x2="5" y2="0" stroke="hsl(120, 30%, 30%)" strokeWidth="0.5" opacity="0.5" />
+          </g>
+        ))}
       </svg>
-
-      {/* Animated leaves */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: "none" }}>
-        <div className="relative" style={{ width: 180, height: 300 }}>
-          <AnimatePresence>
-            {visibleLeaves.map((pos, i) => (
-              <motion.div
-                key={`leaf-${i}`}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ 
-                  scale: pos.scale,
-                  opacity: 1,
-                  y: [0, -3, 0],
-                  rotate: [pos.rotate, pos.rotate + 5, pos.rotate - 3, pos.rotate],
-                }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{
-                  scale: { duration: 0.5, delay: i * 0.1 },
-                  opacity: { duration: 0.4, delay: i * 0.1 },
-                  y: { duration: 3 + (i % 3), repeat: Infinity, ease: "easeInOut", delay: i * 0.3 },
-                  rotate: { duration: 4 + (i % 4), repeat: Infinity, ease: "easeInOut", delay: i * 0.2 },
-                }}
-                className="absolute"
-                style={{
-                  left: `calc(50% + ${pos.x}px)`,
-                  top: `calc(100% + ${pos.y}px)`,
-                }}
-              >
-                <Leaf 
-                  className="w-5 h-5 drop-shadow-sm" 
-                  style={{ color: LEAF_COLORS[i % LEAF_COLORS.length] }}
-                  fill={LEAF_COLORS[i % LEAF_COLORS.length]}
-                  strokeWidth={1}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Ground */}
-      <div className="absolute bottom-0 left-0 right-0 h-6">
-        <svg viewBox="0 0 200 20" className="w-full h-full">
-          <ellipse cx="100" cy="15" rx="80" ry="6" fill="hsl(30, 20%, 22%)" opacity="0.3" />
-        </svg>
-      </div>
     </div>
   );
 };
@@ -388,16 +352,11 @@ export const DiaryTab = () => {
           </div>
         </div>
 
-        {/* Tree column */}
-        <div className="hidden md:flex w-[200px] shrink-0 flex-col items-center justify-end">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="w-full h-[280px] relative"
-          >
+        {/* Tree column - fixed height, doesn't grow */}
+        <div className="hidden md:flex w-[180px] shrink-0 flex-col items-center self-start sticky top-0">
+          <div className="w-full h-[250px]">
             <TreeSVG leafCount={entries.length} />
-          </motion.div>
+          </div>
           <p className="text-[9px] font-mono text-muted-foreground/30 text-center mt-1">
             {entries.length === 0 ? "árvore seca... plante notas!" : `${entries.length} folha${entries.length > 1 ? "s" : ""} 🌿`}
           </p>
