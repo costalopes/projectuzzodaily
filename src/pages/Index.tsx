@@ -220,6 +220,7 @@ const Index = () => {
     if (!newTask.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const todayISO = startOfDay(new Date()).toISOString();
     const { data, error } = await supabase.from("tasks").insert({
       user_id: user.id,
       text: newTask.trim(),
@@ -227,6 +228,7 @@ const Index = () => {
       importance: "média",
       description: "",
       notes: [],
+      due_date: todayISO,
     }).select().single();
     if (data && !error) {
       setTasks((p) => [...p, {
@@ -242,8 +244,9 @@ const Index = () => {
   const startNewTask = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const todayISO2 = startOfDay(new Date()).toISOString();
     const { data, error } = await supabase.from("tasks").insert({
-      user_id: user.id, text: "Nova tarefa", status: "todo", importance: "média", description: "", notes: [],
+      user_id: user.id, text: "Nova tarefa", status: "todo", importance: "média", description: "", notes: [], due_date: todayISO2,
     }).select().single();
     if (data && !error) {
       const draft: Task = {
