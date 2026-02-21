@@ -170,8 +170,13 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [tasks, emitCatEvent]);
 
-  const doneCount = tasks.filter((t) => t.status === "done").length;
-  const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+  const dayTasks = useMemo(() => {
+    if (!viewByDay) return tasks;
+    return tasks.filter((t) => t.dueDate && isSameDay(parseISO(t.dueDate), selectedDay));
+  }, [tasks, viewByDay, selectedDay]);
+
+  const doneCount = dayTasks.filter((t) => t.status === "done").length;
+  const progress = dayTasks.length ? Math.round((doneCount / dayTasks.length) * 100) : 0;
   const streak = doneCount; // streak baseado em tarefas concluídas
 
   const toggleTask = async (id: string) => {
@@ -265,18 +270,9 @@ const Index = () => {
   };
 
   const IMPORTANCE_ORDER: Record<string, number> = { alta: 0, média: 1, baixa: 2 };
-  const filteredTasks = tasks.filter((t) => t.status === filter).sort((a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]);
-  const todoCount = tasks.filter(t => t.status === "todo").length;
-  const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
-
-  // Filter tasks for selected day view
-  const dayFilteredTasks = useMemo(() => {
-    if (!viewByDay) return filteredTasks;
-    return filteredTasks.filter((t) => {
-      if (!t.dueDate) return false;
-      return isSameDay(parseISO(t.dueDate), selectedDay);
-    });
-  }, [filteredTasks, viewByDay, selectedDay]);
+  const filteredTasks = dayTasks.filter((t) => t.status === filter).sort((a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]);
+  const todoCount = dayTasks.filter(t => t.status === "todo").length;
+  const inProgressCount = dayTasks.filter(t => t.status === "in_progress").length;
 
   // Group tasks by due date for day view (legacy grouped view, not used now but kept)
   const groupedByDay = useMemo(() => {
@@ -498,7 +494,7 @@ const Index = () => {
                     )}
                   >
                     <span className="text-foreground/80">{doneCount}</span>
-                    <span className="text-muted-foreground/30 text-xs">/{tasks.length}</span>
+                    <span className="text-muted-foreground/30 text-xs">/{dayTasks.length}</span>
                     <Check className="w-3.5 h-3.5 text-success/50" />
                   </button>
                   <button
@@ -781,8 +777,8 @@ const Index = () => {
                       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden px-2 pb-2">
                         {viewByDay ? (
                           <div className="space-y-1">
-                            {dayFilteredTasks.map((task, idx) => renderTaskRow(task, idx))}
-                            {dayFilteredTasks.length === 0 && (
+                            {filteredTasks.map((task, idx) => renderTaskRow(task, idx))}
+                            {filteredTasks.length === 0 && (
                               <div className="text-center py-6">
                                 <p className="text-xs text-muted-foreground/40 font-mono">// nenhuma tarefa para {selectedDayLabel.toLowerCase()}</p>
                               </div>
