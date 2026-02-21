@@ -103,6 +103,7 @@ export const MiniCalendar = ({ tasks = [], onAddEvent }: MiniCalendarProps) => {
 
   const handleContextMenu = (e: React.MouseEvent, day: number) => {
     e.preventDefault();
+    e.stopPropagation();
     const dk = dateKey(day);
     setContextMenu({ x: e.clientX, y: e.clientY, date: dk });
   };
