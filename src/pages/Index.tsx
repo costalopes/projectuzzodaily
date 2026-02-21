@@ -78,7 +78,7 @@ const Index = () => {
   const [filter, setFilter] = useState<TaskStatus>("todo");
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [viewByDay, setViewByDay] = useState(true);
+  const [viewByDay, setViewByDay] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("tasks");
   const [catEvent, setCatEvent] = useState<CatEvent | null>(null);
@@ -170,14 +170,21 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [tasks, emitCatEvent]);
 
+  // Tasks for today (used for progress bar / counters)
+  const todayTasks = useMemo(() => {
+    const today = startOfDay(new Date());
+    return tasks.filter((t) => t.dueDate && isSameDay(parseISO(t.dueDate), today));
+  }, [tasks]);
+
+  // Tasks for current view (day filter or all)
   const dayTasks = useMemo(() => {
     if (!viewByDay) return tasks;
     return tasks.filter((t) => t.dueDate && isSameDay(parseISO(t.dueDate), selectedDay));
   }, [tasks, viewByDay, selectedDay]);
 
-  const doneCount = dayTasks.filter((t) => t.status === "done").length;
-  const progress = dayTasks.length ? Math.round((doneCount / dayTasks.length) * 100) : 0;
-  const streak = doneCount; // streak baseado em tarefas concluídas
+  const doneCount = todayTasks.filter((t) => t.status === "done").length;
+  const progress = todayTasks.length ? Math.round((doneCount / todayTasks.length) * 100) : 0;
+  const streak = doneCount;
 
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
@@ -497,7 +504,7 @@ const Index = () => {
                     )}
                   >
                     <span className="text-foreground/80">{doneCount}</span>
-                    <span className="text-muted-foreground/30 text-xs">/{dayTasks.length}</span>
+                    <span className="text-muted-foreground/30 text-xs">/{todayTasks.length}</span>
                     <Check className="w-3.5 h-3.5 text-success/50" />
                   </button>
                   <button
