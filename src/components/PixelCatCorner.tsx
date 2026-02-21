@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Settings2, Heart, Zap, X, Utensils, Hand, Moon, Gamepad2, Sparkles, Star, Cookie, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCloudSetting } from "@/hooks/useCloudSetting";
 
 // ═══════════════════════════════════════════════════
 // TYPES
@@ -52,11 +53,51 @@ const OVERFEED_THRESHOLD = 95;
 const OVERPET_THRESHOLD = 90; // affection cap before cat gets annoyed
 
 const clamp = (v: number, min = 0, max = 100) => Math.max(min, Math.min(max, v));
+
+// Legacy localStorage helpers (kept for migration reference)
 const loadStat = (key: string, def: number) => {
   const saved = localStorage.getItem(`cat-${key}`);
   return saved ? parseFloat(saved) : def;
 };
-const saveStat = (key: string, val: number) => localStorage.setItem(`cat-${key}`, String(val));
+
+interface CatPersistentData {
+  name: string;
+  color: number;
+  happiness: number;
+  energy: number;
+  hunger: number;
+  affection: number;
+  xp: number;
+  level: number;
+  lastInteraction: number;
+}
+
+const CAT_DEFAULTS: CatPersistentData = {
+  name: "Miau",
+  color: 0,
+  happiness: 70,
+  energy: 80,
+  hunger: 60,
+  affection: 50,
+  xp: 0,
+  level: 1,
+  lastInteraction: Date.now(),
+};
+
+// Build initial from localStorage for migration
+const buildCatFromLocalStorage = (): CatPersistentData => ({
+  name: localStorage.getItem("cat-name") || CAT_DEFAULTS.name,
+  color: loadStat("color", CAT_DEFAULTS.color),
+  happiness: loadStat("happiness", CAT_DEFAULTS.happiness),
+  energy: loadStat("energy", CAT_DEFAULTS.energy),
+  hunger: loadStat("hunger", CAT_DEFAULTS.hunger),
+  affection: loadStat("affection", CAT_DEFAULTS.affection),
+  xp: loadStat("xp", CAT_DEFAULTS.xp),
+  level: loadStat("level", CAT_DEFAULTS.level),
+  lastInteraction: (() => { const s = localStorage.getItem("cat-last-interaction"); return s ? parseInt(s) : Date.now(); })(),
+});
+
+const CAT_LS_KEYS = ["cat-name", "cat-color", "cat-happiness", "cat-energy", "cat-hunger", "cat-affection", "cat-xp", "cat-level", "cat-last-interaction"];
 
 const getTimeOfDay = () => {
   const h = new Date().getHours();
@@ -113,6 +154,22 @@ const buildMessages = (catName: string): Record<string, string[]> => ({
 // ═══════════════════════════════════════════════════
 
 export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
+  // Cloud-persisted cat data (migrates from localStorage on first load)
+  const [catData, setCatData] = useCloudSetting<CatPersistentData>("cat_data", CAT_DEFAULTS, "cat-data-migration");
+
+  // On first mount, migrate individual localStorage keys if cloud has defaults
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current) return;
+    const hasLocalData = localStorage.getItem("cat-name") !== null || localStorage.getItem("cat-happiness") !== null;
+    if (hasLocalData) {
+      const migrated = buildCatFromLocalStorage();
+      setCatData(migrated);
+      CAT_LS_KEYS.forEach(k => localStorage.removeItem(k));
+    }
+    migratedRef.current = true;
+  }, []);
+
   const [blink, setBlink] = useState(false);
   const [mood, setMood] = useState<CatMood>("coding");
   const [pets, setPets] = useState(0);
@@ -122,36 +179,41 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   const catRef = useRef<HTMLDivElement>(null);
   const [isKneading, setIsKneading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [catName, setCatName] = useState(() => localStorage.getItem("cat-name") || "Miau");
-  const [colorIdx, setColorIdx] = useState(() => {
-    const saved = localStorage.getItem("cat-color");
-    return saved ? parseInt(saved) : 0;
-  });
+
+  // Derived state from cloud data
+  const catName = catData.name;
+  const colorIdx = catData.color;
+  const happiness = catData.happiness;
+  const energy = catData.energy;
+  const hunger = catData.hunger;
+  const affection = catData.affection;
+  const xp = catData.xp;
+  const level = catData.level;
+  const lastInteraction = catData.lastInteraction;
+
+  // Setters that update cloud data
+  const setCatName = (n: string) => setCatData(prev => ({ ...prev, name: n }));
+  const setColorIdx = (i: number) => setCatData(prev => ({ ...prev, color: i }));
+  const setHappiness = (v: number | ((p: number) => number)) => setCatData(prev => ({ ...prev, happiness: typeof v === "function" ? v(prev.happiness) : v }));
+  const setEnergy = (v: number | ((p: number) => number)) => setCatData(prev => ({ ...prev, energy: typeof v === "function" ? v(prev.energy) : v }));
+  const setHunger = (v: number | ((p: number) => number)) => setCatData(prev => ({ ...prev, hunger: typeof v === "function" ? v(prev.hunger) : v }));
+  const setAffection = (v: number | ((p: number) => number)) => setCatData(prev => ({ ...prev, affection: typeof v === "function" ? v(prev.affection) : v }));
+  const setXp = (v: number | ((p: number) => number)) => setCatData(prev => ({ ...prev, xp: typeof v === "function" ? v(prev.xp) : v }));
+  const setLevel = (v: number | ((p: number) => number)) => setCatData(prev => ({ ...prev, level: typeof v === "function" ? v(prev.level) : v }));
+  const setLastInteraction = (v: number) => setCatData(prev => ({ ...prev, lastInteraction: v }));
+
   const lastEventRef = useRef<number>(0);
   const lastClickTime = useRef<number>(0);
   const [sparkles, setSparkles] = useState<number[]>([]);
 
-  // === STATS ===
-  const [happiness, setHappiness] = useState(() => loadStat("happiness", 70));
-  const [energy, setEnergy] = useState(() => loadStat("energy", 80));
-  const [hunger, setHunger] = useState(() => loadStat("hunger", 60));
-  const [affection, setAffection] = useState(() => loadStat("affection", 50));
-
-  // === XP / LEVEL ===
-  const [xp, setXp] = useState(() => loadStat("xp", 0));
-  const [level, setLevel] = useState(() => loadStat("level", 1));
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [dreamItem, setDreamItem] = useState("🐟");
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
+  const [showActionsPanel, setShowActionsPanel] = useState(false);
 
   // === ADVANCED SYSTEMS ===
   const [petCombo, setPetCombo] = useState(0);
   const petComboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [lastInteraction, setLastInteraction] = useState(() => {
-    const saved = localStorage.getItem("cat-last-interaction");
-    return saved ? parseInt(saved) : Date.now();
-  });
-  const [dreamItem, setDreamItem] = useState("🐟");
-  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
-   const [showActionsPanel, setShowActionsPanel] = useState(false);
 
   // === COOLDOWN SYSTEM ===
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
@@ -195,16 +257,9 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
     return () => clearTimeout(t);
   }, [feedCount]);
 
-  // Persist
-  useEffect(() => { saveStat("happiness", happiness); }, [happiness]);
-  useEffect(() => { saveStat("energy", energy); }, [energy]);
-  useEffect(() => { saveStat("hunger", hunger); }, [hunger]);
-  useEffect(() => { saveStat("affection", affection); }, [affection]);
-  useEffect(() => { saveStat("xp", xp); }, [xp]);
-  useEffect(() => { saveStat("level", level); }, [level]);
-
-  const saveName = (n: string) => { setCatName(n); localStorage.setItem("cat-name", n); };
-  const saveColor = (i: number) => { setColorIdx(i); localStorage.setItem("cat-color", String(i)); };
+  // Persistence is handled by useCloudSetting via setCatData
+  const saveName = (n: string) => setCatName(n);
+  const saveColor = (i: number) => setColorIdx(i);
 
   const showMsg = useCallback((msg: string, duration = 3500) => {
     // Typing effect for speech bubble
@@ -253,7 +308,6 @@ export const PixelCatCorner = ({ onTaskComplete, lastEvent }: CatProps) => {
   const recordInteraction = useCallback(() => {
     const now = Date.now();
     setLastInteraction(now);
-    localStorage.setItem("cat-last-interaction", String(now));
   }, []);
 
   const allMessages = buildMessages(catName);

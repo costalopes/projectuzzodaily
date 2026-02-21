@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Coffee, Settings2, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCloudSetting } from "@/hooks/useCloudSetting";
 
 interface CoffeeTrackerProps {
   onCoffeeEvent?: (type: "coffee_add" | "coffee_excess") => void;
@@ -9,10 +10,7 @@ interface CoffeeTrackerProps {
 
 export const CoffeeTracker = ({ onCoffeeEvent }: CoffeeTrackerProps) => {
   const [cups, setCups] = useState(1);
-  const [limit, setLimit] = useState(() => {
-    const saved = localStorage.getItem("coffee-limit");
-    return saved ? parseInt(saved) : 5;
-  });
+  const [limit, setLimit] = useCloudSetting<number>("coffee_limit", 5, "coffee-limit");
   const [showConfig, setShowConfig] = useState(false);
   const [customLimit, setCustomLimit] = useState("");
   const [pulse, setPulse] = useState(false);
@@ -20,7 +18,6 @@ export const CoffeeTracker = ({ onCoffeeEvent }: CoffeeTrackerProps) => {
   const setLimitAndSave = (l: number) => {
     if (l < 1 || l > 20) return;
     setLimit(l);
-    localStorage.setItem("coffee-limit", String(l));
     if (cups > l) setCups(l);
   };
 

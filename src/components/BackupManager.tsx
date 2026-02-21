@@ -1,21 +1,7 @@
 import { useState, useRef } from "react";
 import { Download, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const LOCAL_STORAGE_KEYS = [
-  "pixel-planner-study",
-  "annotations-data",
-  "cat-name",
-  "cat-color",
-  "cat-level",
-  "cat-hunger",
-  "cat-happiness",
-  "cat-energy",
-  "cat-last-interaction",
-  "water-goal-ml",
-  "coffee-limit",
-  "webhook_profile",
-];
+import { supabase } from "@/integrations/supabase/client";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -25,17 +11,22 @@ export const BackupManager = () => {
   const [importMsg, setImportMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setExportStatus("loading");
     try {
-      const backup: Record<string, string | null> = {};
-      LOCAL_STORAGE_KEYS.forEach((key) => {
-        const val = localStorage.getItem(key);
-        if (val !== null) backup[key] = val;
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+
+      const { data } = await supabase
+        .from("user_settings")
+        .select("key, value")
+        .eq("user_id", user.id);
+
+      const backup: Record<string, unknown> = {};
+      (data || []).forEach((row: any) => { backup[row.key] = row.value; });
 
       const blob = new Blob(
-        [JSON.stringify({ _version: 1, _date: new Date().toISOString(), data: backup }, null, 2)],
+        [JSON.stringify({ _version: 2, _date: new Date().toISOString(), data: backup }, null, 2)],
         { type: "application/json" }
       );
       const url = URL.createObjectURL(blob);
@@ -58,19 +49,23 @@ export const BackupManager = () => {
 
     setImportStatus("loading");
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const json = JSON.parse(ev.target?.result as string);
         const data = json.data;
         if (!data || typeof data !== "object") throw new Error("Formato inválido");
 
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not logged in");
+
         let count = 0;
-        Object.entries(data).forEach(([key, val]) => {
-          if (LOCAL_STORAGE_KEYS.includes(key) && typeof val === "string") {
-            localStorage.setItem(key, val);
-            count++;
-          }
-        });
+        for (const [key, value] of Object.entries(data)) {
+          await supabase.from("user_settings").upsert(
+            { user_id: user.id, key, value: value as any },
+            { onConflict: "user_id,key" }
+          );
+          count++;
+        }
 
         setImportMsg(`${count} itens restaurados`);
         setImportStatus("success");
@@ -95,7 +90,7 @@ export const BackupManager = () => {
   return (
     <div className="px-1 py-1.5 border-t border-border/30 mt-1 pt-2">
       <p className="text-[10px] font-mono text-muted-foreground/60 mb-2 flex items-center gap-1.5">
-        <Download className="w-3 h-3" /> Backup de dados locais
+        <Download className="w-3 h-3" /> Backup de dados
       </p>
       <div className="flex gap-1.5">
         <button
@@ -104,7 +99,7 @@ export const BackupManager = () => {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono transition-all",
             exportStatus === "success"
-              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+              ? "bg-primary/15 text-primary border border-primary/20"
               : "bg-muted/40 hover:bg-muted/60 text-foreground/70 border border-border/30"
           )}
         >
@@ -122,7 +117,7 @@ export const BackupManager = () => {
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono transition-all cursor-pointer",
             importStatus === "success"
-              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+              ? "bg-primary/15 text-primary border border-primary/20"
               : importStatus === "error"
                 ? "bg-destructive/10 text-destructive/70 border border-destructive/20"
                 : "bg-muted/40 hover:bg-muted/60 text-foreground/70 border border-border/30"

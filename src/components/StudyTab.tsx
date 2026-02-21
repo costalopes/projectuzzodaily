@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useCloudSetting } from "@/hooks/useCloudSetting";
 import { createPortal } from "react-dom";
 import {
   BookOpen, Plus, ArrowLeft, Link2, Trash2, Check, X,
@@ -104,8 +105,6 @@ const EMOJI_PRESETS = ["📚", "💻", "🧮", "🎨", "🔬", "📐", "🌍", "
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const LS_KEY = "pixel-planner-study";
-const loadSubjects = (): Subject[] => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } };
-const saveSubjects = (s: Subject[]) => localStorage.setItem(LS_KEY, JSON.stringify(s));
 
 const formatTime = (s: number) => {
   const h = Math.floor(s / 3600);
@@ -142,12 +141,10 @@ const HelpTip = ({ text }: { text: string }) => (
 // ── Main Component ─────────────────────────────────────────────
 
 export const StudyTab = () => {
-  const [subjects, setSubjects] = useState<Subject[]>(loadSubjects);
+  const [subjects, setSubjects] = useCloudSetting<Subject[]>("study_subjects", [], LS_KEY);
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<SubjectView>("topics");
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => { saveSubjects(subjects); }, [subjects]);
 
   const subject = subjects.find(s => s.id === activeSubject) ?? null;
 
