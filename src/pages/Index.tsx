@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User, Camera, Globe, Repeat } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User, Camera, Globe, Repeat, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -542,7 +542,13 @@ const Index = () => {
                   <span className="hidden md:inline">dashboard</span>
                 </button>
 
-                {/* Clock */}
+                {/* Financeiro */}
+                <button onClick={() => navigate("/financeiro")}
+                  className="inline-flex items-center gap-2 text-sm font-mono text-muted-foreground/60 hover:text-foreground bg-muted/30 border border-border/20 rounded-lg px-3 h-9 hover:bg-muted/40 transition-all">
+                  <Wallet className="w-4 h-4" />
+                  <span className="hidden md:inline">financeiro</span>
+                </button>
+
                 <PixelClock className="hidden md:flex" timezone={profileData.timezone} />
 
                 {/* Profile */}
