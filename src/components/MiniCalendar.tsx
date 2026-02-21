@@ -52,13 +52,25 @@ export const MiniCalendar = ({ tasks = [], onAddEvent }: MiniCalendarProps) => {
 
   // Close context menu on outside click
   useEffect(() => {
+    if (!contextMenu) return;
     const handler = (e: MouseEvent) => {
       if (contextRef.current && !contextRef.current.contains(e.target as Node)) {
         setContextMenu(null);
       }
     };
-    if (contextMenu) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    // Use click (not mousedown) to avoid closing immediately on the same right-click
+    const timer = setTimeout(() => document.addEventListener("click", handler), 0);
+    const ctxHandler = (e: MouseEvent) => {
+      if (contextRef.current && !contextRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener("contextmenu", ctxHandler);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handler);
+      document.removeEventListener("contextmenu", ctxHandler);
+    };
   }, [contextMenu]);
 
   // Focus input when adding event
