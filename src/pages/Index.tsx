@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BackupManager } from "@/components/BackupManager";
 import deskBanner from "@/assets/desk-banner.jpg";
 
 const getGreeting = () => {
@@ -620,6 +621,8 @@ const Index = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <BackupManager />
 
                     <button onClick={async () => {
                       await supabase.auth.signOut();
