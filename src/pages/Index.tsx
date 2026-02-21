@@ -35,7 +35,10 @@ const getGreeting = () => {
   return { text: "Boa noite", emoji: "🌙", sub: "Sessão noturna de coding!" };
 };
 
-const STATUS_FILTERS: { id: TaskStatus; label: string; icon: typeof Circle }[] = [
+type TaskFilter = TaskStatus | "today";
+
+const STATUS_FILTERS: { id: TaskFilter; label: string; icon: typeof Circle }[] = [
+  { id: "today", label: "// hoje", icon: CalendarIcon },
   { id: "todo", label: "// a fazer", icon: Circle },
   { id: "in_progress", label: "// em progresso", icon: Loader2 },
   { id: "done", label: "// concluídas", icon: Check },
@@ -75,7 +78,7 @@ const Index = () => {
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [taskCompleted, setTaskCompleted] = useState(false);
-  const [filter, setFilter] = useState<TaskStatus>("todo");
+  const [filter, setFilter] = useState<TaskFilter>("today");
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewByDay, setViewByDay] = useState(false);
@@ -280,7 +283,10 @@ const Index = () => {
   };
 
   const IMPORTANCE_ORDER: Record<string, number> = { alta: 0, média: 1, baixa: 2 };
-  const filteredTasks = dayTasks.filter((t) => t.status === filter).sort((a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]);
+  const filteredTasks = (filter === "today"
+    ? todayTasks
+    : dayTasks.filter((t) => t.status === filter)
+  ).sort((a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]);
   const todoCount = dayTasks.filter(t => t.status === "todo").length;
   const inProgressCount = dayTasks.filter(t => t.status === "in_progress").length;
 
@@ -690,7 +696,7 @@ const Index = () => {
                               <span className="relative z-10 flex items-center gap-1.5">
                                 <f.icon className="w-3.5 h-3.5" />
                                 {f.label}
-                                <span className="opacity-50">{tasks.filter(t => t.status === f.id).length}</span>
+                                <span className="opacity-50">{f.id === "today" ? todayTasks.length : tasks.filter(t => t.status === f.id).length}</span>
                               </span>
                             </button>
                           ))}
