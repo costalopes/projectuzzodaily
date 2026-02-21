@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Circle, Check, Loader2, Plus, X, CalendarPlus } from "lucide-react";
 import type { Task } from "@/components/TaskDetailDialog";
@@ -113,12 +113,21 @@ export const MiniCalendar = ({ tasks = [], onAddEvent }: MiniCalendarProps) => {
     return getAllEvents(dk).length > 0 || getTasksForDate(dk).length > 0;
   };
 
-  const handleContextMenu = (e: React.MouseEvent, day: number) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, day: number) => {
     e.preventDefault();
     e.stopPropagation();
     const dk = dateKey(day);
     setContextMenu({ x: e.clientX, y: e.clientY, date: dk });
-  };
+  }, [currentMonth, currentYear]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, day: number) => {
+    if (e.button === 2) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dk = dateKey(day);
+      setContextMenu({ x: e.clientX, y: e.clientY, date: dk });
+    }
+  }, [currentMonth, currentYear]);
 
   const handleAddEventFromContext = () => {
     if (!contextMenu) return;
@@ -214,6 +223,7 @@ export const MiniCalendar = ({ tasks = [], onAddEvent }: MiniCalendarProps) => {
               key={dk}
               onClick={() => setSelectedDate(isSelected ? null : dk)}
               onContextMenu={(e) => handleContextMenu(e, day)}
+              onPointerDown={(e) => handlePointerDown(e, day)}
               className={cn(
                 "aspect-square rounded-lg text-[11px] font-medium flex flex-col items-center justify-center transition-all relative",
                 isSelected && "bg-primary text-primary-foreground ring-2 ring-primary/30 scale-110",
