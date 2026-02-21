@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useCloudSetting } from "@/hooks/useCloudSetting";
 import { ArrowLeft, Send, CheckCircle, XCircle, Loader2, Zap, Bell, Timer, AlertTriangle, Flame, Settings, Power, ChevronUp, Palette, Image as ImageIcon, Type, User, MessageSquare, Code, FileText, Info, AtSign, ChevronDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -115,25 +116,16 @@ interface UserProfile {
   discordUserId: string;
 }
 
-const loadProfile = (): UserProfile => {
-  try {
-    const saved = localStorage.getItem("webhook_profile");
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return { displayName: "App User", discordUserId: "" };
-};
-
 const WebhookDashboard = () => {
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>(DEFAULT_WEBHOOKS);
   const [statuses, setStatuses] = useState<Record<string, TestStatus>>({});
   const [lastResults, setLastResults] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserProfile>(loadProfile);
+  const [profile, setProfile] = useCloudSetting<UserProfile>("webhook_profile", { displayName: "App User", discordUserId: "" }, "webhook_profile");
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("webhook_profile", JSON.stringify(profile));
     // Sync userName across all webhooks
     setWebhooks((prev) => prev.map((w) => ({ ...w, payload: { ...w.payload, userName: profile.displayName } })));
   }, [profile]);

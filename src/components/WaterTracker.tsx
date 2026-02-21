@@ -2,6 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Droplets, Plus, Minus, Settings2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCloudSetting } from "@/hooks/useCloudSetting";
 
 interface WaterTrackerProps {
   onWaterEvent?: (type: "water_add" | "water_low" | "water_full") => void;
@@ -9,10 +10,7 @@ interface WaterTrackerProps {
 
 export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
   const [ml, setMl] = useState(750);
-  const [goal, setGoal] = useState(() => {
-    const saved = localStorage.getItem("water-goal-ml");
-    return saved ? parseFloat(saved) : 2;
-  });
+  const [goal, setGoal] = useCloudSetting<number>("water_goal", 2, "water-goal-ml");
   const [showConfig, setShowConfig] = useState(false);
   const [customGoal, setCustomGoal] = useState("");
   const [pulse, setPulse] = useState(false);
@@ -39,7 +37,6 @@ export const WaterTracker = ({ onWaterEvent }: WaterTrackerProps) => {
   const setGoalAndSave = (g: number) => {
     if (g < 0.5 || g > 10) return;
     setGoal(g);
-    localStorage.setItem("water-goal-ml", String(g));
     if (ml > g * 1000) setMl(g * 1000);
   };
 

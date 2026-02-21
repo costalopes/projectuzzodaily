@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useCloudSetting } from "@/hooks/useCloudSetting";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Plus, Search, Pin, Trash2, FolderOpen, FolderPlus,
@@ -45,23 +46,26 @@ const LANGUAGES = [
 
 type SortMode = "recent" | "alpha" | "starred";
 
-const loadData = (): { notes: Annotation[]; folders: Folder[] } => {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return { notes: [], folders: [] };
-    return JSON.parse(raw);
-  } catch { return { notes: [], folders: [] }; }
-};
-
-const saveData = (notes: Annotation[], folders: Folder[]) => {
-  localStorage.setItem(LS_KEY, JSON.stringify({ notes, folders }));
-};
-
 // ── Main Component ─────────────────────────────────────
 
 export const AnnotationsTab = () => {
-  const [notes, setNotes] = useState<Annotation[]>(() => loadData().notes);
-  const [folders, setFolders] = useState<Folder[]>(() => loadData().folders);
+  const [annotationsData, setAnnotationsData] = useCloudSetting<{ notes: Annotation[]; folders: Folder[] }>(
+    "annotations_data", { notes: [], folders: [] }, LS_KEY
+  );
+  const notes = annotationsData.notes;
+  const folders = annotationsData.folders;
+  const setNotes = (updater: Annotation[] | ((prev: Annotation[]) => Annotation[])) => {
+    setAnnotationsData(prev => ({
+      ...prev,
+      notes: typeof updater === "function" ? updater(prev.notes) : updater,
+    }));
+  };
+  const setFolders = (updater: Folder[] | ((prev: Folder[]) => Folder[])) => {
+    setAnnotationsData(prev => ({
+      ...prev,
+      folders: typeof updater === "function" ? updater(prev.folders) : updater,
+    }));
+  };
   const [activeNote, setActiveNote] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -70,8 +74,6 @@ export const AnnotationsTab = () => {
   const [newFolderName, setNewFolderName] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [filterFolder, setFilterFolder] = useState<string | null>(null);
-
-  useEffect(() => { saveData(notes, folders); }, [notes, folders]);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
