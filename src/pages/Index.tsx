@@ -78,7 +78,7 @@ const Index = () => {
   const [filter, setFilter] = useState<TaskStatus>("todo");
   const [activeTab, setActiveTab] = useState<WidgetTab>("timer");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [viewByDay, setViewByDay] = useState(false);
+  const [viewByDay, setViewByDay] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("tasks");
   const [catEvent, setCatEvent] = useState<CatEvent | null>(null);
