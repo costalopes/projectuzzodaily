@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User, Camera, Globe } from "lucide-react";
+import { Plus, Check, Trash2, Flame, ArrowRight, LayoutList, Image as ImageIcon, Terminal, Timer, CalendarDays, ListChecks, StickyNote, Droplets, Coffee, Circle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, BookOpen, PenLine, FileText, LogOut, Webhook, User, Camera, Globe, Repeat } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import { CodeQuote } from "@/components/CodeQuote";
 import { HabitTracker } from "@/components/HabitTracker";
 import { WaterTracker } from "@/components/WaterTracker";
 import { CoffeeTracker } from "@/components/CoffeeTracker";
-import { TaskDetailDialog, type Task, type TaskStatus } from "@/components/TaskDetailDialog";
+import { TaskDetailDialog, type Task, type TaskStatus, type TaskRecurrence } from "@/components/TaskDetailDialog";
 import { LofiPlayer } from "@/components/LofiPlayer";
 import { StudyTab } from "@/components/StudyTab";
 import { DiaryTab } from "@/components/DiaryTab";
@@ -112,6 +112,7 @@ const Index = () => {
           notes: t.notes || [],
           createdAt: format(new Date(t.created_at), "dd/MM", { locale: ptBR }),
           dueDate: t.due_date || undefined,
+          recurrence: t.recurrence || null,
         })));
       }
       setTasksLoaded(true);
@@ -181,6 +182,30 @@ const Index = () => {
       setTaskCompleted(true);
       setTimeout(() => setTaskCompleted(false), 100);
       emitCatEvent("task_complete");
+
+      // If recurring, create next occurrence
+      if (task.recurrence && task.dueDate) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const currentDue = parseISO(task.dueDate);
+          let nextDue: Date;
+          if (task.recurrence === "daily") nextDue = addDays(currentDue, 1);
+          else if (task.recurrence === "weekly") nextDue = addDays(currentDue, 7);
+          else nextDue = new Date(currentDue.getFullYear(), currentDue.getMonth() + 1, currentDue.getDate());
+
+          const { data } = await supabase.from("tasks").insert({
+            user_id: user.id, text: task.text, status: "todo", importance: task.importance,
+            description: task.description, notes: [], due_date: nextDue.toISOString(), recurrence: task.recurrence,
+          }).select().single();
+          if (data) {
+            setTasks(p => [...p, {
+              id: data.id, text: data.text, status: "todo" as TaskStatus,
+              importance: data.importance as Task["importance"], description: data.description || "",
+              notes: [], createdAt: "agora", dueDate: data.due_date || undefined, recurrence: (data.recurrence as TaskRecurrence) || null,
+            }]);
+          }
+        }
+      }
     }
     setTasks((p) => p.map((t) => t.id === id ? { ...t, status: newStatus } : t));
     await supabase.from("tasks").update({ status: newStatus }).eq("id", id);
@@ -230,6 +255,7 @@ const Index = () => {
     await supabase.from("tasks").update({
       text: updated.text, status: updated.status, importance: updated.importance,
       description: updated.description, notes: updated.notes, due_date: updated.dueDate || null,
+      recurrence: updated.recurrence || null,
     }).eq("id", updated.id);
   };
 
@@ -313,6 +339,12 @@ const Index = () => {
             {task.text}
           </span>
           <div className="flex items-center gap-2 mt-0.5">
+            {task.recurrence && (
+              <span className="text-[10px] font-mono text-primary/50 flex items-center gap-0.5">
+                <Repeat className="w-3 h-3" />
+                {task.recurrence === "daily" ? "diária" : task.recurrence === "weekly" ? "semanal" : "mensal"}
+              </span>
+            )}
             {task.description && (
               <span className="text-xs text-muted-foreground/40 font-mono truncate">{task.description}</span>
             )}

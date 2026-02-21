@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, MessageSquare, FileText, Flag, Plus, Trash2, CalendarIcon } from "lucide-react";
+import { X, MessageSquare, FileText, Flag, Plus, Trash2, CalendarIcon, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskImportance = "alta" | "média" | "baixa";
+export type TaskRecurrence = "daily" | "weekly" | "monthly" | null;
 
 export interface Task {
   id: string;
@@ -17,7 +18,8 @@ export interface Task {
   description: string;
   notes: string[];
   createdAt: string;
-  dueDate?: string; // ISO date string
+  dueDate?: string;
+  recurrence?: TaskRecurrence;
 }
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string; bg: string }> = {
@@ -31,6 +33,13 @@ const IMPORTANCE_CONFIG: Record<TaskImportance, { label: string; color: string }
   média: { label: "Média", color: "text-accent" },
   baixa: { label: "Baixa", color: "text-success" },
 };
+
+const RECURRENCE_CONFIG: { id: TaskRecurrence; label: string }[] = [
+  { id: null, label: "Nenhuma" },
+  { id: "daily", label: "Diária" },
+  { id: "weekly", label: "Semanal" },
+  { id: "monthly", label: "Mensal" },
+];
 
 interface TaskDetailDialogProps {
   task: Task;
@@ -47,22 +56,23 @@ export const TaskDetailDialog = ({ task, isOpen, isNew, onClose, onUpdate, onDel
   const [newNote, setNewNote] = useState("");
   const [importance, setImportance] = useState<TaskImportance>(task.importance);
   const [status, setStatus] = useState<TaskStatus>(task.status);
+  const [recurrence, setRecurrence] = useState<TaskRecurrence>(task.recurrence || null);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    onUpdate({ ...task, text: title, description, importance, status });
+    onUpdate({ ...task, text: title, description, importance, status, recurrence });
   };
 
   const handleClose = () => {
     if (isNew && title.trim()) {
-      onUpdate({ ...task, text: title, description, importance, status });
+      onUpdate({ ...task, text: title, description, importance, status, recurrence });
     }
     onClose();
   };
 
   const handleDueDate = (date: Date | undefined) => {
-    onUpdate({ ...task, text: title, description, importance, status, dueDate: date ? date.toISOString() : undefined });
+    onUpdate({ ...task, text: title, description, importance, status, recurrence, dueDate: date ? date.toISOString() : undefined });
   };
 
   const addNote = () => {
@@ -213,7 +223,32 @@ export const TaskDetailDialog = ({ task, isOpen, isNew, onClose, onUpdate, onDel
             </div>
           </div>
 
-          {/* Description */}
+          {/* Recurrence */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
+              <Repeat className="w-3.5 h-3.5" /> recorrência
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {RECURRENCE_CONFIG.map((r) => (
+                <button
+                  key={r.id ?? "none"}
+                  onClick={() => {
+                    setRecurrence(r.id);
+                    onUpdate({ ...task, text: title, description, importance, status, recurrence: r.id });
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-mono transition-all border",
+                    recurrence === r.id
+                      ? "bg-primary/10 border-primary/20 text-primary"
+                      : "border-border/30 text-muted-foreground/50 hover:bg-muted/30"
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1">
               <FileText className="w-3.5 h-3.5" /> descrição

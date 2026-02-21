@@ -85,6 +85,7 @@ export type Database = {
           id: string
           importance: string
           notes: string[]
+          recurrence: string | null
           status: string
           text: string
           updated_at: string
@@ -97,6 +98,7 @@ export type Database = {
           id?: string
           importance?: string
           notes?: string[]
+          recurrence?: string | null
           status?: string
           text: string
           updated_at?: string
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           importance?: string
           notes?: string[]
+          recurrence?: string | null
           status?: string
           text?: string
           updated_at?: string
